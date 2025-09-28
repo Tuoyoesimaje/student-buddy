@@ -1,0 +1,181 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --secondary: #64748b;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --text: #1e293b;
+  --text-light: #64748b;
+  --border: #e2e8f0;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+
+
+}
+
+/* Dark mode variables */
+.dark {
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --secondary: #94a3b8;
+  --success: #10b981;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --info: #60a5fa;
+  --background: #0f172a;
+  --surface: #1e293b;
+  --text: #f1f5f9;
+  --text-light: #94a3b8;
+  --border: #334155;
+
+
+}
+
+@layer base {
+  body {
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased font-montserrat transition-colors duration-200;
+  }
+}
+
+@layer utilities {
+  .font-montserrat {
+    font-family: 'Montserrat', sans-serif;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900/20 p-6 border border-gray-200 dark:border-gray-700;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #6b7280;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f3f4f6;
+}
+
+.dark body {
+  background-color: #111827;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+} 
+
+/* Add these styles to handle keyboard visibility */
+body.keyboard-visible .fixed.bottom-4.right-4 {
+  display: none !important; /* Hide the chat toggle button when keyboard is visible */
+}
+
+body.keyboard-visible .keyboard-active {
+  position: fixed !important;
+  bottom: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+  height: auto !important;
+  max-height: 60vh !important;
+  width: 100% !important;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure input is always visible above keyboard */
+body.keyboard-visible .keyboard-active form {
+  position: sticky;
+  bottom: 0;
+  background-color: #1f2937; /* Match the sidebar bg color */
+  padding-top: 8px;
+  margin-top: auto;
+  z-index: 10;
+}

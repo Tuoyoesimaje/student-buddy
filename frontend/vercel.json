@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist",
+        "buildCommand": "node vercel-build.js"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/_next/static/(.*)",
+      "dest": "/_next/static/$1"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/(.*\\.(?:js|css|json|woff|woff2|ttf|eot|svg|png|jpg|jpeg|gif|ico|webp|webmanifest))",
+      "dest": "/$1"
+    },
+    {
+      "src": "/sw.js",
+      "dest": "/sw.js",
+      "headers": {
+        "Cache-Control": "no-cache",
+        "Service-Worker-Allowed": "/",
+        "Content-Type": "application/javascript"
+      }
+    },
+    {
+      "src": "/workbox-(.*).js",
+      "dest": "/workbox-$1.js",
+      "headers": {
+        "Cache-Control": "no-cache",
+        "Content-Type": "application/javascript"
+      }
+    },
+    {
+      "src": "/manifest.webmanifest",
+      "dest": "/manifest.webmanifest",
+      "headers": {
+        "Content-Type": "application/manifest+json"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}
