@@ -78,16 +78,20 @@ const tools = {
   },
   get_course_topics: {
     name: 'get_course_topics',
-    description: 'Get topics for a specific course.',
+    description: 'Get detailed topics for a specific course including topic names, descriptions, understanding, challenges, and schedule dates.',
     parameters: {
       type: 'object',
       properties: {
         courseId: {
           type: 'string',
-          description: 'The ID of the course to get topics for.'
+          description: 'The ID of the course to get topics for. Can also provide courseName instead.'
+        },
+        courseName: {
+          type: 'string',
+          description: 'The name of the course to get topics for. Can also provide courseId instead.'
         }
       },
-      required: ['courseId']
+      required: []
     }
   },
   find_resources: {
@@ -216,32 +220,55 @@ Guidelines:
         };
         
       case 'get_course_topics':
-        if (!args.courseId) {
-          console.error(`get_course_topics: Missing courseId for userId: ${userId}`);
-          return { error: 'Course ID is required to fetch topics.' };
+        if (!args.courseId && !args.courseName) {
+          console.error(`get_course_topics: Missing courseId or courseName for userId: ${userId}`);
+          return { error: 'Either courseId or courseName is required to fetch topics.' };
         }
-        console.log(`get_course_topics: Fetching topics for courseId: ${args.courseId} and userId: ${userId}`);
+        console.log(`get_course_topics: Fetching topics for courseId: ${args.courseId} or courseName: ${args.courseName} and userId: ${userId}`);
 
-        let actualCourseId = args.courseId;
+        let actualCourseId;
 
-        // Check if courseId is a valid ObjectId, if not, try to find course by name
-        if (!mongoose.Types.ObjectId.isValid(args.courseId)) {
-          console.log(`get_course_topics: courseId "${args.courseId}" is not a valid ObjectId, searching by course name`);
+        // If courseName is provided, find the course by name
+        if (args.courseName) {
+          console.log(`get_course_topics: Searching for course by name: "${args.courseName}"`);
           const course = await Course.findOne({
             $or: [
-              { name: args.courseId },
-              { name: { $regex: new RegExp(args.courseId, 'i') } }
+              { name: args.courseName },
+              { name: { $regex: new RegExp(args.courseName, 'i') } }
             ],
             user: userId
           });
 
           if (!course) {
-            console.log(`get_course_topics: No course found with name "${args.courseId}" for userId: ${userId}`);
-            return { error: `No course found with name "${args.courseId}". Please check the course name.` };
+            console.log(`get_course_topics: No course found with name "${args.courseName}" for userId: ${userId}`);
+            return { error: `No course found with name "${args.courseName}". Please check the course name.` };
           }
 
           actualCourseId = course._id;
           console.log(`get_course_topics: Found course "${course.name}" with ID: ${actualCourseId}`);
+        } else {
+          // Use provided courseId
+          actualCourseId = args.courseId;
+
+          // Check if courseId is a valid ObjectId, if not, try to find course by name
+          if (!mongoose.Types.ObjectId.isValid(args.courseId)) {
+            console.log(`get_course_topics: courseId "${args.courseId}" is not a valid ObjectId, searching by course name`);
+            const course = await Course.findOne({
+              $or: [
+                { name: args.courseId },
+                { name: { $regex: new RegExp(args.courseId, 'i') } }
+              ],
+              user: userId
+            });
+
+            if (!course) {
+              console.log(`get_course_topics: No course found with name "${args.courseId}" for userId: ${userId}`);
+              return { error: `No course found with name "${args.courseId}". Please check the course name.` };
+            }
+
+            actualCourseId = course._id;
+            console.log(`get_course_topics: Found course "${course.name}" with ID: ${actualCourseId}`);
+          }
         }
 
         const topics = await CourseTopic.find({
@@ -257,14 +284,20 @@ Guidelines:
           return { message: 'No topics found for this course. Would you like to add some topics in the Settings page?' };
         }
 
+        const mappedTopics = topics.map(topic => ({
+          id: topic._id.toString(),
+          topic: topic.topicName,
+          description: topic.about || '',
+          understanding: topic.understanding || '',
+          challenges: topic.challenges || '',
+          weekDate: topic.weekDate
+        }));
+
+        console.log(`get_course_topics: Mapped topics:`, JSON.stringify(mappedTopics, null, 2));
+
         return {
           success: true,
-          topics: topics.map(topic => ({
-            id: topic._id.toString(),
-            topic: topic.topic,
-            description: topic.description || '',
-            weekDate: topic.weekDate
-          }))
+          topics: mappedTopics
         };
         
 
@@ -551,13 +584,16 @@ router.post('/chat', authenticateToken, async (req, res) => {
             systemInstruction: { role: 'system', parts: [{ text: SYSTEM_PROMPT }] }
           });
           
-          // Create a summary of tool results for the model 
+          // Create a summary of tool results for the model
           const toolSummary = toolResults
             .filter(result => result && !result.error)
             .map(result => {
               if (result.message) return result.message;
               if (result.courses) return `Found ${result.courses.length} courses: ${result.courses.map(c => c.name).join(', ')}`;
-              if (result.topics) return `Found ${result.topics.length} topics`;
+              if (result.topics) {
+                const topicsSummary = result.topics.map(t => `${t.topic} (${t.weekDate})`).join(', ');
+                return `Found ${result.topics.length} topics: ${topicsSummary}`;
+              }
               if (result.studyPlan) return result.studyPlan;
               return 'Task completed successfully';
             })
@@ -617,6 +653,17 @@ router.post('/chat', authenticateToken, async (req, res) => {
           }
           if (result.note && result.note.preview) {
             message += '\n\nNote preview: ' + result.note.preview;
+          }
+          if (result.topics && result.topics.length > 0) {
+            message += '\n\n**Course Topics:**\n';
+            result.topics.forEach((topic, index) => {
+              message += `\n${index + 1}. **${topic.topic}**`;
+              if (topic.description) message += `\n   - Description: ${topic.description}`;
+              if (topic.understanding) message += `\n   - Understanding: ${topic.understanding}`;
+              if (topic.challenges) message += `\n   - Challenges: ${topic.challenges}`;
+              if (topic.weekDate) message += `\n   - Week/Date: ${topic.weekDate}`;
+              message += '\n';
+            });
           }
 
           // Add stats if available (for schedule analysis)
