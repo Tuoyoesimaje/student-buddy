@@ -53,6 +53,16 @@ const Study = () => {
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [success, setSuccess] = useState(null);
 
+  // Practice Exam Mode States
+  const [practiceExamMode, setPracticeExamMode] = useState('prep');
+  const [practiceExamTopic, setPracticeExamTopic] = useState('');
+  const [isLoadingPracticeExam, setIsLoadingPracticeExam] = useState(false);
+  const [practiceExamQuestions, setPracticeExamQuestions] = useState([]);
+  const [practiceExamAnswers, setPracticeExamAnswers] = useState([]);
+  const [currentPracticeQuestion, setCurrentPracticeQuestion] = useState(0);
+  const [practiceExamResults, setPracticeExamResults] = useState(null);
+  const [examId, setExamId] = useState(null);
+
   // Note content from navigation
   const { noteContent, autoGenerate } = location.state || {};
 
@@ -92,6 +102,33 @@ const Study = () => {
     speedster: { id: 'speedster', title: 'Speedster', description: 'Complete a quiz with more than 2 minutes remaining', points: 50 },
     combo3: { id: 'combo3', title: 'Combo Master', description: 'Get 3 correct answers in a row', points: 30 },
     combo5: { id: 'combo5', title: 'Combo Legend', description: 'Get 5 correct answers in a row', points: 50 }
+  };
+
+  // API functions
+  const getNotes = async () => {
+    try {
+      const response = await api.get('/api/notes');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+      if (error.response?.status === 401) {
+        throw new Error('Please log in to access this feature');
+      }
+      throw error;
+    }
+  };
+
+  const getCourses = async () => {
+    try {
+      const response = await api.get('/api/courses');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      if (error.response?.status === 401) {
+        throw new Error('Please log in to access this feature');
+      }
+      throw error;
+    }
   };
 
   // Load data

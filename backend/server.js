@@ -19,6 +19,7 @@ const aiService = require('./services/aiService');
 
 
 const noteRoutes = require('./routes/notes'); // Import notes routes
+const practiceExamRoutes = require('./routes/practiceExam'); // Import practice exam routes
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -320,6 +321,7 @@ app.use('/api/study', studyRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/notes', noteRoutes);
+app.use('/api/practice-exam', practiceExamRoutes);
 app.use('/api/note-generation', require('./routes/noteGeneration'));
 
 // Create HTTP server
