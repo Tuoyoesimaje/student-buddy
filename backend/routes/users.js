@@ -6,7 +6,6 @@ const path = require('path');
 const fs = require('fs');
 const authenticateToken = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
-const Task = require('../models/Task');
 
 // Configure multer for profile picture uploads
 const storage = multer.diskStorage({

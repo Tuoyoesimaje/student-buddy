@@ -3,7 +3,6 @@ const router = express.Router();
 const authenticateToken = require('../middleware/auth');
 const Course = require('../models/Course');
 const User = require('../models/User');
-const Task = require('../models/Task');
 const Note = require('../models/Note');
 const CourseTopic = require('../models/CourseTopic');
 
@@ -163,19 +162,11 @@ router.get('/:courseId/details', authenticateToken, async (req, res) => {
     // Placeholder: Replace with actual queries to your models
     const topicsCount = await CourseTopic.countDocuments({ courseId: courseId });
     console.log('topicsCount:', topicsCount);
-    const assignmentsCount = await Task.countDocuments({ course: courseId, type: 'assignment' });
-    console.log('assignmentsCount:', assignmentsCount);
     const notesCount = await Note.countDocuments({ course: courseId });
     console.log('notesCount:', notesCount);
-    const tasksCount = await Task.countDocuments({ course: courseId });
-    console.log('tasksCount:', tasksCount);
 
-    // Fetch next 2 upcoming tasks for this course
-    // Placeholder: Replace with actual query to your Task model
-    const allTasksForCourse = await Task.find({ course: courseId });
-    console.log('All tasks for course:', allTasksForCourse.map(task => ({ title: task.title, endTime: task.endTime })));
-    const upcomingTasks = await Task.find({ course: courseId, endTime: { $gte: new Date() } }).sort({ endTime: 1 }).limit(3);
-    console.log('upcomingTasks:', upcomingTasks);
+    // No upcoming tasks since we removed task management
+    const upcomingTasks = [];
 
     console.log('Querying for upcoming tasks with courseId:', courseId, 'and endTime >=', new Date());
     console.log('Raw upcomingTasks from DB:', upcomingTasks);
@@ -187,15 +178,32 @@ router.get('/:courseId/details', authenticateToken, async (req, res) => {
       semester: course.semester,
       schedule: course.schedule,
       topicsCount,
-      assignmentsCount,
       notesCount,
-      tasksCount,
-      upcomingTasks,
+      upcomingTasks: [],
     });
 
   } catch (error) {
     console.error('Error fetching course details:', error.message);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update topics for a course
+router.put('/:courseId/topics', authenticateToken, async (req, res) => {
+  try {
+    const { topics } = req.body;
+    const course = await Course.findOneAndUpdate(
+      { _id: req.params.courseId, user: req.user.userId },
+      { topics },
+      { new: true }
+    );
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+    res.json(course);
+  } catch (error) {
+    console.error('Error updating topics:', error);
+    res.status(500).json({ message: 'Failed to update topics' });
   }
 });
 

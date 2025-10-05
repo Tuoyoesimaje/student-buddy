@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { apiRequest } from '../services/api';
 import React, { useState, useEffect, useRef } from 'react';
 import FolderCard from '../components/FolderCard';
 import NoteCard from '../components/NoteCard';
@@ -28,7 +28,6 @@ import {
 } from '@heroicons/react/24/outline';
 import ReactDOM from 'react-dom';
 
-import ShareModal from '../components/ShareModal';
 import AINoteProcessor from '../components/AINoteProcessor';
 import { motion } from 'framer-motion';
 import { marked } from 'marked';
@@ -61,9 +60,6 @@ export default function Notes() {
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
   const [selectedNotes, setSelectedNotes] = useState([]);
   const [isMultiSelect, setIsMultiSelect] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [noteToShare, setNoteToShare] = useState(null);
-  const [syncSpaces, setSyncSpaces] = useState([]);
   const [isAddNoteModalOpen, setIsAddNoteModalOpen] = useState(false);
   const [isEditMetadataModalOpen, setIsEditMetadataModalOpen] = useState(false);
   const [noteToEditMetadata, setNoteToEditMetadata] = useState(null);
@@ -96,20 +92,7 @@ export default function Notes() {
 
   const fetchCourses = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const API_URL = `${import.meta.env.VITE_BACKEND_URL}/api/courses`;
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      };
-      const response = await axios.get(API_URL, config);
-
-      const data = response.data;
+      const data = await apiRequest('/courses');
       setCourses(data);
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -117,72 +100,16 @@ export default function Notes() {
     }
   };
 
-  const fetchSyncSpaces = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
-      const config = {
-        headers: { 'Authorization': `Bearer ${token}` },
-      };
-      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/sync-spaces`, config);
-      const data = response.data;
-      setSyncSpaces(data);
-    } catch (error) {
-      console.error('Error fetching sync spaces:', error);
-      setError('Failed to load sync spaces.');
-    }
-  };
 
-  const handleShareNote = (note) => {
-    setNoteToShare(note);
-    fetchSyncSpaces();
-    setIsShareModalOpen(true);
-  };
 
-  const shareNoteToSync = async (syncSpaceId) => {
-    if (!noteToShare) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('No token found');
-
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      };
-
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/notes/share`, { noteId: noteToShare._id, syncSpaceId }, config);
-
-      setSuccess('Note shared successfully!');
-      setIsShareModalOpen(false);
-      setNoteToShare(null);
-    } catch (error) {
-      console.error('Error sharing note:', error);
-      setError('Failed to share note.');
-    }
-  };
 
   const fetchNotes = async () => {
     if (!userId) return;
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      };
-
-      let url = `${import.meta.env.VITE_BACKEND_URL}/api/notes`;
       const params = new URLSearchParams();
 
       if (selectedFolder) {
@@ -196,35 +123,32 @@ export default function Notes() {
         params.append('sortOrder', sortOrder);
       }
 
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
+      const queryString = params.toString();
+      const endpoint = `/notes${queryString ? `?${queryString}` : ''}`;
 
-      console.log('Fetching notes with URL:', url); // Add this line
-      const response = await axios.get(url, config);
- 
-        const data = response.data;
-        
-        // Sort notes
-        const sortedNotes = sortNotes(data);
-        setNotes(sortedNotes);
- 
-        // Process folders from notes
-        const folderMap = {};
-        data.forEach(note => {
-          if (note.subject) {
-            folderMap[note.subject] = (folderMap[note.subject] || 0) + 1;
-          }
-        });
- 
-        // Update folders state with note counts
-        const updatedFolders = Object.keys(folderMap).map(folderName => ({
-          id: folderName, // Using name as id for simplicity
-          name: folderName,
-          noteCount: folderMap[folderName],
-          color: 'text-blue-500' // Default color, can be customized
-        }));
-        setFolders(updatedFolders);
+      console.log('Fetching notes with endpoint:', endpoint);
+      const data = await apiRequest(endpoint);
+
+      // Sort notes
+      const sortedNotes = sortNotes(data);
+      setNotes(sortedNotes);
+
+      // Process folders from notes
+      const folderMap = {};
+      data.forEach(note => {
+        if (note.subject) {
+          folderMap[note.subject] = (folderMap[note.subject] || 0) + 1;
+        }
+      });
+
+      // Update folders state with note counts
+      const updatedFolders = Object.keys(folderMap).map(folderName => ({
+        id: folderName, // Using name as id for simplicity
+        name: folderName,
+        noteCount: folderMap[folderName],
+        color: 'text-blue-500' // Default color, can be customized
+      }));
+      setFolders(updatedFolders);
     } catch (error) {
       console.error('Error fetching notes:', error);
       setError('Failed to load notes. Please try again.');
@@ -775,13 +699,13 @@ export default function Notes() {
 
   const handleCopyNote = async () => {
     if (!selectedNote) return;
-    
+
     try {
       // Strip HTML tags for plain text copy
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = selectedNote.content;
       const plainText = tempDiv.textContent || tempDiv.innerText || '';
-      
+
       // Copy to clipboard
       await navigator.clipboard.writeText(plainText);
       setSuccess('Note copied to clipboard!');
@@ -789,6 +713,11 @@ export default function Notes() {
       console.error('Error copying note:', error);
       setError('Failed to copy note. Please try again.');
     }
+  };
+
+  const handleGenerateQuiz = (noteContent) => {
+    // Navigate to Study page with note content for quiz generation
+    window.location.href = `/app/study?noteContent=${encodeURIComponent(noteContent)}`;
   };
 
   const filteredNotes = notes.filter(note => {
@@ -1160,7 +1089,6 @@ export default function Notes() {
                   />
                 )}
                 <NoteCard
-                  onShare={handleShareNote}
                   key={note._id}
                   note={note}
                   index={index}
@@ -1199,6 +1127,14 @@ export default function Notes() {
                 title="Copy note to clipboard"
               >
                 <ClipboardIcon className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => handleGenerateQuiz(selectedNote.content)}
+                className="p-2 rounded-full text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors"
+                aria-label="Generate Quiz from Note"
+                title="Generate quiz from this note"
+              >
+                <AcademicCapIcon className="w-6 h-6" />
               </button>
               <button
                 onClick={() => {
@@ -1363,13 +1299,6 @@ export default function Notes() {
 
 
 
-      {/* Share Modal */}
-      <ShareModal
-        isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
-        syncSpaces={syncSpaces}
-        onShare={shareNoteToSync}
-      />
 
       {/* AI Explanation Modal */}
       {isExplanationModalOpen && (

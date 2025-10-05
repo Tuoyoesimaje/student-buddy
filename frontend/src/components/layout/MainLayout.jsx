@@ -15,9 +15,9 @@ import {
   ClipboardDocumentCheckIcon, // Added for Practice Exam
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../context/AuthContext';
-import { SocketProvider } from '../../context/SocketContext';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { QuickThemeToggle } from '../ThemeToggle';
+import FloatingAIAssistant from '../FloatingAIAssistant';
 
 const MainLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -26,10 +26,9 @@ const MainLayout = () => {
 
 
   const navigation = [
-    { name: 'Sync Spaces', href: '/app/sync-spaces', icon: UsersIcon },
-    { name: 'Active Learning', href: '/app/study', icon: AcademicCapIcon },
-    { name: 'Chatbot', href: '/app/chatbot', icon: ChatBubbleLeftRightIcon },
     { name: 'Notes', href: '/app/notes', icon: DocumentTextIcon },
+    { name: 'Study', href: '/app/study', icon: AcademicCapIcon },
+    { name: 'Practice Exam', href: '/app/practice-exam', icon: ClipboardDocumentCheckIcon },
     { name: 'Settings', href: '/app/settings', icon: Cog6ToothIcon },
   ];
 
@@ -183,12 +182,13 @@ const MainLayout = () => {
       <div className={`flex-1 pt-16 overflow-y-auto ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'} transition-all duration-300 ease-in-out`}>
         <div className="">
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow dark:shadow-gray-900/20">
-            <SocketProvider>
             <Outlet />
-            </SocketProvider>
           </div>
         </div>
       </div>
+
+      {/* Floating AI Assistant */}
+      <FloatingAIAssistant />
     </div>
   );
 };

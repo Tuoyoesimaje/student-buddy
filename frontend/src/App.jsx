@@ -9,11 +9,8 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Lazy load non-critical components
 const Notes = React.lazy(() => import('./pages/Notes'));
-const Chatbot = React.lazy(() => import('./pages/Chatbot'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const Study = React.lazy(() => import('./pages/Study'));
-const SyncSpaces = React.lazy(() => import('./pages/SyncSpaces'));
-const SyncSpace = React.lazy(() => import('./components/SyncSpace'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
 // Practice Exam pages
@@ -56,12 +53,12 @@ const App = () => {
         {/* Public routes */}
         <Route path="/login" element={
           <Suspense fallback={<LoadingFallback />}>
-            {!isAuthenticated ? <Login /> : <Navigate to="/app/sync-spaces" />}
+            {!isAuthenticated ? <Login /> : <Navigate to="/app/notes" />}
           </Suspense>
         } />
         <Route path="/register" element={
           <Suspense fallback={<LoadingFallback />}>
-            {!isAuthenticated ? <Register /> : <Navigate to="/app/sync-spaces" />}
+            {!isAuthenticated ? <Register /> : <Navigate to="/app/notes" />}
           </Suspense>
         } />
 
@@ -76,15 +73,10 @@ const App = () => {
             </PrivateRoute>
           }
         >
-          <Route index element={<Navigate to="/app/sync-spaces" />} />
+          <Route index element={<Navigate to="/app/notes" />} />
           <Route path="notes" element={
             <Suspense fallback={<LoadingFallback />}>
               <Notes />
-            </Suspense>
-          } />
-          <Route path="chatbot" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <Chatbot />
             </Suspense>
           } />
           <Route path="settings" element={
@@ -95,17 +87,6 @@ const App = () => {
           <Route path="study" element={
             <Suspense fallback={<LoadingFallback />}>
               <Study />
-            </Suspense>
-          } />
-
-          <Route path="sync-spaces" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <SyncSpaces />
-            </Suspense>
-          } />
-          <Route path="sync-space/:id" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <SyncSpace />
             </Suspense>
           } />
           
@@ -120,8 +101,8 @@ const App = () => {
           <Route path="practice-exam/results/:examId" element={<PracticeExamResultsPage />} />
         </Route>
 
-        {/* Redirect authenticated users from root to sync spaces */}
-        <Route path="*" element={isAuthenticated ? <Navigate to="/app/sync-spaces" /> : <Navigate to="/login" />} />
+        {/* Redirect authenticated users from root to notes */}
+        <Route path="*" element={isAuthenticated ? <Navigate to="/app/notes" /> : <Navigate to="/login" />} />
       </Routes>
       <Toaster />
     </>

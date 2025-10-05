@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
   ClockIcon,
@@ -11,9 +11,11 @@ import {
   XMarkIcon,
   PlusIcon,
   ArrowLeftIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import api from '../utils/axios';
 import { toast } from 'react-hot-toast';
+import NoteGenerationModal from '../components/NoteGenerationModal';
 
 const Study = () => {
 
@@ -23,8 +25,9 @@ const Study = () => {
   const [isBreak, setIsBreak] = useState(false);
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
 
-  // Navigation hook
+  // Navigation hooks
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Study Mode States
   const [currentMode, setCurrentMode] = useState('main');
@@ -49,6 +52,12 @@ const Study = () => {
   const [quizTopic, setQuizTopic] = useState('');
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [success, setSuccess] = useState(null);
+
+  // Note content from navigation
+  const { noteContent, autoGenerate } = location.state || {};
+
+  // Note generation modal state
+  const [showNoteGenModal, setShowNoteGenModal] = useState(false);
 
   // Refs for timers and intervals
   const timerRef = useRef(null);
@@ -91,12 +100,12 @@ const Study = () => {
       try {
         setIsLoading(true);
         console.log('Loading study data...');
-        
+
         const [notesData, coursesData] = await Promise.all([
           getNotes(),
           getCourses(),
         ]);
-        
+
         setNotes(notesData);
         setCourses(coursesData);
         console.log('Data loaded successfully');
@@ -113,6 +122,24 @@ const Study = () => {
     };
     loadData();
   }, []);
+
+  // Auto-populate quiz generation form if note content provided
+  useEffect(() => {
+    if (autoGenerate && noteContent) {
+      // Extract a topic from the note content for quiz generation
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = noteContent;
+      const plainText = tempDiv.textContent || tempDiv.innerText || '';
+
+      // Extract first meaningful sentence as topic
+      const sentences = plainText.split(/[.!?]+/).filter(s => s.trim().length > 10);
+      const topic = sentences[0]?.trim().substring(0, 100) || 'Note Content';
+
+      setQuizTopic(topic);
+      setCurrentMode('quiz');
+      setQuizMode('prep');
+    }
+  }, [noteContent, autoGenerate]);
 
 
   // Timer Functions
@@ -414,7 +441,7 @@ const Study = () => {
 
   const renderMainScreen = () => (
     <div className="w-full space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
         <button
           onClick={() => setCurrentMode('quiz')}
           className="flex flex-col items-center p-8 bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2"
@@ -431,6 +458,24 @@ const Study = () => {
           <AcademicCapIcon className="w-16 h-16 text-white mb-4" />
           <h3 className="text-xl font-semibold text-white">Practice Exam</h3>
           <p className="text-white/90 mt-2 text-center">Take full practice exams</p>
+        </button>
+
+        <button
+          onClick={() => setShowNoteGenModal(true)}
+          className="flex flex-col items-center p-8 bg-gradient-to-br from-green-400 to-blue-600 text-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+        >
+          <DocumentTextIcon className="w-16 h-16 text-white mb-4" />
+          <h3 className="text-xl font-semibold text-white">Generate Notes</h3>
+          <p className="text-white/90 mt-2 text-center">AI-powered note generation</p>
+        </button>
+
+        <button
+          onClick={() => navigate('/app/notes')}
+          className="flex flex-col items-center p-8 bg-gradient-to-br from-indigo-400 to-purple-600 text-white rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 ease-in-out transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          <DocumentTextIcon className="w-16 h-16 text-white mb-4" />
+          <h3 className="text-xl font-semibold text-white">My Notes</h3>
+          <p className="text-white/90 mt-2 text-center">View and edit your notes</p>
         </button>
 
       </div>
@@ -802,6 +847,17 @@ return (
       {currentMode === 'quiz' && quizMode === 'prep' && renderQuizSetupScreen()}
       {currentMode === 'quiz' && quizMode !== 'prep' && renderQuizScreen()}
     </div> {/* Closing the main content div */}
+
+    <NoteGenerationModal
+      isOpen={showNoteGenModal}
+      onClose={() => setShowNoteGenModal(false)}
+      onNoteGenerated={(note) => {
+        // Optionally auto-load for quiz generation
+        setQuizTopic(note.title);
+        setCurrentMode('quiz');
+        setQuizMode('prep');
+      }}
+    />
   </>
 );
 };

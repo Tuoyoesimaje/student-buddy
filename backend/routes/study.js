@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Quiz = require('../models/Quiz');
 const PracticeExam = require('../models/PracticeExam');
-const StudyNote = require('../models/StudyNote');
 const auth = require('../middleware/auth');
 
 // Quiz Routes
@@ -112,55 +111,5 @@ router.post('/practice-exams/submit', auth, async (req, res) => {
   }
 });
 
-// Study Notes Routes
-router.get('/notes', auth, async (req, res) => {
-  try {
-    const notes = await StudyNote.find({ userId: req.user.userId });
-    res.json(notes);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-router.post('/notes', auth, async (req, res) => {
-  try {
-    const note = new StudyNote({
-      ...req.body,
-      userId: req.user.userId
-    });
-    const savedNote = await note.save();
-    res.status(201).json(savedNote);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-router.put('/notes/:id', auth, async (req, res) => {
-  try {
-    const note = await StudyNote.findOne({ _id: req.params.id, userId: req.user.userId });
-    if (!note) {
-      return res.status(404).json({ message: 'Note not found' });
-    }
-
-    Object.assign(note, req.body);
-    note.updatedAt = Date.now();
-    const updatedNote = await note.save();
-    res.json(updatedNote);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-router.delete('/notes/:id', auth, async (req, res) => {
-  try {
-    const note = await StudyNote.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
-    if (!note) {
-      return res.status(404).json({ message: 'Note not found' });
-    }
-    res.json({ message: 'Note deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
 
 module.exports = router;

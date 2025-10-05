@@ -5,8 +5,8 @@ import { FaUser, FaSchool, FaGraduationCap, FaLink, FaImage, FaWhatsapp, FaTwitt
 import api from '../utils/axios';
 import { toast } from 'react-hot-toast';
 import { requestNotificationPermission, showLocalNotification } from '../utils/notifications';
-import { useSocket } from '../context/SocketContext';
 import ThemeToggle from '../components/ThemeToggle';
+import CourseTopicsManager from '../components/CourseTopicsManager';
 
 
 import {
@@ -26,23 +26,11 @@ import {
 const Settings = () => {
   const navigate = useNavigate();
   const { userId, user } = useAuth();
-  const { sendTestNotification, isConnected } = useSocket();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const fileInputRef = useRef(null);
-  const [courseTopics, setCourseTopics] = useState([]);
-  const [selectedCourseId, setSelectedCourseId] = useState(null);
-  const [showTopicsModal, setShowTopicsModal] = useState(false);
-  const [topicForm, setTopicForm] = useState({
-    topicName: '',
-    about: '',
-    understanding: '',
-    challenges: '',
-    weekDate: ''
-  });
-  const [loadingTopics, setLoadingTopics] = useState(false);
 
   // State for new profile fields
   const [formData, setFormData] = useState({
@@ -83,6 +71,7 @@ const Settings = () => {
   const [courses, setCourses] = useState([]);
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
+  const [selectedCourseId, setSelectedCourseId] = useState(null);
   const [courseForm, setCourseForm] = useState({
     name: '',
     code: '',
@@ -125,12 +114,6 @@ const Settings = () => {
     return () => clearInterval(pollInterval);
   }, [userId]);
   
-  // Fetch course topics when a course is selected
-  useEffect(() => {
-    if (selectedCourseId) {
-      fetchCourseTopics(selectedCourseId);
-    }
-  }, [selectedCourseId]);
 
   const fetchUserProfile = async () => {
     try {
@@ -181,86 +164,6 @@ const Settings = () => {
     }
   };
   
-  const fetchCourseTopics = async (courseId) => {
-    try {
-      setLoadingTopics(true);
-      const response = await api.get(`/api/topics/${courseId}`);
-      setCourseTopics(response.data);
-    } catch (error) {
-      console.error('Error fetching course topics:', error);
-      toast.error('Failed to load course topics');
-    } finally {
-      setLoadingTopics(false);
-    }
-  };
-  
-  const handleOpenTopicsModal = (courseId) => {
-    setSelectedCourseId(courseId);
-    setShowTopicsModal(true);
-    // Reset the topic form
-    setTopicForm({
-      topicName: '',
-      about: '',
-      understanding: '',
-      challenges: '',
-      weekDate: ''
-    });
-  };
-  
-  const handleCloseTopicsModal = () => {
-    setShowTopicsModal(false);
-    setSelectedCourseId(null);
-    setCourseTopics([]);
-  };
-  
-  const handleAddTopic = async (e) => {
-    e.preventDefault();
-    try {
-      setProcessing(true);
-      
-      const response = await api.post('/api/topics', {
-        courseId: selectedCourseId,
-        topicName: topicForm.topicName,
-        about: topicForm.about,
-        understanding: topicForm.understanding,
-        challenges: topicForm.challenges,
-        weekDate: topicForm.weekDate
-      });
-
-      // Add the new topic to the list
-      setCourseTopics([...courseTopics, response.data]);
-
-      // Reset the form
-       setTopicForm({
-         topicName: '',
-         about: '',
-         understanding: '',
-         challenges: '',
-         weekDate: ''
-       });
-      
-      toast.success('Topic added successfully!');
-    } catch (error) {
-      console.error('Error adding topic:', error);
-      toast.error('Failed to add topic');
-    } finally {
-      setProcessing(false);
-    }
-  };
-  
-  const handleDeleteTopic = async (topicId) => {
-    try {
-      await api.delete(`/api/topics/${topicId}`);
-      
-      // Remove the deleted topic from the list
-      setCourseTopics(courseTopics.filter(topic => topic._id !== topicId));
-      
-      toast.success('Topic deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting topic:', error);
-      toast.error('Failed to delete topic');
-    }
-  };
 
   const fetchNotificationCount = async () => {
     try {
@@ -441,21 +344,6 @@ const Settings = () => {
 
 
 
-  const testWebSocketNotification = () => {
-    console.log('🔌 Testing Socket.IO notification...');
-    console.log('🔌 Socket.IO connected:', isConnected);
-
-    if (sendTestNotification) {
-      const success = sendTestNotification();
-      if (success) {
-        showLocalNotification('Socket.IO Test', 'Test message sent via Socket.IO!');
-      } else {
-        showLocalNotification('Socket.IO Test', 'Socket.IO not connected.');
-      }
-    } else {
-      showLocalNotification('Socket.IO Test', 'Socket.IO not available.');
-    }
-  };
 
 
 
@@ -900,13 +788,6 @@ const Settings = () => {
                     >
                       Send Test Notification
                   </button>
-                  <button
-                      onClick={testWebSocketNotification}
-                      className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
-                    disabled={processing}
-                    >
-                      Test System
-                  </button>
                 </div>
 
                 {/* Advanced Debug Section - Collapsible */}
@@ -1171,7 +1052,10 @@ const Settings = () => {
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleOpenTopicsModal(course._id)}
+                        onClick={() => {
+                          // Set selected course for topics management
+                          setSelectedCourseId(course._id);
+                        }}
                         className="p-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors duration-200"
                         title="Manage Topics"
                       >
@@ -1205,136 +1089,24 @@ const Settings = () => {
 
       </div>
       
-      {/* Topics Modal */}
-      {showTopicsModal && (
+      {/* Course Topics Management */}
+      {selectedCourseId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-black dark:bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-gray-900/50 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-gray-900/50 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-                  {courses.find(c => c._id === selectedCourseId)?.name} - Topics
+                  {courses.find(c => c._id === selectedCourseId)?.name} - Topics Management
                 </h2>
                 <button
-                  onClick={handleCloseTopicsModal}
+                  onClick={() => setSelectedCourseId(null)}
                   className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 >
                   <XMarkIcon className="w-6 h-6" />
                 </button>
               </div>
 
-              {/* Add Topic Form */}
-              <form onSubmit={handleAddTopic} className="mb-6 p-4 border border-gray-200 dark:border-gray-600 rounded-lg space-y-4 bg-gray-50 dark:bg-gray-700">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Topic Name</label>
-                  <input
-                    type="text"
-                    value={topicForm.topicName}
-                    onChange={(e) => setTopicForm({...topicForm, topicName: e.target.value})}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    required
-                    placeholder="Enter topic name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">What's it about?</label>
-                  <input
-                    type="text"
-                    value={topicForm.about}
-                    onChange={(e) => setTopicForm({...topicForm, about: e.target.value})}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Brief description of what this topic covers"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">What you understand from it</label>
-                  <textarea
-                    value={topicForm.understanding}
-                    onChange={(e) => setTopicForm({...topicForm, understanding: e.target.value})}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    rows="3"
-                    placeholder="What key concepts or ideas do you already understand about this topic?"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Challenges or what you don't understand</label>
-                  <textarea
-                    value={topicForm.challenges}
-                    onChange={(e) => setTopicForm({...topicForm, challenges: e.target.value})}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    rows="3"
-                    placeholder="What parts of this topic are challenging or unclear to you?"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Week/Date</label>
-                  <input
-                    type="text"
-                    value={topicForm.weekDate}
-                    onChange={(e) => setTopicForm({...topicForm, weekDate: e.target.value})}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    required
-                    placeholder="e.g., Week 1 or Sep 15-20"
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={processing}
-                    className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50"
-                  >
-                    {processing ? 'Adding...' : 'Add Topic'}
-                  </button>
-                </div>
-              </form>
-              
-              {/* Topics List */}
-              <div className="space-y-4">
-                <h3 className="font-medium text-gray-700 dark:text-gray-300">Current Topics</h3>
-                {loadingTopics ? (
-                  <div className="flex justify-center items-center h-20">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 dark:border-blue-400"></div>
-                  </div>
-                ) : courseTopics.length > 0 ? (
-                  <div className="divide-y divide-gray-200 dark:divide-gray-600">
-                    {courseTopics.map((topic) => (
-                      <div key={topic._id} className="py-4 border-b border-gray-200 dark:border-gray-600 last:border-b-0">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 dark:text-gray-100">{topic.topicName}</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{topic.weekDate}</p>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteTopic(topic._id)}
-                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 ml-2"
-                          >
-                            <TrashIcon className="w-5 h-5" />
-                          </button>
-                        </div>
-                        {topic.about && (
-                          <div className="mb-2">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">About:</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{topic.about}</p>
-                          </div>
-                        )}
-                        {topic.understanding && (
-                          <div className="mb-2">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Understanding:</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{topic.understanding}</p>
-                          </div>
-                        )}
-                        {topic.challenges && (
-                          <div className="mb-2">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Challenges:</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{topic.challenges}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 dark:text-gray-400 text-center py-4">No topics added yet.</p>
-                )}
-              </div>
+              <CourseTopicsManager courseId={selectedCourseId} />
             </div>
           </div>
         </div>

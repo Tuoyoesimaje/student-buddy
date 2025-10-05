@@ -8,7 +8,7 @@ console.log('Environment:', import.meta.env.MODE);
 console.log('Using API URL:', API_URL);
 
 // Helper function to handle API requests
-const apiRequest = async (endpoint, options = {}) => {
+export const apiRequest = async (endpoint, options = {}) => {
   const url = `${API_URL}${endpoint}`;
   const requestId = Math.random().toString(36).substr(2, 9);
   

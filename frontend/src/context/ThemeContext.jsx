@@ -63,22 +63,8 @@ export const ThemeProvider = ({ children }) => {
         applyTheme('system');
       }
 
-      // If user is authenticated, sync with backend
-      if (isAuthenticated && user) {
-        try {
-          const response = await api.get('/api/users/me');
-          const userTheme = response.data.preferences?.theme || 'system';
-          
-          if (userTheme !== savedTheme) {
-            setTheme(userTheme);
-            applyTheme(userTheme);
-            localStorage.setItem('theme', userTheme);
-          }
-        } catch (error) {
-          console.warn('Failed to load user theme preferences:', error);
-          // Continue with localStorage theme
-        }
-      }
+      // Theme preferences are now stored in localStorage only
+      // No backend sync needed for theme preferences
     } catch (error) {
       console.error('Error loading theme:', error);
       // Fallback to system theme
@@ -96,21 +82,8 @@ export const ThemeProvider = ({ children }) => {
       applyTheme(newTheme);
       localStorage.setItem('theme', newTheme);
 
-      // If user is authenticated, save to backend
-      if (isAuthenticated && user) {
-        try {
-          // Use the correct endpoint format that matches the backend
-          await api.put('/api/users/me/preferences', {
-            preferences: {
-              ...user.preferences,
-              theme: newTheme
-            }
-          });
-        } catch (error) {
-          console.warn('Failed to save theme preference to backend:', error);
-          // Continue with local storage only
-        }
-      }
+      // Theme preferences are now stored in localStorage only
+      // No backend sync needed for theme preferences
     } catch (error) {
       console.error('Error changing theme:', error);
     }
