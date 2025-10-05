@@ -20,7 +20,10 @@ export default function CourseTopicsManager({ courseId }) {
 
   const loadTopics = async () => {
     try {
-      const data = await apiRequest(`/courses/${courseId}`);
+      // Use the detailed endpoint on the backend which returns topics and counts
+      const data = await apiRequest(`/courses/${courseId}/details`);
+      // The backend returns course details; topics may be present under `topics` or `topicsCount`.
+      // If topics are not returned, fall back to an empty array.
       setTopics(data.topics || []);
     } catch (error) {
       console.error('Failed to load topics:', error);

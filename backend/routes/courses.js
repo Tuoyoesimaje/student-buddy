@@ -9,17 +9,9 @@ const CourseTopic = require('../models/CourseTopic');
 // Get all courses for the authenticated user
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    // Assuming courses are stored either in the User model or a separate Course model linked to User
-    // If courses are in User model:
-    const user = await User.findById(req.user.userId).populate('courses'); // Assuming a 'courses' field with references to Course model
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json(user.courses);
-
-    // If courses are in a separate Course model with a userId field:
-    // const courses = await Course.find({ user: req.user.userId });
-    // res.json(courses);
+    // Return full Course documents owned by the user so frontend has access to topics
+    const courses = await Course.find({ user: req.user.userId });
+    res.json(courses);
 
   } catch (error) {
     console.error('Error fetching courses:', error);
@@ -31,23 +23,35 @@ router.get('/', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { name, code, semester, schedule } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Course name is required' });
+    }
 
-    // Assuming courses are stored either in the User model or a separate Course model linked to User
-    // If courses are in a separate Course model with a userId field:
+    // Fetch user to get defaults like school and level
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      console.error('Courses POST: Authenticated user not found:', req.user.userId);
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Use user's school/level as defaults if not provided in the request
+    const schoolVal = req.body.school || user.school || '';
+    const levelVal = req.body.level || user.level || '';
+
     const newCourse = new Course({
-      name,
-      code,
-      semester,
+      name: name.trim(),
+      code: code || '',
+      semester: semester || '',
       schedule: schedule || [],
-      user: req.user.userId // Link course to user
+      user: req.user.userId,
+      school: schoolVal,
+      level: levelVal
     });
     await newCourse.save();
 
-    const user = await User.findById(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    user.courses.push(newCourse._id); // Push the _id of the newly created Course
+    // Push the course id into user's courses array if not already present
+    if (!user.courses) user.courses = [];
+    user.courses.push(newCourse._id);
     await user.save();
 
     res.status(201).json(newCourse);
@@ -138,6 +142,26 @@ router.delete('/:courseId', authenticateToken, async (req, res) => {
 });
 
 // Get detailed information for a specific course
+// Get full course document (used by frontend components)
+router.get('/:courseId', authenticateToken, async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ message: 'Course not found' });
+
+    // Ensure the course belongs to the requesting user
+    if (course.user.toString() !== req.user.userId) {
+      return res.status(403).json({ message: 'Unauthorized: Course does not belong to user' });
+    }
+
+    res.json(course);
+  } catch (error) {
+    console.error('Error fetching course:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get detailed information for a specific course
 router.get('/:courseId/details', authenticateToken, async (req, res) => {
   try {
 
@@ -177,6 +201,8 @@ router.get('/:courseId/details', authenticateToken, async (req, res) => {
       code: course.code,
       semester: course.semester,
       schedule: course.schedule,
+      // Include the topics array so frontend can render/edit topics
+      topics: course.topics || [],
       topicsCount,
       notesCount,
       upcomingTasks: [],

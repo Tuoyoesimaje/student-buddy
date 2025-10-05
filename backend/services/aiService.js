@@ -170,7 +170,7 @@ Please create detailed, well-structured study notes that include:
 4. **Important Points**: Key takeaways and formulas if relevant
 5. **Summary**: Concise overview at the end
 
-Format the notes in a clean, readable structure with headings and bullet points. Make it suitable for studying and quick review.`;
+Format the notes in a clean, readable structure with headings and bullet points. Make it suitable for studying, detailed, long if possible and easy to understand.`;
 
     const result = await this.generateResponse(prompt);
     console.log(`Notes generated successfully for topic: ${topic}`);
