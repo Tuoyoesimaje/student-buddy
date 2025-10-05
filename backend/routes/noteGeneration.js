@@ -4,11 +4,25 @@ const auth = require('../middleware/auth');
 const aiService = require('../services/aiService');
 const Note = require('../models/Note');
 const Course = require('../models/Course');
+const mongoose = require('mongoose');
 
 // Generate note by course/topic
 router.post('/by-course', auth, async (req, res) => {
   try {
     const { courseId, topicName } = req.body;
+    console.log('NoteGeneration /by-course request body:', req.body);
+
+    // Determine user id from token payload (support multiple shapes)
+    const userId = req.user?.userId || req.user?._id || req.user?.id;
+    if (!userId) {
+      console.error('NoteGeneration /by-course: Missing authenticated user on req.user:', req.user);
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Validate courseId (ignore empty string or invalid ids)
+    const courseIdClean = courseId && String(courseId).trim() !== '' && mongoose.Types.ObjectId.isValid(courseId)
+      ? courseId
+      : undefined;
 
     // Find course and topic data
     const course = await Course.findById(courseId);
@@ -34,8 +48,8 @@ router.post('/by-course', auth, async (req, res) => {
     const note = new Note({
       title: `${topic.name} - Generated Notes`,
       content: noteContent,
-      course: courseId,
-      user: req.user.id
+      course: courseIdClean,
+      user: userId
     });
 
     await note.save();
@@ -51,6 +65,19 @@ router.post('/by-course', auth, async (req, res) => {
 router.post('/by-input', auth, async (req, res) => {
   try {
     const { topicName, description, courseId } = req.body;
+    console.log('NoteGeneration /by-input request body:', req.body);
+
+    // Determine user id from token payload (support multiple shapes)
+    const userId = req.user?.userId || req.user?._id || req.user?.id;
+    if (!userId) {
+      console.error('NoteGeneration /by-input: Missing authenticated user on req.user:', req.user);
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Validate courseId (ignore empty string or invalid ids)
+    const courseIdClean = courseId && String(courseId).trim() !== '' && mongoose.Types.ObjectId.isValid(courseId)
+      ? courseId
+      : undefined;
 
     const context = `Topic: ${topicName}\nDescription: ${description}`;
 
@@ -59,8 +86,8 @@ router.post('/by-input', auth, async (req, res) => {
     const note = new Note({
       title: `${topicName} - Generated Notes`,
       content: noteContent,
-      course: courseId,
-      user: req.user.id
+      course: courseIdClean,
+      user: userId
     });
 
     await note.save();

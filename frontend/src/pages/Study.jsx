@@ -889,10 +889,18 @@ return (
       isOpen={showNoteGenModal}
       onClose={() => setShowNoteGenModal(false)}
       onNoteGenerated={(note) => {
-        // Optionally auto-load for quiz generation
-        setQuizTopic(note.title);
-        setCurrentMode('quiz');
-        setQuizMode('prep');
+        // After generating a note, open the Notes page and optionally pass the new note
+        // so the Notes page can highlight or open it.
+        try {
+          if (note && note._id) {
+            navigate('/app/notes', { state: { newNoteId: note._id } });
+          } else {
+            navigate('/app/notes');
+          }
+        } catch (err) {
+          console.error('Navigation after note generation failed:', err);
+          navigate('/app/notes');
+        }
       }}
     />
   </>

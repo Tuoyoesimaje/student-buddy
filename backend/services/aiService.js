@@ -154,6 +154,28 @@ class AIService {
     
     return await this.generateResponse(prompt);
   }
+  async generateNotes(topic, level = 'intermediate', context = '') {
+    console.log(`Generating notes for topic: ${topic}, level: ${level}`);
+
+    const prompt = `Generate comprehensive study notes for the following topic.
+
+Topic: ${topic}
+Level: ${level}
+${context ? `Additional Context:\n${context}` : ''}
+
+Please create detailed, well-structured study notes that include:
+1. **Key Concepts**: Main ideas and definitions
+2. **Detailed Explanations**: Clear explanations of each concept
+3. **Examples**: Practical examples where applicable
+4. **Important Points**: Key takeaways and formulas if relevant
+5. **Summary**: Concise overview at the end
+
+Format the notes in a clean, readable structure with headings and bullet points. Make it suitable for studying and quick review.`;
+
+    const result = await this.generateResponse(prompt);
+    console.log(`Notes generated successfully for topic: ${topic}`);
+    return result;
+  }
 
   async generatePracticeQuestions(topicOrNote) {
     const prompt = `Generate 15 practice exam questions from the following topic or notes.

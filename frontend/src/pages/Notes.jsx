@@ -1,4 +1,5 @@
 import { apiRequest } from '../services/api';
+import api from '../utils/axios';
 import React, { useState, useEffect, useRef } from 'react';
 import FolderCard from '../components/FolderCard';
 import NoteCard from '../components/NoteCard';
@@ -207,7 +208,7 @@ export default function Notes() {
 
       await Promise.all(
         selectedNotes.map(noteId =>
-          axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/notes/${noteId}`, config)
+          api.delete(`/api/notes/${noteId}`, config)
         )
       );
 
@@ -237,7 +238,7 @@ export default function Notes() {
 
       await Promise.all(
         selectedNotes.map(noteId =>
-          axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/notes/${noteId}`, { subject: newFolder }, config)
+          api.put(`/api/notes/${noteId}`, { subject: newFolder }, config)
         )
       );
 
@@ -297,7 +298,7 @@ export default function Notes() {
         }
       };
 
-      const response = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/notes/${selectedNote._id}`, { ...selectedNote, content: editedNoteContent }, config);
+  const response = await api.put(`/api/notes/${selectedNote._id}`, { ...selectedNote, content: editedNoteContent }, config);
 
       const updatedNote = response.data;
       setNotes(prevNotes => prevNotes.map(note => note._id === updatedNote._id ? updatedNote : note));
@@ -326,7 +327,7 @@ export default function Notes() {
           'Authorization': `Bearer ${token}`
         }
       };
-      await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/notes/${noteId}`, config);
+  await api.delete(`/api/notes/${noteId}`, config);
 
       await fetchNotes();
       setSuccess('Note deleted successfully');
@@ -446,7 +447,7 @@ export default function Notes() {
         ...(course && { course }), // Conditionally add course if selected
       };
 
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/notes`, newNoteData, config);
+  const response = await api.post(`/api/notes`, newNoteData, config);
       setNotes([...notes, response.data]);
       toast.success('New note created!');
       setSelectedNote(response.data); // Select the new note
@@ -480,7 +481,7 @@ export default function Notes() {
         }
       };
 
-      const response = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/notes/${noteToEditMetadata._id}`, updatedNoteData, config);
+  const response = await api.put(`/api/notes/${noteToEditMetadata._id}`, updatedNoteData, config);
 
       const updatedNote = response.data;
       setNotes(prevNotes => prevNotes.map(note => note._id === updatedNote._id ? updatedNote : note));
