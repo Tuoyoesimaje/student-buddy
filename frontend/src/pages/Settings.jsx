@@ -4,14 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { FaUser, FaSchool, FaGraduationCap, FaLink, FaImage, FaWhatsapp, FaTwitter } from 'react-icons/fa';
 import api from '../utils/axios';
 import { toast } from 'react-hot-toast';
-import { requestNotificationPermission, showLocalNotification } from '../utils/notifications';
 import ThemeToggle from '../components/ThemeToggle';
 import CourseTopicsManager from '../components/CourseTopicsManager';
 
 
 import {
   UserCircleIcon,
-  BellIcon,
   SunIcon,
   TrashIcon,
   ArrowPathIcon,
@@ -84,34 +82,11 @@ const Settings = () => {
   const [success, setSuccess] = useState('');
   const [processing, setProcessing] = useState(false);
 
-  const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [mobileDebugInfo, setMobileDebugInfo] = useState([]);
 
-  // Helper function to add debug info that shows on screen
-  const addDebugInfo = (message) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setMobileDebugInfo(prev => [...prev.slice(-4), `${timestamp}: ${message}`]);
-  };
 
   useEffect(() => {
     fetchUserProfile();
     fetchCourses();
-    // Check if service worker is registered
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(registration => {
-        registration.pushManager.getSubscription().then(subscription => {
-          setIsSubscribed(!!subscription);
-        });
-      });
-    }
-    // Fetch notification count
-    fetchNotificationCount();
-    
-    // Add polling for notification count updates
-    const pollInterval = setInterval(fetchNotificationCount, 30000); // Poll every 30 seconds
-    return () => clearInterval(pollInterval);
   }, [userId]);
   
 
@@ -165,15 +140,6 @@ const Settings = () => {
   };
   
 
-  const fetchNotificationCount = async () => {
-    try {
-      const response = await api.get('/api/notifications/count');
-      setNotificationCount(response.data.count || 0);
-    } catch (error) {
-      console.error('Error fetching notification count:', error);
-      setNotificationCount(0); // Set to 0 on error
-    }
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -274,71 +240,6 @@ const Settings = () => {
     }
   };
 
-  const handleNotificationToggle = async (setting) => {
-    try {
-      setProcessing(true);
-      setError('');
-      setSuccess('');
-
-      // Optimistically update the local state for responsiveness
-      setUserData(prev => ({
-        ...prev,
-        notifications: {
-          ...prev.notifications,
-          [setting]: !prev.notifications[setting],
-        },
-      }));
-
-      // Get user ID from AuthContext
-      const authenticatedUser = user; // Use the user object from context
-
-      if (!authenticatedUser || !authenticatedUser._id) {
-          // Revert optimistic update if user is not authenticated
-          setUserData(prev => ({
-            ...prev,
-            notifications: {
-              ...prev.notifications,
-              [setting]: !prev.notifications[setting],
-            },
-          }));
-          throw new Error('User not authenticated. Please log in.');
-      }
-
-      // Send update to the backend using the user ID in the URL
-      const updatedNotifications = {
-        ...userData.notifications,
-        [setting]: !userData.notifications[setting], // Calculate the new state
-      };
-
-      const response = await api.put(`/api/users/${authenticatedUser._id}/notifications`, { notifications: updatedNotifications });
-
-      // Optionally update state again with response data if backend confirms the state
-      // setUserData(prev => ({ ...prev, notifications: response.data.notifications }));
-
-      setSuccess('Notification settings updated');
-
-    } catch (error) {
-      console.error('Error updating notification settings:', error);
-      // Revert state if backend update fails
-      setUserData(prev => ({
-        ...prev,
-        notifications: {
-          ...prev.notifications,
-          [setting]: !prev.notifications[setting], // Revert the toggled setting
-        },
-      }));
-      setError(error.response?.data?.message || 'Failed to update notification settings');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const testNotification = () => {
-    showLocalNotification(
-      'Test Notification',
-      'This is a test notification from your dashboard!'
-    );
-  };
 
 
 
@@ -349,41 +250,6 @@ const Settings = () => {
 
 
 
-  // Debug task reminders
-  const debugTaskReminders = async () => {
-    try {
-      addDebugInfo('🔍 Debugging task reminders...');
-
-      // Get detailed task reminder debug info from backend
-      const debugResponse = await api.get('/api/notifications/debug-reminders');
-      const debugData = debugResponse.data;
-
-      addDebugInfo(`Current server time: ${new Date(debugData.currentTime).toLocaleString()}`);
-      addDebugInfo(`User notifications enabled: ${JSON.stringify(debugData.userNotificationPreferences)}`);
-      addDebugInfo(`Found ${debugData.upcomingTasks.length} upcoming tasks`);
-
-      debugData.upcomingTasks.forEach(task => {
-        addDebugInfo(`\n📋 Task: "${task.title}"`);
-        addDebugInfo(`  ⏰ Starts: ${new Date(task.startTime).toLocaleString()}`);
-        addDebugInfo(`  ⏳ Minutes until start: ${task.minutesUntilStart}`);
-        addDebugInfo(`  🔥 Priority: ${task.priority}`);
-        addDebugInfo(`  ✅ Exact reminder sent: ${task.exactTimeReminderSent ? 'YES' : 'NO'}`);
-        addDebugInfo(`  🔔 Will get exact reminder: ${task.willGetExactReminder ? 'YES' : 'NO'}`);
-        addDebugInfo(`  ⚡ Will get pre-reminder: ${task.willGetPreReminder ? 'YES' : 'NO'}`);
-        if (task.exactReminderSentAt) {
-          addDebugInfo(`  📅 Exact reminder sent at: ${new Date(task.exactReminderSentAt).toLocaleString()}`);
-        }
-      });
-
-      addDebugInfo(`\n🔧 Cron Job Info:`);
-      addDebugInfo(`  Exact reminder window: ${debugData.cronJobInfo.exactReminderWindow}`);
-      addDebugInfo(`  Pre-reminder window: ${debugData.cronJobInfo.preReminderWindow}`);
-      addDebugInfo(`  Frequency: ${debugData.cronJobInfo.cronFrequency}`);
-
-    } catch (error) {
-      addDebugInfo(`❌ Debug error: ${error.message}`);
-    }
-  };
 
 
 
@@ -733,122 +599,6 @@ const Settings = () => {
         </div>
 
 
-        {/* Simplified Notification Settings Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900/20 p-6 space-y-6 mt-8 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold flex items-center text-gray-900 dark:text-gray-100">
-              <BellIcon className="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" />
-              Notifications
-              {notificationCount > 0 && (
-                <span className="ml-2 px-2 py-1 text-xs font-semibold text-white bg-red-500 dark:bg-red-600 rounded-full">
-                  {notificationCount}
-                </span>
-              )}
-            </h2>
-          </div>
-          
-          <div className="space-y-4">
-            {/* Push Notifications Toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-gray-700 dark:text-gray-300">Push Notifications</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {notificationPermission === 'granted'
-                    ? 'Notifications are enabled'
-                    : 'Enable notifications to receive updates'}
-                </p>
-            </div>
-              <button
-                onClick={() => handleNotificationToggle('push')}
-                disabled={processing || notificationPermission !== 'granted'}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 ${
-                  userData.notifications.push ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-600'
-                }`}
-                role="switch"
-                aria-checked={userData.notifications.push}
-              >
-                <span className="sr-only">Enable push notifications</span>
-                <span
-                  aria-hidden="true"
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    userData.notifications.push ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* Test Notification Buttons */}
-            {notificationPermission === 'granted' && (
-              <div className="mt-4 space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  <button
-                      onClick={testNotification}
-                      className="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded hover:bg-green-600 dark:hover:bg-green-700 transition-colors"
-                    disabled={processing}
-                    >
-                      Send Test Notification
-                  </button>
-                </div>
-
-                {/* Advanced Debug Section - Collapsible */}
-                <details className="mt-4">
-                  <summary className="cursor-pointer text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium">
-                    🔧 Advanced Debug Tools
-                  </summary>
-                  <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                    <button
-                        onClick={debugTaskReminders}
-                        className="px-3 py-1 bg-purple-500 dark:bg-purple-600 text-white rounded hover:bg-purple-600 dark:hover:bg-purple-700 transition-colors text-sm"
-                      disabled={processing}
-                      >
-                        Debug Task Reminders
-                    </button>
-                  </div>
-                </details>
-              </div>
-            )}
-
-            {/* Mobile Debug Info Display */}
-            {mobileDebugInfo.length > 0 && (
-              <div className="mt-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">📱 Mobile Debug Info</h3>
-                <div className="space-y-1 text-sm font-mono">
-                  {mobileDebugInfo.map((info, index) => (
-                    <div key={index} className="text-gray-700 dark:text-gray-300">
-                      {info}
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setMobileDebugInfo([])}
-                  className="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
-                >
-                  Clear Debug Info
-                </button>
-              </div>
-            )}
-
-            {/* Hidden mandatory notifications */}
-            <div className="hidden">
-              <input
-                type="checkbox"
-                checked={true}
-                readOnly
-                className="hidden"
-                name="taskReminders"
-              />
-              <input
-                type="checkbox"
-                checked={true}
-                readOnly
-                className="hidden"
-                name="studyReminders"
-              />
-            </div>
-          </div>
-
-
-        </div>
 
         {/* Theme Settings */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 space-y-6 mt-8 border border-gray-200 dark:border-gray-700">
