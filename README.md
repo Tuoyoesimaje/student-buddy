@@ -6,10 +6,10 @@ A modern web application for managing study resources, notes, schedules, and pro
 
 - **Note Management:** Rich text editor with AI-powered explanations
 - **AI Study Tools:** Generate notes, explanations, and quizzes
-- **Practice Exams:** Take comprehensive practice exams
-- **Study Sessions:** Gamified quiz experience with achievements and streaks
-- **Real-time Collaboration:** Sync spaces for group work and shared notes
-- **Modern UI:** Dark mode, responsive design, and PWA capabilities
+- **Practice Exams:** Take comprehensive practice exams with detailed results
+- **Study Sessions:** AI-generated quiz experience for effective learning
+- **Course Management:** Organize study materials by courses and topics
+- **Modern UI:** Dark mode, responsive design, and clean interface
 
 ## Tech Stack
 
@@ -109,21 +109,63 @@ student-buddy/
 │   ├── 📁 public/                  # Static assets and PWA files
 │   ├── 📁 src/
 │   │   ├── 📁 components/          # Reusable UI components
+│   │   │   ├── 📁 layout/          # Layout components (MainLayout)
+│   │   │   ├── 📁 ui/              # Base UI components
+│   │   │   ├── AINoteProcessor.jsx  # AI-powered note processing
+│   │   │   ├── FloatingAIAssistant.jsx # AI assistant component
+│   │   │   ├── NoteCard.jsx        # Note display component
+│   │   │   ├── PracticeExam.jsx    # Practice exam components
+│   │   │   ├── RichTextEditor.jsx  # Rich text editing
+│   │   │   └── ThemeToggle.jsx     # Dark/light mode toggle
 │   │   ├── 📁 pages/               # Main page components
+│   │   │   ├── Login.jsx           # Authentication pages
+│   │   │   ├── Register.jsx
+│   │   │   ├── Notes.jsx           # Note management
+│   │   │   ├── Study.jsx           # Study tools and quizzes
+│   │   │   ├── Settings.jsx        # User settings
+│   │   │   └── Practice Exam pages # Exam management
 │   │   ├── 📁 context/             # React contexts
+│   │   │   ├── AuthContext.jsx     # Authentication state
+│   │   │   └── ThemeContext.jsx    # Theme management
 │   │   ├── 📁 hooks/               # Custom hooks
 │   │   ├── 📁 services/            # API services
 │   │   └── 📁 utils/               # Utility functions
-│   └── package.json
+│   ├── package.json                # Frontend dependencies
+│   ├── vite.config.js              # Vite configuration
+│   ├── tailwind.config.js          # Tailwind CSS config
+│   └── postcss.config.js           # PostCSS config
 ├── 📁 backend/                     # Node.js backend application
 │   ├── 📁 controllers/             # Route controllers
+│   │   ├── noteController.js       # Note management logic
+│   │   └── auth.js                 # Authentication logic
 │   ├── 📁 models/                  # Mongoose models
+│   │   ├── User.js                 # User data model
+│   │   ├── Note.js                 # Note data model
+│   │   ├── Course.js               # Course data model
+│   │   ├── CourseTopic.js          # Course topic model
+│   │   ├── PracticeExam.js         # Practice exam model
+│   │   ├── Quiz.js                 # Quiz model
+│   │   └── AIGeneratedPracticeExam.js # AI exam model
 │   ├── 📁 routes/                  # API routes
+│   │   ├── auth.js                 # Authentication endpoints
+│   │   ├── notes.js                # Note CRUD operations
+│   │   ├── courses.js              # Course management
+│   │   ├── practiceExam.js         # Practice exam endpoints
+│   │   ├── study.js                # Study tools
+│   │   ├── users.js                # User management
+│   │   ├── ai.js                   # AI-powered features
+│   │   └── noteGeneration.js       # Note generation
 │   ├── 📁 middleware/              # Custom middleware
+│   │   └── auth.js                 # JWT authentication
 │   ├── 📁 services/                # Business logic services
+│   │   └── aiService.js            # AI integration service
+│   ├── 📁 utils/                   # Utility functions
+│   ├── 📁 uploads/                 # File uploads directory
 │   ├── server.js                   # Main server file
-│   └── socket.js                   # WebSocket configuration
-└── 📄 documentation/               # Project documentation
+│   └── package.json                # Backend dependencies
+├── 📄 PROJECT_DOCUMENTATION.md     # Complete project documentation
+├── 📄 README.md                    # Project overview and setup
+└── 📄 QUICK_REFERENCE.md           # Quick reference guide
 ```
 
 ## Getting Help

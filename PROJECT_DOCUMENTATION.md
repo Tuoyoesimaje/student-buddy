@@ -1,36 +1,31 @@
-# Student Buddy - Complete Project Documentation
+# Student Buddy - Project Documentation
 
 ## 📋 Table of Contents
 1. [Project Overview](#project-overview)
 2. [Technology Stack](#technology-stack)
 3. [Project Structure](#project-structure)
 4. [Architecture Overview](#architecture-overview)
-5. [Frontend Deep Dive](#frontend-deep-dive)
-6. [Backend Deep Dive](#backend-deep-dive)
+5. [Frontend Implementation](#frontend-implementation)
+6. [Backend Implementation](#backend-implementation)
 7. [Database Schema](#database-schema)
 8. [API Documentation](#api-documentation)
-9. [Real-time Features](#real-time-features)
+9. [AI Integration](#ai-integration)
 10. [Authentication & Security](#authentication--security)
-11. [AI Integration](#ai-integration)
-12. [Deployment & DevOps](#deployment--devops)
-13. [Development Workflow](#development-workflow)
-14. [Performance Optimizations](#performance-optimizations)
-15. [Testing Strategy](#testing-strategy)
+11. [Deployment Guide](#deployment-guide)
+12. [Development Setup](#development-setup)
 
 ---
 
 ## 🎯 Project Overview
 
-**Student Buddy** is a comprehensive web application designed to help students manage their academic life efficiently. It combines note-taking, AI-powered assistance, quiz-based learning, collaboration tools, and productivity features in a modern, responsive interface.
+**Student Buddy** is a streamlined web application focused on helping students manage their academic workflow through intelligent note-taking and study tools. The application emphasizes AI-powered assistance for content generation and explanation, combined with a clean, modern interface.
 
-### Key Features
-- **Note Management**: Rich text editing with AI explain functionality
-- **Study Tools**: Course-based quiz generation and practice exams
-- **AI-Powered Features**: Note generation, concept explanations, and quiz creation
-- **Collaboration**: Sync spaces for group work and shared notes
-- **Productivity**: Gamified quiz experience with achievements and streaks
-- **Real-time Communication**: WebSocket-based notifications and chat
-- **Modern UI/UX**: Dark mode, responsive design, and PWA capabilities
+### Current Features
+- **Note Management**: Rich text editing with AI-powered explanations
+- **Study Tools**: AI-generated quizzes and practice exams
+- **AI Integration**: Note generation, concept explanations, and quiz creation
+- **Course Management**: Organize notes and study materials by courses
+- **Modern UI/UX**: Dark mode, responsive design, and clean interface
 
 ---
 
@@ -39,20 +34,16 @@
 ### Frontend Stack
 ```json
 {
-  "framework": "React 18.2.0",
-  "routing": "React Router DOM 7.6.2",
-  "styling": "Tailwind CSS 3.3.3",
-  "animations": "Framer Motion 10.18.0",
+  "framework": "React 18",
+  "routing": "React Router DOM",
+  "styling": "Tailwind CSS",
   "state_management": "React Context + Hooks",
-  "build_tool": "Vite 5.0.0",
-  "ui_components": "Radix UI + Custom Components",
-  "icons": "Heroicons + React Icons",
-  "charts": "Chart.js + React Chart.js 2",
-  "pdf_handling": "React PDF + html2pdf.js",
-  "rich_text": "TipTap Editor",
+  "build_tool": "Vite",
+  "ui_components": "Custom Components + Tailwind",
+  "icons": "Heroicons",
+  "rich_text": "Rich text editing capabilities",
   "notifications": "React Hot Toast",
-  "real_time": "Socket.IO Client 4.8.1",
-  "pwa": "Vite PWA Plugin",
+  "deployment": "Vercel"
 }
 ```
 
@@ -60,18 +51,13 @@
 ```json
 {
   "runtime": "Node.js",
-  "framework": "Express.js 4.18.2",
-  "database": "MongoDB with Mongoose 8.1.3",
+  "framework": "Express.js",
+  "database": "MongoDB with Mongoose",
   "authentication": "JWT + bcryptjs",
-  "real_time": "Socket.IO 4.7.4",
-  "ai_integration": "Google Generative AI 0.24.1",
-  "file_upload": "Multer 2.0.0",
-  "push_notifications": "Web Push 3.6.7",
-  "scheduling": "Node Cron 4.1.0",
-  "security": "Helmet + CORS",
-  "validation": "Express Validator",
-  "cloud_storage": "Cloudinary 2.6.1",
-  "calendar_integration": "Google APIs 150.0.1"
+  "ai_integration": "Google Generative AI",
+  "file_upload": "Multer",
+  "security": "CORS + Helmet",
+  "validation": "Express validation"
 }
 ```
 
@@ -83,9 +69,7 @@
   "hot_reload": "Nodemon",
   "css_processing": "PostCSS + Autoprefixer",
   "code_quality": "ESLint",
-  "type_checking": "TypeScript (partial)",
-  "bundling": "Vite (Rollup)",
-  "deployment": "Vercel (Frontend) + Railway/Heroku (Backend)"
+  "deployment": "Vercel (Frontend) + Backend hosting"
 }
 ```
 
@@ -96,41 +80,67 @@
 ```
 student-buddy/
 ├── 📁 frontend/                    # React frontend application
-│   ├── 📁 public/                  # Static assets
-│   │   ├── icons/                  # PWA icons
-│   │   ├── manifest.json           # PWA manifest
-│   │   └── sw.js                   # Service worker
+│   ├── 📁 public/                  # Static assets and PWA files
 │   ├── 📁 src/
 │   │   ├── 📁 components/          # Reusable UI components
-│   │   │   ├── 📁 layout/          # Layout components
-│   │   │   ├── 📁 ui/              # Base UI components
-│   │   │   ├── 📁 notes/           # Note-related components
-│   │   │   ├── 📁 planner/         # Planner components
-│   │   │   └── 📁 tasks/           # Task components
-│   │   ├── 📁 pages/               # Page components
+│   │   │   ├── 📁 layout/          # Layout components (MainLayout)
+│   │   │   ├── 📁 ui/              # Base UI components (button, card, input, etc.)
+│   │   │   ├── AINoteProcessor.jsx  # AI-powered note processing
+│   │   │   ├── FloatingAIAssistant.jsx # AI assistant component
+│   │   │   ├── NoteCard.jsx        # Note display component
+│   │   │   ├── NoteModal.jsx       # Note editing modal
+│   │   │   ├── PracticeExam.jsx    # Practice exam components
+│   │   │   ├── RichTextEditor.jsx  # Rich text editing
+│   │   │   └── ThemeToggle.jsx     # Dark/light mode toggle
+│   │   ├── 📁 pages/               # Main page components
+│   │   │   ├── Login.jsx           # Authentication pages
+│   │   │   ├── Register.jsx
+│   │   │   ├── Notes.jsx           # Note management
+│   │   │   ├── Study.jsx           # Study tools and quizzes
+│   │   │   ├── Settings.jsx        # User settings
+│   │   │   └── Practice Exam pages # Exam management
 │   │   ├── 📁 context/             # React contexts
+│   │   │   ├── AuthContext.jsx     # Authentication state
+│   │   │   └── ThemeContext.jsx    # Theme management
 │   │   ├── 📁 hooks/               # Custom hooks
 │   │   ├── 📁 services/            # API services
-│   │   ├── 📁 utils/               # Utility functions
-│   │   ├── 📁 assets/              # Images, fonts, etc.
-│   │   └── 📁 config/              # Configuration files
+│   │   └── 📁 utils/               # Utility functions
 │   ├── package.json                # Frontend dependencies
 │   ├── vite.config.js              # Vite configuration
 │   ├── tailwind.config.js          # Tailwind CSS config
 │   └── postcss.config.js           # PostCSS config
 ├── 📁 backend/                     # Node.js backend application
 │   ├── 📁 controllers/             # Route controllers
+│   │   ├── noteController.js       # Note management logic
+│   │   └── auth.js                 # Authentication logic
 │   ├── 📁 models/                  # Mongoose models
+│   │   ├── User.js                 # User data model
+│   │   ├── Note.js                 # Note data model
+│   │   ├── Course.js               # Course data model
+│   │   ├── CourseTopic.js          # Course topic model
+│   │   ├── PracticeExam.js         # Practice exam model
+│   │   ├── Quiz.js                 # Quiz model
+│   │   └── AIGeneratedPracticeExam.js # AI exam model
 │   ├── 📁 routes/                  # API routes
+│   │   ├── auth.js                 # Authentication endpoints
+│   │   ├── notes.js                # Note CRUD operations
+│   │   ├── courses.js              # Course management
+│   │   ├── practiceExam.js         # Practice exam endpoints
+│   │   ├── study.js                # Study tools
+│   │   ├── users.js                # User management
+│   │   ├── ai.js                   # AI-powered features
+│   │   └── noteGeneration.js       # Note generation
 │   ├── 📁 middleware/              # Custom middleware
+│   │   └── auth.js                 # JWT authentication
 │   ├── 📁 services/                # Business logic services
+│   │   └── aiService.js            # AI integration service
 │   ├── 📁 utils/                   # Utility functions
-│   ├── 📁 uploads/                 # File uploads
+│   ├── 📁 uploads/                 # File uploads directory
 │   ├── server.js                   # Main server file
-│   ├── socket.js                   # Socket.IO configuration
 │   └── package.json                # Backend dependencies
-├── package.json                    # Root package.json
-└── README.md                       # Project documentation
+├── 📄 PROJECT_DOCUMENTATION.md     # This documentation file
+├── 📄 README.md                    # Project overview and setup
+└── 📄 QUICK_REFERENCE.md           # Quick reference guide
 ```
 
 ---
@@ -144,15 +154,16 @@ student-buddy/
 │   (React SPA)   │◄──►│  (Express API)  │◄──►│   (MongoDB)     │
 │                 │    │                 │    │                 │
 │ • React Router  │    │ • REST APIs     │    │ • Collections   │
-│ • State Mgmt    │    │ • Socket.IO     │    │ • Indexes       │
-│ • UI Components │    │ • Middleware    │    │ • Relationships │
+│ • Context API   │    │ • Controllers   │    │ • Mongoose     │
+│ • UI Components │    │ • Services      │    │ • Schemas      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │              ┌─────────────────┐              │
-         │              │  External APIs  │              │
-         └──────────────┤ • Google AI     │──────────────┘
-                        │ • Push Service  │
-                        └─────────────────┘
+          │
+          │
+          ▼
+┌─────────────────┐
+│  External APIs  │
+│ • Google AI     │
+└─────────────────┘
 ```
 
 ### Data Flow
@@ -161,134 +172,128 @@ student-buddy/
 3. **API Calls** → Axios HTTP Client
 4. **Backend Processing** → Express Route Handlers
 5. **Database Operations** → Mongoose ODM
-6. **Real-time Updates** → Socket.IO WebSockets
-7. **External Services** → AI, Push Service APIs
+6. **External Services** → Google AI API for content generation
 
 ---
 
-## 🎨 Frontend Deep Dive
+## 🎨 Frontend Implementation
 
-### Component Architecture
+### Application Structure
 ```
 App.jsx (Root)
 ├── AuthContext (Authentication)
 ├── ThemeContext (Dark/Light Mode)
-├── SocketContext (Real-time)
 └── MainLayout
-    ├── Header/Topbar
-    ├── Sidebar Navigation
+    ├── Sidebar Navigation (Collapsible)
     └── Page Content
         ├── Notes (with AI Explain)
-        ├── Study (Quiz with Gamification)
+        ├── Study (Quiz Generation)
         ├── Practice Exams
-        ├── Sync Spaces
-        ├── Chatbot
         └── Settings
 ```
 
 ### Key Frontend Components
 
 #### 1. **Layout Components**
-- `MainLayout.jsx` - Main application layout with sidebar and header
-- `Sidebar.jsx` - Navigation sidebar with menu items
-- `Header.jsx` - Top navigation bar with user profile and notifications
+- `MainLayout.jsx` - Main application layout with responsive sidebar
+- Sidebar with collapsible navigation (Notes, Study, Practice Exam, Settings)
 
 #### 2. **Page Components**
+- `Login.jsx` & `Register.jsx` - Authentication pages
 - `Notes.jsx` - Note management with CRUD operations and AI explain feature
-- `Study.jsx` - Quiz generation with gamification
-- `PracticeExamListPage.jsx` - Practice exam management
-- `SyncSpaces.jsx` - Collaborative workspaces
-- `Chatbot.jsx` - AI-powered chatbot interface
+- `Study.jsx` - AI-powered quiz generation and study tools
+- `PracticeExamListPage.jsx` - Practice exam management interface
+- `PracticeExamPage.jsx` - Individual practice exam view
+- `PracticeExamQuestionsPage.jsx` - Exam questions interface
+- `PracticeExamResultsPage.jsx` - Exam results and review
+- `Settings.jsx` - User settings and preferences
 
 #### 3. **Feature Components**
-- `NoteCard.jsx` - Individual note display with actions
-- `AINoteProcessor.jsx` - AI-powered note generation
-- `PracticeExam.jsx` - Practice exam components
-- `SyncSpace.jsx` - Collaborative workspace components
-- `RichTextEditor.jsx` - Rich text editing with markdown support
+- `NoteCard.jsx` - Individual note display with edit/delete actions
+- `AINoteProcessor.jsx` - AI-powered note generation interface
+- `FloatingAIAssistant.jsx` - AI assistant for content explanations
+- `NoteModal.jsx` - Modal for creating/editing notes
+- `PracticeExam.jsx` - Practice exam display and management
+- `PracticeExamList.jsx` - List of available practice exams
+- `PracticeExamQuestions.jsx` - Interactive exam questions
+- `PracticeExamResults.jsx` - Exam results display
+- `RichTextEditor.jsx` - Rich text editing capabilities
+- `ThemeToggle.jsx` - Dark/light mode toggle component
 
 #### 4. **UI Components**
-- `RichTextEditor.jsx` - TipTap-based rich text editor
-- `ShareModal.jsx` - Content sharing interface
-- `NotificationDropdown.jsx` - Real-time notifications
+- `button.jsx`, `card.jsx`, `input.jsx` - Base UI components
+- `avatar.jsx` - User avatar display
+- `toast.jsx` & `toaster.jsx` - Notification system
 
 ### State Management Strategy
 ```javascript
 // Context-based state management
-const AuthContext = createContext();
-const ThemeContext = createContext();
-const SocketContext = createContext();
+const AuthContext = createContext();    // User authentication state
+const ThemeContext = createContext();   // Theme preferences (light/dark)
 
 // Custom hooks for state access
 const useAuth = () => useContext(AuthContext);
 const useTheme = () => useContext(ThemeContext);
-const useSocket = () => useContext(SocketContext);
 ```
 
 ### Routing Structure
 ```javascript
 // React Router configuration
 <Routes>
+  {/* Public routes */}
   <Route path="/login" element={<Login />} />
   <Route path="/register" element={<Register />} />
-  <Route path="/app" element={<ProtectedRoute />}>
+
+  {/* Protected routes with MainLayout */}
+  <Route path="/app" element={<MainLayout />}>
+    <Route index element={<Navigate to="/app/notes" />} />
     <Route path="notes" element={<Notes />} />
     <Route path="study" element={<Study />} />
-    <Route path="practice-exam" element={<PracticeExamListPage />} />
-    <Route path="sync-spaces" element={<SyncSpaces />} />
-    <Route path="chatbot" element={<Chatbot />} />
     <Route path="settings" element={<Settings />} />
+
+    {/* Practice Exam Routes */}
+    <Route path="practice-exam" element={<PracticeExamPage />} />
+    <Route path="practice-exam/list" element={<PracticeExamListPage />} />
+    <Route path="practice-exam/questions/:examId" element={<PracticeExamQuestionsPage />} />
+    <Route path="practice-exam/results/:examId" element={<PracticeExamResultsPage />} />
   </Route>
 </Routes>
 ```
 
 ---
 
-## ⚙️ Backend Deep Dive
+## ⚙️ Backend Implementation
 
 ### Server Architecture
 ```
 server.js (Entry Point)
 ├── Express App Configuration
-├── Middleware Setup
+├── Middleware Setup (CORS, JSON parsing)
 ├── Route Registration
-├── Socket.IO Integration
-├── Database Connection
+├── Database Connection (MongoDB)
 └── Error Handling
 ```
 
 ### API Structure
 ```
 /api/
-├── /auth          # Authentication endpoints
-├── /users         # User management
-├── /notes         # Note CRUD operations
-├── /courses       # Course management
-├── /sync-spaces   # Collaboration features
-├── /ai            # AI-powered features
-├── /notifications # Push notifications
-└── /practice-exam # Practice exam system
+├── /auth             # Authentication endpoints
+├── /users            # User management
+├── /notes            # Note CRUD operations
+├── /courses          # Course management
+├── /course-topics    # Course topic management
+├── /ai               # AI-powered features
+├── /note-generation  # Note generation endpoints
+├── /practice-exam    # Practice exam system
+├── /study            # Study tools and quizzes
+└── /groups           # Group management
 ```
 
 ### Key Backend Components
 
 #### 1. **Controllers**
-```javascript
-// noteController.js - Note management logic
-exports.createNote = async (req, res) => {
-  // Validation, creation, and response logic
-};
-
-// notificationController.js - Notification system
-exports.sendPushNotification = async (userId, payload) => {
-  // Push notification delivery logic
-};
-
-// syncSpaceController.js - Collaboration features
-exports.createSyncSpace = async (req, res) => {
-  // Sync space creation and management
-};
-```
+- `noteController.js` - Note management logic (CRUD operations)
+- `auth.js` - Authentication controller (login, register, token management)
 
 #### 2. **Models (Mongoose Schemas)**
 ```javascript
@@ -297,27 +302,70 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  profile: {
-    firstName: String,
-    lastName: String,
-    profilePicture: String
+  school: String,
+  class: String,
+  profilePicture: String,
+  bio: String,
+  socialLinks: {
+    whatsapp: String,
+    twitter: String,
+    instagram: String,
+    linkedin: String,
+    github: String
+  },
+  level: String,
+  semesterStart: String,
+  semesterEnd: String,
+  freeTime: {
+    startTime: String,
+    endTime: String
+  },
+  notifications: {
+    email: { type: Boolean, default: true },
+    push: { type: Boolean, default: true },
+    taskReminders: { type: Boolean, default: true },
+    studyReminders: { type: Boolean, default: true }
   },
   preferences: {
-    theme: { type: String, default: 'light' },
-    notifications: { type: Boolean, default: true }
-  }
+    theme: { type: String, default: 'system' },
+    language: { type: String, default: 'en' }
+  },
+  courses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
-// Note.js - Note data model
+// Note.js - Note data model (Simplified)
 const noteSchema = new mongoose.Schema({
   title: { type: String, required: true },
   content: { type: String, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
   subject: String,
-  tags: [String],
+  course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course' },
+  attachments: [{
+    name: String,
+    type: String,
+    url: String,
+    size: Number
+  }],
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
+});
+
+// Course.js - Course management
+const courseSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  code: String,
+  description: String,
+  instructor: String,
+  schedule: {
+    days: [String],
+    time: String,
+    location: String
+  },
+  topics: [{ type: mongoose.Schema.Types.ObjectId, ref: 'CourseTopic' }],
+  students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  createdAt: { type: Date, default: Date.now }
 });
 ```
 
@@ -346,39 +394,63 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 class AIService {
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
   }
 
-  async generateNotes(topic, context) {
-    const model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
-    const prompt = `Generate comprehensive study notes for: ${topic}`;
-    const result = await model.generateContent(prompt);
+  async generateNotes(topic, context, courseInfo) {
+    const prompt = `
+      Generate comprehensive study notes for the topic: "${topic}"
+      Context: ${context}
+      Course: ${courseInfo?.name || 'General'}
+
+      Please structure the notes with:
+      1. Clear headings and subheadings
+      2. Key concepts and definitions
+      3. Examples where applicable
+      4. Summary points
+
+      Format in Markdown for better readability.
+    `;
+
+    const result = await this.model.generateContent(prompt);
     return result.response.text();
   }
+
+  async explainConcept(content, level = 'intermediate') {
+    const prompt = `
+      Explain the following concept at a ${level} level:
+      "${content}"
+
+      Provide:
+      1. Simple explanation
+      2. Key points
+      3. Real-world examples
+      4. Common misconceptions (if any)
+    `;
+
+    const result = await this.model.generateContent(prompt);
+    return result.response.text();
+  }
+
+  async generateQuiz(topic, difficulty, questionCount) {
+    const prompt = `
+      Create a ${difficulty} level quiz about "${topic}" with ${questionCount} questions.
+
+      Format each question as:
+      {
+        "question": "Question text",
+        "options": ["A", "B", "C", "D"],
+        "correct": 0,
+        "explanation": "Why this answer is correct"
+      }
+
+      Return as valid JSON array.
+    `;
+
+    const result = await this.model.generateContent(prompt);
+    return JSON.parse(result.response.text());
+  }
 }
-```
-
-### Real-time Features (Socket.IO)
-```javascript
-// socket.js - WebSocket configuration
-io.on('connection', (socket) => {
-  // User authentication
-  socket.on('authenticate', async (token) => {
-    const user = await verifyToken(token);
-    socket.user = user;
-    socket.join(`user_${user._id}`);
-  });
-
-  // Sync space collaboration
-  socket.on('joinSyncSpace', (spaceId) => {
-    socket.join(spaceId);
-  });
-
-  // Real-time messaging
-  socket.on('sendMessage', (data) => {
-    io.to(data.spaceId).emit('newMessage', data);
-  });
-
-});
 ```
 
 ---
@@ -394,17 +466,35 @@ io.on('connection', (socket) => {
   username: String,
   email: String,
   password: String (hashed),
-  profile: {
-    firstName: String,
-    lastName: String,
-    profilePicture: String,
-    bio: String
+  school: String,
+  class: String,
+  profilePicture: String,
+  bio: String,
+  socialLinks: {
+    whatsapp: String,
+    twitter: String,
+    instagram: String,
+    linkedin: String,
+    github: String
+  },
+  level: String,
+  semesterStart: String,
+  semesterEnd: String,
+  freeTime: {
+    startTime: String,
+    endTime: String
+  },
+  notifications: {
+    email: Boolean,
+    push: Boolean,
+    taskReminders: Boolean,
+    studyReminders: Boolean
   },
   preferences: {
     theme: String,
-    notifications: Boolean,
     language: String
   },
+  courses: [ObjectId] (ref: Course),
   createdAt: Date,
   updatedAt: Date
 }
@@ -416,20 +506,21 @@ io.on('connection', (socket) => {
   _id: ObjectId,
   title: String,
   content: String,
-  user: ObjectId (ref: User),
-  course: ObjectId (ref: Course),
   subject: String,
-  tags: [String],
-  isPublic: Boolean,
-  sharedWith: [ObjectId],
-  attachments: [String],
+  course: ObjectId (ref: Course),
+  attachments: [{
+    name: String,
+    type: String,
+    url: String,
+    size: Number
+  }],
+  user: ObjectId (ref: User),
   createdAt: Date,
   updatedAt: Date
 }
 ```
 
-
-#### 4. **Courses Collection**
+#### 3. **Courses Collection**
 ```javascript
 {
   _id: ObjectId,
@@ -448,20 +539,69 @@ io.on('connection', (socket) => {
 }
 ```
 
-#### 5. **SyncSpaces Collection**
+#### 4. **CourseTopics Collection**
 ```javascript
 {
   _id: ObjectId,
   name: String,
   description: String,
-  owner: ObjectId (ref: User),
-  members: [ObjectId] (ref: User),
-  sharedNotes: [ObjectId] (ref: Note),
-  chat: [{
-    sender: ObjectId,
-    message: String,
-    timestamp: Date
+  course: ObjectId (ref: Course),
+  order: Number,
+  createdAt: Date
+}
+```
+
+#### 5. **PracticeExams Collection**
+```javascript
+{
+  _id: ObjectId,
+  title: String,
+  description: String,
+  subject: String,
+  course: ObjectId (ref: Course),
+  questions: [{
+    question: String,
+    options: [String],
+    correctAnswer: Number,
+    explanation: String
   }],
+  difficulty: String (easy|medium|hard),
+  timeLimit: Number (minutes),
+  user: ObjectId (ref: User),
+  createdAt: Date
+}
+```
+
+#### 6. **Quizzes Collection**
+```javascript
+{
+  _id: ObjectId,
+  title: String,
+  questions: [{
+    question: String,
+    options: [String],
+    correctAnswer: Number,
+    explanation: String
+  }],
+  user: ObjectId (ref: User),
+  course: ObjectId (ref: Course),
+  createdAt: Date
+}
+```
+
+#### 7. **AIGeneratedPracticeExams Collection**
+```javascript
+{
+  _id: ObjectId,
+  topic: String,
+  questions: [{
+    question: String,
+    options: [String],
+    correctAnswer: Number,
+    explanation: String
+  }],
+  difficulty: String,
+  user: ObjectId (ref: User),
   createdAt: Date
 }
 ```
@@ -470,9 +610,11 @@ io.on('connection', (socket) => {
 ```
 User (1) ──── (N) Notes
 User (1) ──── (N) Courses (many-to-many)
+User (1) ──── (N) PracticeExams
+User (1) ──── (N) Quizzes
 Course (1) ──── (N) Notes
-SyncSpace (1) ──── (N) Users (many-to-many)
-SyncSpace (1) ──── (N) Notes
+Course (1) ──── (N) CourseTopics
+Course (1) ──── (N) PracticeExams
 ```
 
 ---
@@ -513,18 +655,60 @@ Content-Type: application/json
   "title": "string",
   "content": "string",
   "course": "ObjectId",
-  "subject": "string",
-  "tags": ["string"]
+  "subject": "string"
 }
 
 PUT /api/notes/:id
 Authorization: Bearer <token>
 Content-Type: application/json
+{
+  "title": "string",
+  "content": "string",
+  "subject": "string"
+}
 
 DELETE /api/notes/:id
 Authorization: Bearer <token>
 ```
 
+### Courses API
+```http
+GET /api/courses
+Authorization: Bearer <token>
+
+POST /api/courses
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "name": "string",
+  "code": "string",
+  "description": "string",
+  "instructor": "string"
+}
+
+PUT /api/courses/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+DELETE /api/courses/:id
+Authorization: Bearer <token>
+```
+
+### Course Topics API
+```http
+GET /api/course-topics
+Authorization: Bearer <token>
+Query: ?course=<courseId>
+
+POST /api/course-topics
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "name": "string",
+  "description": "string",
+  "course": "ObjectId"
+}
+```
 
 ### AI Integration API
 ```http
@@ -552,6 +736,56 @@ Content-Type: application/json
   "topic": "string",
   "difficulty": "easy|medium|hard",
   "questionCount": number
+}
+```
+
+### Practice Exam API
+```http
+GET /api/practice-exam
+Authorization: Bearer <token>
+
+POST /api/practice-exam
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "title": "string",
+  "description": "string",
+  "subject": "string",
+  "course": "ObjectId",
+  "difficulty": "easy|medium|hard"
+}
+
+GET /api/practice-exam/:id
+Authorization: Bearer <token>
+
+DELETE /api/practice-exam/:id
+Authorization: Bearer <token>
+```
+
+### Study API
+```http
+POST /api/study/generate-quiz
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "topic": "string",
+  "course": "ObjectId",
+  "difficulty": "easy|medium|hard"
+}
+```
+
+### Users API
+```http
+GET /api/users/profile
+Authorization: Bearer <token>
+
+PUT /api/users/profile
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "school": "string",
+  "class": "string",
+  "bio": "string"
 }
 ```
 
@@ -627,95 +861,10 @@ class AIService {
 ```
 
 ### AI Features Implementation
-1. **Note Generation**: Automatic creation of structured study notes
-2. **Concept Explanation**: Simplified explanations for complex topics
-3. **Quiz Generation**: Dynamic quiz creation based on topics
-4. **Content Summarization**: Key point extraction from long texts
-5. **Practice Exam Creation**: Comprehensive exam generation
-
----
-
-## 🔔 Real-time Features
-
-### WebSocket Implementation
-```javascript
-// Frontend - Socket Context
-const SocketContext = createContext();
-
-export const SocketProvider = ({ children }) => {
-  const [socket, setSocket] = useState(null);
-  const [notificationCount, setNotificationCount] = useState(0);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      const newSocket = io(process.env.REACT_APP_BACKEND_URL);
-
-      newSocket.emit('authenticate', localStorage.getItem('token'));
-
-      // Notification handling
-      newSocket.on('newNotification', (notification) => {
-        setNotificationCount(prev => prev + 1);
-        showLocalNotification(notification.title, notification.message);
-      });
-
-      // Sync space updates
-      newSocket.on('syncSpaceUpdate', (data) => {
-        // Handle real-time sync space updates
-      });
-
-      setSocket(newSocket);
-
-      return () => newSocket.close();
-    }
-  }, [user]);
-
-  return (
-    <SocketContext.Provider value={{ socket, notificationCount }}>
-      {children}
-    </SocketContext.Provider>
-  );
-};
-```
-
-### Push Notifications
-```javascript
-// Backend - Push notification service
-const webpush = require('web-push');
-
-webpush.setVapidDetails(
-  'mailto:your-email@example.com',
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
-
-const sendPushNotification = async (subscription, payload) => {
-  try {
-    await webpush.sendNotification(subscription, JSON.stringify(payload));
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-  }
-};
-
-// Frontend - Service Worker registration
-if ('serviceWorker' in navigator && 'PushManager' in window) {
-  navigator.serviceWorker.register('/sw.js')
-    .then(registration => {
-      return registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-      });
-    })
-    .then(subscription => {
-      // Send subscription to backend
-      fetch('/api/notifications/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subscription)
-      });
-    });
-}
-```
+1. **Note Generation**: Automatic creation of structured study notes from topics
+2. **Concept Explanation**: AI-powered explanations for complex topics within notes
+3. **Quiz Generation**: Dynamic quiz creation based on specified topics and difficulty
+4. **Practice Exam Creation**: AI-generated practice exams for comprehensive testing
 
 ---
 
@@ -757,79 +906,44 @@ const auth = (req, res, next) => {
 // Password hashing
 const bcrypt = require('bcryptjs');
 const hashPassword = async (password) => {
-  const salt = await bcrypt.genSalt(12);
+  const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);
 };
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: ['https://main-student-buddy.vercel.app', 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// Rate limiting
-const rateLimit = require('express-rate-limit');
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use('/api/', limiter);
-
-// Helmet for security headers
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"]
-    }
-  }
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 ```
 
 ---
 
-## 🚀 Deployment & DevOps
+## 🚀 Deployment Guide
 
 ### Frontend Deployment (Vercel)
-```json
-// vercel.json
-{
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ]
-}
-```
+The frontend is configured for deployment on Vercel with the following settings:
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Install Command**: `npm install`
 
-### Backend Deployment (Railway/Heroku)
-```javascript
-// Procfile
-web: node server.js
+### Backend Deployment
+The backend can be deployed to any Node.js hosting service (Railway, Heroku, DigitalOcean, etc.) with the following environment variables:
 
-// Environment Variables
-PORT=5000
+```bash
+# Server Configuration
+PORT=3001
 NODE_ENV=production
-MONGODB_URI=mongodb+srv://...
-JWT_SECRET=your-secret-key
-GOOGLE_AI_API_KEY=your-ai-key
-VAPID_PUBLIC_KEY=your-vapid-public
-VAPID_PRIVATE_KEY=your-vapid-private
-FRONTEND_URL=https://your-frontend.vercel.app
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_secure_jwt_secret
+FRONTEND_URL=https://your-frontend-domain.vercel.app
+
+# AI Integration
+GOOGLE_AI_API_KEY=your_google_ai_api_key
 ```
 
 ### Build Scripts
@@ -848,238 +962,93 @@ FRONTEND_URL=https://your-frontend.vercel.app
 {
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "test": "jest"
+    "dev": "nodemon server.js"
   }
 }
 ```
 
 ---
 
-## 🛠 Development Workflow
+## 🛠 Development Setup
 
 ### Local Development Setup
 ```bash
-# Clone repository
-git clone <repository-url>
-cd student-buddy
-
-# Install dependencies
-npm install
-
-# Frontend setup
+# Install frontend dependencies
 cd frontend
 npm install
-cp .env.example .env.local
-# Configure environment variables
 
-# Backend setup
+# Install backend dependencies
 cd ../backend
 npm install
-cp .env.example .env
-# Configure environment variables
 
-# Start development servers
-npm run dev # Backend
-cd ../frontend && npm run dev # Frontend
+# Configure environment variables (see below)
+# Start backend server
+npm run dev
+
+# Start frontend server (in another terminal)
+cd ../frontend && npm run dev
 ```
 
 ### Environment Variables
+
+**Backend (.env)**:
 ```bash
-# Frontend (.env.local)
-VITE_BACKEND_URL=http://localhost:5000
-VITE_VAPID_PUBLIC_KEY=your-vapid-public-key
+PORT=3001
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_secure_jwt_secret
+FRONTEND_URL=http://localhost:5173
+GOOGLE_AI_API_KEY=your_google_ai_api_key
+```
 
-# Backend (.env)
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/student-buddy
-JWT_SECRET=your-jwt-secret
-GOOGLE_AI_API_KEY=your-google-ai-key
-VAPID_PUBLIC_KEY=your-vapid-public-key
-VAPID_PRIVATE_KEY=your-vapid-private-key
-CLOUDINARY_CLOUD_NAME=your-cloudinary-name
-CLOUDINARY_API_KEY=your-cloudinary-key
-CLOUDINARY_API_SECRET=your-cloudinary-secret
+**Frontend (.env)**:
+```bash
+VITE_BACKEND_URL=http://localhost:3001
 ```
 
 ---
 
-## ⚡ Performance Optimizations
+## 📊 Current Features Summary
 
-### Frontend Optimizations
-```javascript
-// Code splitting with React.lazy
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Notes = lazy(() => import('./pages/Notes'));
+### ✅ Implemented Features
+1. **User Authentication** - JWT-based authentication with secure password hashing
+2. **Note Management** - Full CRUD operations with rich text editing capabilities
+3. **AI Integration** - Google Generative AI for note generation and concept explanations
+4. **Study Tools** - AI-powered quiz generation and practice exam system
+5. **Course Management** - Organize study materials by courses and topics
+6. **Modern UI/UX** - Dark mode, responsive design, and clean interface
+7. **Practice Exams** - Comprehensive exam creation and management system
 
-// Memoization for expensive components
-const NoteCard = memo(({ note, onEdit, onDelete }) => {
-  return (
-    <div className="note-card">
-      {/* Component content */}
-    </div>
-  );
-});
-
-// Virtual scrolling for large lists
-import { FixedSizeList as List } from 'react-window';
-
-const VirtualizedNoteList = ({ notes }) => (
-  <List
-    height={600}
-    itemCount={notes.length}
-    itemSize={120}
-    itemData={notes}
-  >
-    {({ index, style, data }) => (
-      <div style={style}>
-        <NoteCard note={data[index]} />
-      </div>
-    )}
-  </List>
-);
-```
-
-### Backend Optimizations
-```javascript
-// Database indexing
-noteSchema.index({ user: 1, createdAt: -1 });
-noteSchema.index({ title: 'text', content: 'text' });
-
-// Query optimization with population
-const notes = await Note.find({ user: userId })
-  .populate('course', 'name code')
-  .select('title content subject createdAt')
-  .sort({ createdAt: -1 })
-  .limit(20);
-
-// Caching with Redis (if implemented)
-const redis = require('redis');
-const client = redis.createClient();
-
-const getCachedData = async (key) => {
-  const cached = await client.get(key);
-  return cached ? JSON.parse(cached) : null;
-};
-
-const setCachedData = async (key, data, expiry = 3600) => {
-  await client.setex(key, expiry, JSON.stringify(data));
-};
-```
+### 🔧 Technical Implementation
+- **Frontend**: React 18 with Vite, Tailwind CSS, and modern hooks-based state management
+- **Backend**: Node.js with Express.js, MongoDB, and RESTful API design
+- **AI Integration**: Google Generative AI for intelligent content generation
+- **Security**: JWT authentication with bcrypt password hashing
+- **Database**: MongoDB with Mongoose ODM for data modeling
+- **Development**: Modern development workflow with hot reloading
 
 ---
 
-## 🧪 Testing Strategy
+## 🎯 Documentation Update Summary
 
-### Frontend Testing
-```javascript
-// Component testing with React Testing Library
-import { render, screen, fireEvent } from '@testing-library/react';
-import { NoteCard } from '../components/NoteCard';
+This documentation has been updated to accurately reflect the current streamlined implementation of **Student Buddy**. The application has been simplified from its original comprehensive design to focus on core academic productivity features.
 
-test('renders note card with title and content', () => {
-  const mockNote = {
-    _id: '1',
-    title: 'Test Note',
-    content: 'Test content',
-    createdAt: new Date()
-  };
+### Key Changes Made:
+- **Removed Features**: Task management, sync spaces, real-time chat, push notifications, and advanced collaboration tools
+- **Maintained Features**: Note management, AI-powered study tools, practice exams, and course organization
+- **Updated Structure**: Documentation now matches the actual codebase architecture
+- **Streamlined APIs**: Removed endpoints for non-existent features
+- **Accurate Models**: Database schemas reflect current simplified structure
 
-  render(<NoteCard note={mockNote} />);
+### Current Application Scope:
+**Student Buddy** is now a focused academic productivity tool that emphasizes:
+- Intelligent note-taking with AI assistance
+- AI-generated study materials and explanations
+- Practice exam system for self-assessment
+- Course-based organization of study materials
+- Clean, modern interface for optimal user experience
 
-  expect(screen.getByText('Test Note')).toBeInTheDocument();
-  expect(screen.getByText('Test content')).toBeInTheDocument();
-});
+**Total API Endpoints**: 15+ RESTful endpoints
+**Database Collections**: 7 MongoDB collections
+**Core Features**: 7 main features
 
-// Integration testing
-test('creates new note when form is submitted', async () => {
-  render(<Notes />);
-
-  fireEvent.click(screen.getByText('Add Note'));
-  fireEvent.change(screen.getByLabelText('Title'), {
-    target: { value: 'New Note' }
-  });
-  fireEvent.click(screen.getByText('Save'));
-
-  await waitFor(() => {
-    expect(screen.getByText('New Note')).toBeInTheDocument();
-  });
-});
-```
-
-### Backend Testing
-```javascript
-// API testing with Jest and Supertest
-const request = require('supertest');
-const app = require('../app');
-
-describe('Notes API', () => {
-  test('POST /api/notes creates a new note', async () => {
-    const noteData = {
-      title: 'Test Note',
-      content: 'Test content',
-      subject: 'Math'
-    };
-
-    const response = await request(app)
-      .post('/api/notes')
-      .set('Authorization', `Bearer ${authToken}`)
-      .send(noteData)
-      .expect(201);
-
-    expect(response.body.title).toBe('Test Note');
-    expect(response.body.content).toBe('Test content');
-  });
-
-  test('GET /api/notes returns user notes', async () => {
-    const response = await request(app)
-      .get('/api/notes')
-      .set('Authorization', `Bearer ${authToken}`)
-      .expect(200);
-
-    expect(Array.isArray(response.body)).toBe(true);
-  });
-});
-```
-
----
-
-## 📊 Key Features Summary
-
-### ✅ Completed Features
-1. **User Authentication** - JWT-based auth with secure password hashing
-2. **Note Management** - CRUD operations with rich text editing and AI explain
-3. **AI Integration** - Note generation, explanations, and quiz creation
-4. **Collaboration** - Sync spaces with real-time chat and shared notes
-5. **Real-time Notifications** - WebSocket + Push notifications
-6. **Study Tools** - Quiz generation with gamification, practice exams
-7. **Modern UI/UX** - Dark mode, responsive design, PWA capabilities
-8. **Course Management** - Course creation and topic organization
-9. **Gamification** - Points, achievements, and streaks in quiz mode
-
-### 🔧 Technical Achievements
-- **Scalable Architecture** - Modular component structure
-- **Real-time Communication** - Socket.IO implementation
-- **AI-Powered Features** - Google Generative AI integration
-- **Progressive Web App** - Offline capabilities and installability
-- **Responsive Design** - Mobile-first approach with Tailwind CSS
-- **Security Implementation** - JWT auth, rate limiting, CORS
-- **Performance Optimization** - Code splitting, lazy loading, caching
-- **Modern Development** - Vite build tool, ES6+ features
-
----
-
-## 🎯 Project Completion Status
-
-**Student Buddy** is a fully functional, production-ready web application that successfully combines modern web technologies with AI-powered features to create a comprehensive academic management platform. The project demonstrates expertise in full-stack development, real-time communication, AI integration, and modern UI/UX design principles.
-
-**Total Development Time**: ~6 months
-**Lines of Code**: ~45,000+ (Frontend + Backend)
-**Features Implemented**: 20+ major features
-**API Endpoints**: 35+ RESTful endpoints
-**Database Collections**: 10 MongoDB collections
-**Real-time Events**: 12+ Socket.IO events
-
-**Recent Updates**: Removed task management system, added AI explain feature to notes, streamlined codebase with comprehensive comments and cleanup.
-
-This documentation serves as a complete reference for understanding, maintaining, and extending the Student Buddy application. 🎓📚✨
+This documentation serves as an accurate reference for understanding, maintaining, and extending the current Student Buddy application. The streamlined architecture makes it more maintainable while retaining the core AI-powered academic assistance features that provide the most value to students. 🎓📚✨
