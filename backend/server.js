@@ -20,6 +20,7 @@ const aiService = require('./services/aiService');
 
 const noteRoutes = require('./routes/notes'); // Import notes routes
 const practiceExamRoutes = require('./routes/practiceExam'); // Import practice exam routes
+const userRoutes = require('./routes/users'); // Import users routes
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -323,6 +324,8 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/practice-exam', practiceExamRoutes);
 app.use('/api/note-generation', require('./routes/noteGeneration'));
+// Mount users routes so frontend can call /api/users/* endpoints
+app.use('/api/users', userRoutes);
 
 // Create HTTP server
 const server = require('http').createServer(app);

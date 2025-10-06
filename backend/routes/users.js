@@ -117,7 +117,7 @@ router.get('/:userId/stats', authenticateToken, async (req, res) => {
 // Update user profile
 router.put('/me', authenticateToken, async (req, res) => {
   try {
-    const { username, email, bio, school, class: userClass, level, socialLinks } = req.body;
+    const { username, email, bio, school, class: userClass, level, socialLinks, semesterGoals } = req.body;
 
     // Check if username or email is already taken
     const existingUser = await User.findOne({
@@ -140,6 +140,7 @@ router.put('/me', authenticateToken, async (req, res) => {
         school,
         class: userClass,
         level,
+        semesterGoals,
         socialLinks
       },
       { new: true }
@@ -180,7 +181,11 @@ router.post('/me/profile-picture', authenticateToken, upload.single('profilePict
     user.profilePicture = req.file.path;
     await user.save();
 
-    res.json({ profilePicture: user.profilePicture });
+    // Provide a friendly URL for the frontend to use
+    const baseUrl = process.env.BACKEND_BASE_URL || `http://localhost:${process.env.PORT || 3001}`;
+    const profilePictureUrl = `${baseUrl}/${user.profilePicture}`;
+
+    res.json({ profilePicture: user.profilePicture, profilePictureUrl });
   } catch (error) {
     console.error('Error uploading profile picture:', error);
     res.status(500).json({ message: 'Server error' });

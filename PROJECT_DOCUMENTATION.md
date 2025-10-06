@@ -47,6 +47,12 @@
 }
 ```
 
+## 🛠 Developer Notes (recent changes)
+
+- Fixed: Backend did not expose `/api/users` routes in one server entrypoint which caused the frontend `Settings` page to receive 404 errors when calling `/api/users/me` and upload endpoints. The `users` routes are now mounted in `backend/server.js` with `app.use('/api/users', userRoutes);` so endpoints like `PUT /api/users/me` and `POST /api/users/me/profile-picture` are available.
+
+If you run into similar 404s from frontend pages, check `backend/server.js` to ensure the corresponding router is mounted and that middleware ordering (body parser, auth) is correct.
+
 ### Backend Stack
 ```json
 {
