@@ -22,7 +22,7 @@
 
 ### Current Features
 - **Note Management**: Rich text editing with AI-powered explanations
-- **Study Tools**: AI-generated quizzes and practice exams
+- **Active Learning Tools**: AI-generated quizzes and practice exams
 - **AI Integration**: Note generation, concept explanations, and quiz creation
 - **Course Management**: Organize notes and study materials by courses
 - **Modern UI/UX**: Dark mode, responsive design, and clean interface
@@ -187,7 +187,7 @@ App.jsx (Root)
     ├── Sidebar Navigation (Collapsible)
     └── Page Content
         ├── Notes (with AI Explain)
-        ├── Study (Quiz Generation)
+        ├── Active Learning (Quiz Generation)
         ├── Practice Exams
         └── Settings
 ```
@@ -201,7 +201,7 @@ App.jsx (Root)
 #### 2. **Page Components**
 - `Login.jsx` & `Register.jsx` - Authentication pages
 - `Notes.jsx` - Note management with CRUD operations and AI explain feature
-- `Study.jsx` - AI-powered quiz generation and study tools
+- `Study.jsx` - Active Learning page with AI-powered quiz generation and study tools
 - `PracticeExamListPage.jsx` - Practice exam management interface
 - `PracticeExamPage.jsx` - Individual practice exam view
 - `PracticeExamQuestionsPage.jsx` - Exam questions interface
@@ -246,9 +246,9 @@ const useTheme = () => useContext(ThemeContext);
 
   {/* Protected routes with MainLayout */}
   <Route path="/app" element={<MainLayout />}>
-    <Route index element={<Navigate to="/app/notes" />} />
+    <Route index element={<Navigate to="/app/active-learning" />} />
     <Route path="notes" element={<Notes />} />
-    <Route path="study" element={<Study />} />
+    <Route path="active-learning" element={<Study />} />
     <Route path="settings" element={<Settings />} />
 
     {/* Practice Exam Routes */}

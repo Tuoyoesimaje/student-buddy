@@ -5,9 +5,9 @@ A modern web application for managing study resources, notes, schedules, and pro
 ## Features
 
 - **Note Management:** Rich text editor with AI-powered explanations
-- **AI Study Tools:** Generate notes, explanations, and quizzes
+- **AI Active Learning Tools:** Generate notes, explanations, and quizzes
 - **Practice Exams:** Take comprehensive practice exams with detailed results
-- **Study Sessions:** AI-generated quiz experience for effective learning
+- **Active Learning Sessions:** AI-generated quiz experience for effective learning
 - **Course Management:** Organize study materials by courses and topics
 - **Modern UI:** Dark mode, responsive design, and clean interface
 
@@ -18,8 +18,6 @@ A modern web application for managing study resources, notes, schedules, and pro
 - **Database:** MongoDB with Mongoose
 - **Authentication:** JWT with bcryptjs
 - **AI Integration:** Google Generative AI
-- **Real-time:** WebSocket notifications and push notifications
-- **PWA:** Service workers and offline capabilities
 
 ## Prerequisites
 
@@ -62,14 +60,6 @@ A modern web application for managing study resources, notes, schedules, and pro
      # Backend Configuration
      VITE_BACKEND_URL=http://localhost:3001
      
-     # PWA Configuration
-     VITE_APP_NAME=Student Buddy
-     VITE_APP_SHORT_NAME=StudentBuddy
-     VITE_APP_DESCRIPTION=A modern student dashboard for managing studies and tasks
-     VITE_APP_THEME_COLOR=#ffffff
-     VITE_APP_BACKGROUND_COLOR=#ffffff
-     VITE_APP_DISPLAY=standalone
-     ```
 
 ## Running the Application
 

@@ -26,7 +26,7 @@ const MainLayout = () => {
 
 
   const navigation = [
-    { name: 'Study', href: '/app/study', icon: AcademicCapIcon },
+    { name: 'Active Learning', href: '/app/active-learning', icon: AcademicCapIcon },
     { name: 'Notes', href: '/app/notes', icon: DocumentTextIcon },
     { name: 'Practice Exam', href: '/app/practice-exam', icon: ClipboardDocumentCheckIcon },
     { name: 'Settings', href: '/app/settings', icon: Cog6ToothIcon },
