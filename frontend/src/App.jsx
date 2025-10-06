@@ -53,12 +53,12 @@ const App = () => {
         {/* Public routes */}
         <Route path="/login" element={
           <Suspense fallback={<LoadingFallback />}>
-            {!isAuthenticated ? <Login /> : <Navigate to="/app/notes" />}
+            {!isAuthenticated ? <Login /> : <Navigate to="/app/study" />}
           </Suspense>
         } />
         <Route path="/register" element={
           <Suspense fallback={<LoadingFallback />}>
-            {!isAuthenticated ? <Register /> : <Navigate to="/app/notes" />}
+            {!isAuthenticated ? <Register /> : <Navigate to="/app/study" />}
           </Suspense>
         } />
 
@@ -73,7 +73,7 @@ const App = () => {
             </PrivateRoute>
           }
         >
-          <Route index element={<Navigate to="/app/notes" />} />
+          <Route index element={<Navigate to="/app/study" />} />
           <Route path="notes" element={
             <Suspense fallback={<LoadingFallback />}>
               <Notes />
@@ -102,7 +102,7 @@ const App = () => {
         </Route>
 
         {/* Redirect authenticated users from root to notes */}
-        <Route path="*" element={isAuthenticated ? <Navigate to="/app/notes" /> : <Navigate to="/login" />} />
+        <Route path="*" element={isAuthenticated ? <Navigate to="/app/study" /> : <Navigate to="/login" />} />
       </Routes>
       <Toaster />
     </>

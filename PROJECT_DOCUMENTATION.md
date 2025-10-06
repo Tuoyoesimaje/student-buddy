@@ -297,7 +297,7 @@ server.js (Entry Point)
 
 #### 2. **Models (Mongoose Schemas)**
 ```javascript
-// User.js - User data model
+// User.js - User data model (Simplified)
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
@@ -305,27 +305,10 @@ const userSchema = new mongoose.Schema({
   school: String,
   class: String,
   profilePicture: String,
-  bio: String,
-  socialLinks: {
-    whatsapp: String,
-    twitter: String,
-    instagram: String,
-    linkedin: String,
-    github: String
-  },
   level: String,
   semesterStart: String,
   semesterEnd: String,
-  freeTime: {
-    startTime: String,
-    endTime: String
-  },
-  notifications: {
-    email: { type: Boolean, default: true },
-    push: { type: Boolean, default: true },
-    taskReminders: { type: Boolean, default: true },
-    studyReminders: { type: Boolean, default: true }
-  },
+  semesterGoals: String,
   preferences: {
     theme: { type: String, default: 'system' },
     language: { type: String, default: 'en' }
@@ -469,27 +452,10 @@ class AIService {
   school: String,
   class: String,
   profilePicture: String,
-  bio: String,
-  socialLinks: {
-    whatsapp: String,
-    twitter: String,
-    instagram: String,
-    linkedin: String,
-    github: String
-  },
   level: String,
   semesterStart: String,
   semesterEnd: String,
-  freeTime: {
-    startTime: String,
-    endTime: String
-  },
-  notifications: {
-    email: Boolean,
-    push: Boolean,
-    taskReminders: Boolean,
-    studyReminders: Boolean
-  },
+  semesterGoals: String,
   preferences: {
     theme: String,
     language: String
@@ -785,7 +751,7 @@ Content-Type: application/json
 {
   "school": "string",
   "class": "string",
-  "bio": "string"
+  "semesterGoals": "string"
 }
 ```
 

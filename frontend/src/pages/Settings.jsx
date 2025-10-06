@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaUser, FaSchool, FaGraduationCap, FaLink, FaImage, FaWhatsapp, FaTwitter } from 'react-icons/fa';
+import { FaUser, FaSchool, FaGraduationCap, FaImage } from 'react-icons/fa';
 import api from '../utils/axios';
 import { toast } from 'react-hot-toast';
 import ThemeToggle from '../components/ThemeToggle';
@@ -30,42 +30,16 @@ const Settings = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const fileInputRef = useRef(null);
 
-  // State for new profile fields
+  // State for profile fields
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    bio: '',
     school: '',
     class: '',
     level: '',
-    socialLinks: {
-      whatsapp: '',
-      twitter: '',
-    }
+    semesterGoals: ''
   });
 
-  // State for old settings sections
-  const [userData, setUserData] = useState({
-    notifications: {
-      email: true,
-      push: true,
-      taskReminders: true,
-      studyReminders: true,
-    },
-    preferences: {
-      theme: 'system',
-      language: 'en',
-    },
-  });
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
-  const [deleteData, setDeleteData] = useState({
-    password: '',
-    confirmText: '',
-  });
   const [courses, setCourses] = useState([]);
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
@@ -96,30 +70,17 @@ const Settings = () => {
       const response = await api.get('/api/auth/me');
       const fetchedUserData = response.data;
       
-      // Populate new profile form data
+      // Populate profile form data
       setFormData({
         username: fetchedUserData.username || '',
         email: fetchedUserData.email || '',
-        bio: fetchedUserData.bio || '',
         school: fetchedUserData.school || '',
         class: fetchedUserData.class || '',
         level: fetchedUserData.level || '',
-        socialLinks: fetchedUserData.socialLinks ? {
-          whatsapp: fetchedUserData.socialLinks.whatsapp || '',
-          twitter: fetchedUserData.socialLinks.twitter || '',
-        } : {
-          whatsapp: '',
-          twitter: '',
-        }
+        semesterGoals: fetchedUserData.semesterGoals || ''
       });
       setPreviewUrl(fetchedUserData.profilePictureUrl || '');
 
-      // Populate old settings data (notifications and preferences)
-      setUserData(prev => ({
-        ...prev,
-        notifications: fetchedUserData.notifications || prev.notifications,
-        preferences: fetchedUserData.preferences || prev.preferences,
-      }));
 
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -143,21 +104,10 @@ const Settings = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    if (name.startsWith('social.')) {
-      const platform = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        socialLinks: {
-          ...prev.socialLinks,
-          [platform]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleProfilePictureChange = (e) => {
@@ -213,32 +163,6 @@ const Settings = () => {
     }
   };
 
-  const handlePasswordChange = async (e) => {
-    e.preventDefault();
-    try {
-      setProcessing(true);
-      setError('');
-      setSuccess('');
-
-      if (passwordData.newPassword !== passwordData.confirmPassword) {
-        throw new Error('New passwords do not match');
-      }
-
-      await api.put('/api/users/me/password', passwordData);
-
-      setSuccess('Password updated successfully');
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-    } catch (error) {
-      console.error('Error changing password:', error);
-      setError(error.response?.data?.message || 'Failed to change password');
-    } finally {
-      setProcessing(false);
-    }
-  };
 
 
 
@@ -253,51 +177,6 @@ const Settings = () => {
 
 
 
-  const handleLanguageChange = async (language) => {
-    try {
-      setProcessing(true);
-      setError('');
-      setSuccess('');
-
-      const response = await api.put('/api/users/me/preferences', { ...userData.preferences, language });
-
-      setSuccess('Language updated');
-      setUserData(prev => ({ ...prev, preferences: response.data.preferences }));
-    } catch (error) {
-      console.error('Error changing language:', error);
-      setError(error.response?.data?.message || 'Failed to update language');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleDeleteAccount = async (e) => {
-    e.preventDefault();
-    try {
-      setProcessing(true);
-      setError('');
-      setSuccess('');
-
-      if (deleteData.confirmText !== 'DELETE') {
-        throw new Error('Please type DELETE to confirm');
-      }
-
-      // Note: This route might need to be added to backend/routes/users.js
-      await api.delete('/api/users/me', { data: { password: deleteData.password } });
-
-      toast.success('Account deleted successfully');
-      // Assuming logout is handled by AuthContext or similar
-      // You might need to clear token/userId from local storage and navigate
-      localStorage.removeItem('token');
-      localStorage.removeItem('userId');
-      navigate('/login'); // Or wherever your login page is
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      setError(error.response?.data?.message || 'Failed to delete account');
-    } finally {
-      setProcessing(false);
-    }
-  };
 
   const handleAddSchedule = () => {
     setCourseForm({
@@ -487,18 +366,6 @@ const Settings = () => {
               />
             </div>
 
-                {/* Bio Textarea */}
-                <div>
-                  <label htmlFor="bio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
-                  <textarea
-                    name="bio"
-                    id="bio"
-                    rows="3"
-                    value={formData.bio}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  ></textarea>
-                </div>
 
                 {/* School, Class, Level */}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
@@ -537,46 +404,23 @@ const Settings = () => {
                   </div>
                 </div>
 
-                {/* Social Links */}
+                {/* Semester Goals */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Social Links</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label htmlFor="social.whatsapp" className="block text-sm font-medium text-gray-700 dark:text-gray-300">WhatsApp</label>
-                      <div className="mt-1 flex rounded-md shadow-sm">
-                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm">
-                          <FaWhatsapp className="w-4 h-4" />
-                        </span>
-                        <input
-                          type="text"
-                          name="social.whatsapp"
-                          id="social.whatsapp"
-                          value={formData.socialLinks.whatsapp}
-                          onChange={handleInputChange}
-                          className="block w-full flex-1 rounded-none rounded-r-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                          placeholder="e.g., +1234567890"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="social.twitter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Twitter</label>
-                      <div className="mt-1 flex rounded-md shadow-sm">
-                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm">
-                          <FaTwitter className="w-4 h-4" />
-                        </span>
-                        <input
-                          type="text"
-                          name="social.twitter"
-                          id="social.twitter"
-                          value={formData.socialLinks.twitter}
-                          onChange={handleInputChange}
-                          className="block w-full flex-1 rounded-none rounded-r-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                          placeholder="e.g., @username"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <label htmlFor="semesterGoals" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Semester Goals</label>
+                  <textarea
+                    name="semesterGoals"
+                    id="semesterGoals"
+                    rows="3"
+                    value={formData.semesterGoals}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    placeholder="What are your goals for this semester?"
+                  ></textarea>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Share your academic goals for this semester (optional)
+                  </p>
                 </div>
+
 
                 {/* Save Button and Status */}
                 <div className="pt-4">
@@ -610,20 +454,6 @@ const Settings = () => {
             <div className="flex items-center justify-between">
               <span className="text-gray-700 dark:text-gray-300">Theme</span>
               <ThemeToggle showLabels={false} />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-700 dark:text-gray-300">Language</span>
-              <select
-                value={userData.preferences.language}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                disabled={processing}
-                className="mt-1 block w-1/2 md:w-1/3 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400 shadow-sm"
-              >
-                <option value="en">English</option>
-                <option value="es">Español</option>
-                <option value="fr">Français</option>
-                <option value="de">Deutsch</option>
-              </select>
             </div>
           </div>
         </div>

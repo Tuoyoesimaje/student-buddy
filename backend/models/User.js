@@ -34,33 +34,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  bio: {
-    type: String,
-    maxlength: 500,
-    default: ''
-  },
-  socialLinks: {
-    whatsapp: {
-      type: String,
-      default: ''
-    },
-    twitter: {
-      type: String,
-      default: ''
-    },
-    instagram: {
-      type: String,
-      default: ''
-    },
-    linkedin: {
-      type: String,
-      default: ''
-    },
-    github: {
-      type: String,
-      default: ''
-    }
-  },
   level: {
     type: String,
     default: ''
@@ -73,33 +46,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  freeTime: {
-    startTime: {
-      type: String,
-      default: ''
-    },
-    endTime: {
-      type: String,
-      default: ''
-    }
-  },
-  notifications: {
-    email: {
-      type: Boolean,
-      default: true
-    },
-    push: {
-      type: Boolean,
-      default: true
-    },
-    taskReminders: {
-      type: Boolean,
-      default: true
-    },
-    studyReminders: {
-      type: Boolean,
-      default: true
-    }
+  semesterGoals: {
+    type: String,
+    default: '',
+    maxlength: 1000
   },
   preferences: {
     type: Object,
