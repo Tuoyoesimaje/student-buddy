@@ -16,7 +16,7 @@ const PracticeExamPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <button
-            onClick={() => navigate('/app/study')}
+            onClick={() => navigate('/app/active-learning')}
             className="flex items-center px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all mb-4"
           >
             <ArrowLeftIcon className="w-4 h-4 mr-2" />

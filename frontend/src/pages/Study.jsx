@@ -198,15 +198,117 @@ const Study = () => {
   useEffect(() => {
     const { selectedNotes, mode } = location.state || {};
     if (selectedNotes && Array.isArray(selectedNotes)) {
+      // Preselect notes and immediately generate a quiz from them so
+      // navigation from Notes -> Study auto-opens the quiz for that note.
       setSelectedQuizNotes(selectedNotes);
       setQuizGenerationMode('note-based');
       setCurrentMode('quiz');
-      setQuizMode('prep');
+
+      // If the passed selectedNotes are lightweight (e.g., only _id or missing content),
+      // resolve the full note object first before attempting generation.
+      (async () => {
+        try {
+          const noteCandidate = selectedNotes[0];
+          let fullNote = noteCandidate;
+
+          // If candidate is a string ID or missing content/title, fetch notes and resolve
+          if (!noteCandidate || typeof noteCandidate === 'string' || !noteCandidate.content) {
+            try {
+              const allNotes = await api.get('/api/notes');
+              const found = allNotes.data ? allNotes.data.find(n => n._id === (noteCandidate._id || noteCandidate)) : allNotes.find(n => n._id === (noteCandidate._id || noteCandidate));
+              if (found) {
+                fullNote = found;
+              } else {
+                throw new Error('Note not found on server');
+              }
+            } catch (fetchErr) {
+              console.warn('Could not fetch full note for auto-quiz:', fetchErr);
+              setQuizMode('prep');
+              return;
+            }
+          }
+
+          await generateQuizFromNotesFromArray([fullNote]);
+        } catch (err) {
+          console.error('Auto-generate quiz from navigation failed:', err);
+          // Fall back to showing the prep screen
+          setQuizMode('prep');
+        }
+      })();
     }
     if (mode) {
       setQuizGenerationMode(mode);
     }
   }, [location.state]);
+
+  // Helper: generate quiz from an explicit array of notes (used for nav auto-start)
+  const generateQuizFromNotesFromArray = async (notesArray) => {
+    if (!notesArray || notesArray.length === 0) {
+      setError('Please select a note to generate a quiz.');
+      return;
+    }
+
+    if (notesArray.length > 1) {
+      setError('You can only generate a quiz from one note at a time. Please select only one note.');
+      return;
+    }
+
+    setIsLoadingAI(true);
+    setError(null);
+    setQuizQuestions([]); // Clear previous questions
+    setQuizAnswers([]); // Clear previous answers
+
+    try {
+      const selectedNote = notesArray[0];
+
+      const noteContent = `${selectedNote.title}\n${selectedNote.content.replace(/<[^>]*>/g, '')}`;
+
+      const response = await api.post('/api/ai/generate-quiz', {
+        topic: `Based on this note: ${noteContent.substring(0, 1500)}...`
+      });
+
+      const rawQuestions = response.data.response;
+      const questionsArray = rawQuestions.split(/Q\d+:/).filter(Boolean).map(q => {
+        const parts = q.trim().split(/A\)|B\)|C\)|Answer:/);
+        if (parts.length < 5) return null;
+
+        const questionText = parts[0].trim();
+        const options = parts.slice(1, 4).map(opt => opt.trim());
+        const correctAnswer = parts[4].trim().toUpperCase();
+
+        if (questionText && options.length === 3 && ['A', 'B', 'C'].includes(correctAnswer)) {
+          return {
+            question: questionText,
+            options: options,
+            correctAnswer: correctAnswer
+          };
+        }
+        return null;
+      }).filter(Boolean);
+
+      if (questionsArray.length > 0) {
+        setQuizQuestions(questionsArray);
+        const initAnswers = new Array(questionsArray.length).fill(null);
+        setQuizAnswers(initAnswers);
+        answersRef.current = initAnswers;
+        setCurrentQuestion(0);
+        setQuizMode('in_progress');
+        setTimeLeft(5 * 60); // Ensure the new 5 minute timer
+        setIsRunning(true);
+        setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
+      } else {
+        setError('Failed to generate valid questions from the selected note. Please try again.');
+        setQuizMode('prep');
+      }
+
+    } catch (err) {
+      console.error('Error auto-generating quiz from notes:', err);
+      setError('Failed to generate quiz from the selected note. Please try again.');
+      setQuizMode('prep');
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
 
 
 

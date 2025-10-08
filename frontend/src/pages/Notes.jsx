@@ -1436,8 +1436,8 @@ export default function Notes() {
       {isRetrievalPracticeModalOpen && (
         <RetrievalPracticeModal
           onClose={() => setIsRetrievalPracticeModalOpen(false)}
-          onSelectQuiz={() => {
-            navigate('/app/study', { state: { selectedNotes: [selectedNote], mode: 'note-based' } });
+            onSelectQuiz={() => {
+            navigate('/app/active-learning', { state: { selectedNotes: [selectedNote], mode: 'note-based' } });
             setIsRetrievalPracticeModalOpen(false);
           }}
           onSelectPracticeExam={() => {
