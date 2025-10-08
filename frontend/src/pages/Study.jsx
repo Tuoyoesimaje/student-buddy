@@ -279,7 +279,7 @@ const Study = () => {
 
   const resetTimer = () => {
     if (quizMode === 'in_progress') {
-      setTimeLeft(3 * 60); // 3 minutes for quiz
+      setTimeLeft(5 * 60); // 5 minutes for quiz
     } else {
       setTimeLeft(25 * 60);
     }
@@ -291,7 +291,7 @@ const Study = () => {
   // Update timer when quiz mode changes
   useEffect(() => {
     if (quizMode === 'in_progress') {
-      setTimeLeft(3 * 60); // Set 3-minute timer for quiz
+      setTimeLeft(5 * 60); // Set 5-minute timer for quiz
       setIsRunning(true); // Auto-start timer when quiz begins
     }
   }, [quizMode]);
@@ -362,7 +362,7 @@ const Study = () => {
     setCurrentQuestion(0);
     setCurrentMode('quiz');
       setQuizMode('in_progress');
-      setTimeLeft(3 * 60); // Reset timer to 3 minutes
+  setTimeLeft(5 * 60); // Reset timer to 5 minutes
       setIsRunning(true); // Start the timer
       
     } catch (error) {
@@ -489,7 +489,7 @@ const Study = () => {
       }
       setProgressWidth(0);
       const startTime = Date.now();
-      const duration = 4000; // 4 seconds
+  const duration = 6000; // 6 seconds
 
       progressIntervalRef.current = setInterval(() => {
         const elapsed = Date.now() - startTime;
@@ -688,8 +688,9 @@ const Study = () => {
         setQuizAnswers(initAnswers);
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
-        setQuizMode('in_progress');
-        setIsRunning(true); // Start the timer
+  setQuizMode('in_progress');
+  setTimeLeft(5 * 60); // Reset timer to 5 minutes
+  setIsRunning(true); // Start the timer
       } else {
         setError('Failed to generate valid questions. Please try again.');
       }
@@ -758,8 +759,9 @@ const Study = () => {
         setQuizAnswers(initAnswers);
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
-        setQuizMode('in_progress');
-        setIsRunning(true); // Start the timer
+  setQuizMode('in_progress');
+  setTimeLeft(5 * 60); // Reset timer to 5 minutes
+  setIsRunning(true); // Start the timer
         setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       } else {
         setError('Failed to generate valid questions from the selected note. Please try again.');
