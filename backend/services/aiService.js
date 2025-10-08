@@ -136,7 +136,7 @@ class AIService {
   }
 
   async explainNote(noteContent) {
-    const prompt = `Explain and expand upon the following notes in a detailed, educational way, as if you're teaching a student who's new to this topic.
+    const prompt = `Explain and expand upon the following notes in a detailed, educational way, as if you're tutoring a student who's new to this topic.
     
     For each main concept:
        - Provide a thorough explanation that builds on the original content

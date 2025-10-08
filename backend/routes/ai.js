@@ -12,33 +12,21 @@ router.post('/explain', auth, async (req, res) => {
       return res.status(400).json({ message: 'Text is required' });
     }
 
-    // Create different types of conversational hints
-    const hintTypes = [
-      {
-        type: 'question',
-        prompt: `You are a helpful study assistant. Ask a thought-provoking question that will guide the student toward understanding this concept: "${text}". Make it Socratic - encourage them to think deeply about the topic.`
-      },
-      {
-        type: 'analogy',
-        prompt: `You are a helpful study assistant. Provide a brief analogy or real-world comparison that illuminates this concept: "${text}". Keep it to 1-2 sentences and make it memorable.`
-      },
-      {
-        type: 'connection',
-        prompt: `You are a helpful study assistant. Help the student connect this concept "${text}" to something they already know. Suggest what related ideas or experiences this might remind them of.`
-      },
-      {
-        type: 'memory',
-        prompt: `You are a helpful study assistant. Give a memory trigger for this concept "${text}". What visual, sound, or experience could help them recall this information?`
-      }
-    ];
+    // Create prompt for active, thought-provoking hint
+    const hintPrompt = `You are a skilled tutor creating an active learning hint for a student. The student highlighted this text: "${text}"
 
-    // Randomly select a hint type
-    const selectedHintType = hintTypes[Math.floor(Math.random() * hintTypes.length)];
+${noteContent ? `Context from their notes: ${noteContent}` : ''}
 
-    // Create prompt for conversational hint response
-    const hintPrompt = `${selectedHintType.prompt}
+Create a brief, engaging hint (2-3 sentences max) that actively pushes the student to think deeply about the concept WITHOUT giving away the answer or explanation directly. Choose the most effective approach:
 
-Make your response conversational and encouraging, like a friendly tutor. Start with something like "Think about this..." or "Consider..." or "Have you ever wondered...". Keep it brief but engaging.`;
+- Ask a Socratic question that probes their understanding
+- Suggest a connection to something they already know
+- Provide a thought-provoking analogy or comparison
+- Pose a "what if" scenario
+- Challenge a common misconception
+- Ask them to consider implications or applications
+
+Make it conversational and encouraging, like a friendly tutor. Start with phrases like "Think about this...", "Consider...", "Have you ever wondered...", "What if...". The hint should spark curiosity and guide their thinking toward the concept, not explain it.`;
 
     // Create prompt for conversational full explanation
     const fullPrompt = `You are a friendly, encouraging tutor explaining this concept to a student. Provide a comprehensive but conversational explanation of: "${text}"
@@ -54,7 +42,7 @@ Structure your explanation like a natural conversation:
 
 Use conversational language - phrases like "Think of it this way...", "Here's what makes this interesting...", "The key insight is...". Make them feel like you're having a one-on-one tutoring session.
 
-IMPORTANT: Keep the explanation detailed and concise - aim for 100-200 words total. Do not make it longer than 200 words`;
+IMPORTANT: Keep the explanation concise but comprehensive - aim for 100-300 words total. Do not make it longer than 300 words.`;
 
     // Generate both responses
     console.log('Generating hint for text:', text.substring(0, 50) + '...');

@@ -1472,13 +1472,6 @@ const AIExplainModalPopup = ({ aiHint, aiExplanation, showFullExplanation, setSh
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Encouraging Header */}
-            <div className="text-center py-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400 italic">
-                "Learning is a journey, not a destination. Let's explore this together! 🤝"
-              </p>
-            </div>
-
             {/* Entire modal content is clickable to toggle */}
             <div
               className={`p-4 rounded-lg border transition-colors cursor-pointer ${
