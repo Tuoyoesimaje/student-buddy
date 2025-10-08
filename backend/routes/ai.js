@@ -7,24 +7,73 @@ const Note = require('../models/Note');
 // Explain text endpoint
 router.post('/explain', auth, async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, noteContent } = req.body;
     if (!text) {
       return res.status(400).json({ message: 'Text is required' });
     }
 
-    // Use aiService to generate the explanation
-    const prompt = `Explain the following text:
+    // Create different types of conversational hints
+    const hintTypes = [
+      {
+        type: 'question',
+        prompt: `You are a helpful study assistant. Ask a thought-provoking question that will guide the student toward understanding this concept: "${text}". Make it Socratic - encourage them to think deeply about the topic.`
+      },
+      {
+        type: 'analogy',
+        prompt: `You are a helpful study assistant. Provide a brief analogy or real-world comparison that illuminates this concept: "${text}". Keep it to 1-2 sentences and make it memorable.`
+      },
+      {
+        type: 'connection',
+        prompt: `You are a helpful study assistant. Help the student connect this concept "${text}" to something they already know. Suggest what related ideas or experiences this might remind them of.`
+      },
+      {
+        type: 'memory',
+        prompt: `You are a helpful study assistant. Give a memory trigger for this concept "${text}". What visual, sound, or experience could help them recall this information?`
+      }
+    ];
 
-${text}`;
-    const explanation = await aiService.generateResponse(prompt);
+    // Randomly select a hint type
+    const selectedHintType = hintTypes[Math.floor(Math.random() * hintTypes.length)];
 
-    res.json({ explanation });
+    // Create prompt for conversational hint response
+    const hintPrompt = `${selectedHintType.prompt}
+
+Make your response conversational and encouraging, like a friendly tutor. Start with something like "Think about this..." or "Consider..." or "Have you ever wondered...". Keep it brief but engaging.`;
+
+    // Create prompt for conversational full explanation
+    const fullPrompt = `You are a friendly, encouraging tutor explaining this concept to a student. Provide a comprehensive but conversational explanation of: "${text}"
+
+${noteContent ? `Additional context from their notes: ${noteContent}` : ''}
+
+Structure your explanation like a natural conversation:
+1. Start with a clear, relatable explanation
+2. Break down the key components in simple terms
+3. Give a real-world example they can relate to
+4. Explain why this matters in the bigger picture
+5. End with a thought-provoking question to deepen their understanding
+
+Use conversational language - phrases like "Think of it this way...", "Here's what makes this interesting...", "The key insight is...". Make them feel like you're having a one-on-one tutoring session.`;
+
+    // Generate both responses
+    console.log('Generating hint for text:', text.substring(0, 50) + '...');
+    const [hint, fullExplanation] = await Promise.all([
+      aiService.generateResponse(hintPrompt),
+      aiService.generateResponse(fullPrompt)
+    ]);
+
+    console.log('Hint generated:', hint.substring(0, 100) + '...');
+    console.log('Full explanation length:', fullExplanation.length);
+
+    res.json({
+      hint: hint.trim(),
+      fullExplanation: fullExplanation.trim()
+    });
   } catch (error) {
     console.error('Error in explain endpoint:', error);
     // Check for specific error messages
     if (error.message.includes('All Gemini keys failed')) {
-      return res.status(503).json({ 
-        message: 'All Gemini keys failed or hit their limit. Try again later.' 
+      return res.status(503).json({
+        message: 'All Gemini keys failed or hit their limit. Try again later.'
       });
     }
     // Pass the specific error message from the AI service

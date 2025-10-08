@@ -61,8 +61,8 @@ const PracticeExamResults = () => {
     );
   }
 
-  // Calculate percentage score
-  const percentageScore = Math.round((exam.score / exam.questions.length) * 100);
+  // Score is now already a percentage from the backend
+  const percentageScore = exam.score;
   
   // Determine score color based on percentage
   let scoreColorClass = 'text-yellow-500'; // Default (medium score)
@@ -88,7 +88,7 @@ const PracticeExamResults = () => {
             {percentageScore}%
           </div>
           <div className="text-gray-600 dark:text-gray-400 mt-1">
-            {exam.score} out of {exam.questions.length} correct
+            AI-Graded Performance
           </div>
         </div>
 
@@ -102,32 +102,69 @@ const PracticeExamResults = () => {
       <div>
         <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Detailed Breakdown</h3>
 
-        {exam.detailed && exam.detailed.map((item, index) => (
-          <div
-            key={index}
-            className={`mb-6 p-4 rounded-lg ${item.mark === 1 ? 'bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800'}`}
-          >
-            <div className="flex justify-between items-start">
-              <h4 className="text-lg font-medium text-gray-800 dark:text-gray-100">
-                Question {index + 1}:
-              </h4>
-              <span
-                className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${item.mark === 1 ? 'bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200' : 'bg-red-100 dark:bg-red-800 text-red-800 dark:text-red-200'}`}
-              >
-                {item.mark}
-              </span>
-            </div>
+        {exam.detailed && exam.detailed.map((item, index) => {
+          // Determine color based on mark (0-10 scale)
+          let markColor = 'text-red-600 dark:text-red-400'; // Low score
+          let bgColor = 'bg-red-50 dark:bg-red-900/20';
+          let borderColor = 'border-red-100 dark:border-red-800';
 
-            <p className="mt-2 text-gray-700 dark:text-gray-300">{item.q}</p>
+          if (item.mark >= 9) {
+            markColor = 'text-green-600 dark:text-green-400';
+            bgColor = 'bg-green-50 dark:bg-green-900/20';
+            borderColor = 'border-green-100 dark:border-green-800';
+          } else if (item.mark >= 6) {
+            markColor = 'text-yellow-600 dark:text-yellow-400';
+            bgColor = 'bg-yellow-50 dark:bg-yellow-900/20';
+            borderColor = 'border-yellow-100 dark:border-yellow-800';
+          }
 
-            <div className="mt-3">
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Your Answer:</p>
-              <p className="mt-1 text-gray-700 dark:text-gray-300 pl-3 border-l-2 border-gray-300 dark:border-gray-600">
-                {exam.userAnswers[index] || <em className="text-gray-400 dark:text-gray-500">No answer provided</em>}
-              </p>
+          return (
+            <div
+              key={index}
+              className={`mb-6 p-4 rounded-lg ${bgColor} border ${borderColor}`}
+            >
+              <div className="flex justify-between items-start">
+                <h4 className="text-lg font-medium text-gray-800 dark:text-gray-100">
+                  Question {index + 1}:
+                </h4>
+                <div className="text-right">
+                  <span className={`text-lg font-bold ${markColor}`}>
+                    {item.mark}/10
+                  </span>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {item.mark >= 9 ? 'Excellent' : item.mark >= 6 ? 'Good' : item.mark >= 3 ? 'Fair' : 'Needs Work'}
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-2 text-gray-700 dark:text-gray-300 font-medium">{item.question}</p>
+
+              <div className="mt-3">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Your Answer:</p>
+                <p className="mt-1 text-gray-700 dark:text-gray-300 pl-3 border-l-2 border-gray-300 dark:border-gray-600">
+                  {item.studentAnswer || <em className="text-gray-400 dark:text-gray-500">No answer provided</em>}
+                </p>
+              </div>
+
+              {item.comment && (
+                <div className="mt-3">
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">AI Feedback:</p>
+                  <p className="mt-1 text-gray-700 dark:text-gray-300 pl-3 border-l-2 border-blue-300 dark:border-blue-600">
+                    {item.comment}
+                  </p>
+                </div>
+              )}
+
+              {item.reference && item.reference !== 'N/A' && (
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                    Reference: {item.reference}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Action buttons */}

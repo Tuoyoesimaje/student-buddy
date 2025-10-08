@@ -14,6 +14,7 @@ const PracticeExamQuestions = () => {
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [gradingProgress, setGradingProgress] = useState(0);
 
   useEffect(() => {
     const fetchExam = async () => {
@@ -70,26 +71,43 @@ const PracticeExamQuestions = () => {
   const handleSubmit = async () => {
     // Save the current answer before submitting
     saveCurrentAnswer();
-    
+
     // Check if all questions have been answered
     const unansweredQuestions = userAnswers.filter(answer => !answer.trim()).length;
-    
+
     if (unansweredQuestions > 0) {
       const confirmSubmit = window.confirm(
         `You have ${unansweredQuestions} unanswered question(s). Do you want to submit anyway?`
       );
-      
+
       if (!confirmSubmit) {
         return;
       }
     }
-    
+
     setIsSubmitting(true);
+    setGradingProgress(0);
+
+    // Simulate progress during AI grading
+    const progressInterval = setInterval(() => {
+      setGradingProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + Math.random() * 15;
+      });
+    }, 500);
+
     try {
       const response = await submitPracticeExam(examId, userAnswers);
-      navigate(`/app/practice-exam/results/${examId}`);
+      setGradingProgress(100);
+      setTimeout(() => {
+        navigate(`/app/practice-exam/results/${examId}`);
+      }, 1000);
     } catch (error) {
       console.error('Error submitting practice exam:', error);
+      clearInterval(progressInterval);
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to submit practice exam. Please try again.',
@@ -97,6 +115,7 @@ const PracticeExamQuestions = () => {
       });
     } finally {
       setIsSubmitting(false);
+      clearInterval(progressInterval);
     }
   };
 
@@ -240,6 +259,25 @@ const PracticeExamQuestions = () => {
           ))}
         </div>
       </div>
+
+      {/* AI Grading Progress Bar */}
+      {isSubmitting && (
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300">AI Grading in Progress</h3>
+            <span className="text-sm text-blue-600 dark:text-blue-400">{Math.round(gradingProgress)}%</span>
+          </div>
+          <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-3">
+            <div
+              className="bg-blue-600 dark:bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${gradingProgress}%` }}
+            ></div>
+          </div>
+          <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
+            Our AI is carefully evaluating your answers based on the course material...
+          </p>
+        </div>
+      )}
     </div>
   );
 };

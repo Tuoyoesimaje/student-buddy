@@ -16,6 +16,7 @@ import {
 import api from '../utils/axios';
 import { toast } from 'react-hot-toast';
 import NoteGenerationModal from '../components/NoteGenerationModal';
+import HierarchicalNoteSelector from '../components/HierarchicalNoteSelector';
 
 const Study = () => {
 
@@ -52,6 +53,8 @@ const Study = () => {
   const [quizTopic, setQuizTopic] = useState('');
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [success, setSuccess] = useState(null);
+  const [quizGenerationMode, setQuizGenerationMode] = useState('note-based'); // 'note-based' or 'topic'
+  const [selectedQuizNotes, setSelectedQuizNotes] = useState([]);
 
   // Practice Exam Mode States
   const [practiceExamMode, setPracticeExamMode] = useState('prep');
@@ -177,6 +180,20 @@ const Study = () => {
       setQuizMode('prep');
     }
   }, [noteContent, autoGenerate]);
+
+  // Handle navigation from Notes page with selected notes
+  useEffect(() => {
+    const { selectedNotes, mode } = location.state || {};
+    if (selectedNotes && Array.isArray(selectedNotes)) {
+      setSelectedQuizNotes(selectedNotes);
+      setQuizGenerationMode('note-based');
+      setCurrentMode('quiz');
+      setQuizMode('prep');
+    }
+    if (mode) {
+      setQuizGenerationMode(mode);
+    }
+  }, [location.state]);
 
 
   // Timer Functions
@@ -578,6 +595,75 @@ const Study = () => {
     }
   };
 
+  // Function to generate quiz questions from selected note using AI
+  const generateQuizFromNotes = async () => {
+    if (selectedQuizNotes.length === 0) {
+      setError('Please select a note to generate a quiz.');
+      return;
+    }
+
+    if (selectedQuizNotes.length > 1) {
+      setError('You can only generate a quiz from one note at a time. Please select only one note.');
+      return;
+    }
+
+    setIsLoadingAI(true);
+    setError(null);
+    setQuizQuestions([]); // Clear previous questions
+    setQuizAnswers([]); // Clear previous answers
+    setTimeLeft(3 * 60); // Reset timer to 3 minutes
+
+    try {
+      const selectedNote = selectedQuizNotes[0];
+
+      // Use the note content directly
+      const noteContent = `${selectedNote.title}\n${selectedNote.content.replace(/<[^>]*>/g, '')}`;
+
+      // Call backend endpoint to generate quiz from the note
+      const response = await api.post('/api/ai/generate-quiz', {
+        topic: `Based on this note: ${noteContent.substring(0, 1500)}...` // Limit content length
+      });
+
+      // Parse the AI response
+      const rawQuestions = response.data.response;
+      const questionsArray = rawQuestions.split(/Q\d+:/).filter(Boolean).map(q => {
+        const parts = q.trim().split(/A\)|B\)|C\)|Answer:/);
+        if (parts.length < 5) return null; // Skip if format is incorrect
+
+        const questionText = parts[0].trim();
+        const options = parts.slice(1, 4).map(opt => opt.trim());
+        const correctAnswer = parts[4].trim().toUpperCase();
+
+        // Validate the format
+        if (questionText && options.length === 3 && ['A', 'B', 'C'].includes(correctAnswer)) {
+          return {
+            question: questionText,
+            options: options,
+            correctAnswer: correctAnswer
+          };
+        }
+        return null;
+      }).filter(Boolean); // Remove any null entries
+
+      if (questionsArray.length > 0) {
+        setQuizQuestions(questionsArray);
+        setQuizAnswers(new Array(questionsArray.length).fill(null));
+        setCurrentQuestion(0);
+        setQuizMode('in_progress');
+        setIsRunning(true); // Start the timer
+        setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
+      } else {
+        setError('Failed to generate valid questions from the selected note. Please try again.');
+      }
+
+    } catch (err) {
+      console.error('Error generating quiz from note:', err);
+      setError('Failed to generate quiz from the selected note. Please try again.');
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
+
   // Render Quiz Setup Screen
   const renderQuizSetupScreen = () => (
     <div className="fixed inset-0 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-900 dark:to-gray-800 z-50 overflow-y-auto p-4 sm:p-6 lg:p-8">
@@ -593,19 +679,59 @@ const Study = () => {
         </button>
       </div>
 
-        {/* Topic Input */}
+        {/* Mode Toggle */}
         <div className="mb-8">
-          <label htmlFor="quizTopic" className="block text-sm font-medium text-gray-700 mb-2">Enter Topic</label>
-          <input
-            type="text"
-            id="quizTopic"
-            value={quizTopic}
-            onChange={(e) => setQuizTopic(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-            placeholder="e.g., Photosynthesis, JavaScript Closures, World War II"
-            disabled={isLoadingAI}
-          />
-            </div>
+          <div className="flex items-center justify-center space-x-4">
+            <span className={`text-sm font-medium ${quizGenerationMode === 'note-based' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`}>
+              Note-Based Mode
+            </span>
+            <button
+              onClick={() => setQuizGenerationMode(quizGenerationMode === 'note-based' ? 'topic' : 'note-based')}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                quizGenerationMode === 'note-based' ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  quizGenerationMode === 'note-based' ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className={`text-sm font-medium ${quizGenerationMode === 'topic' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`}>
+              Topic Mode
+            </span>
+          </div>
+        </div>
+
+        {quizGenerationMode === 'note-based' ? (
+          /* Hierarchical Note Selection Interface */
+          <div className="mb-8">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Select Note for Quiz</h3>
+            <HierarchicalNoteSelector
+              notes={notes}
+              courses={courses}
+              selectedNotes={selectedQuizNotes}
+              onSelectionChange={setSelectedQuizNotes}
+              maxSelections={1}
+              singleSelect={true}
+              className="border border-gray-200 dark:border-gray-600 rounded-lg"
+            />
+          </div>
+        ) : (
+          /* Topic Input */
+          <div className="mb-8">
+            <label htmlFor="quizTopic" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Enter Topic</label>
+            <input
+              type="text"
+              id="quizTopic"
+              value={quizTopic}
+              onChange={(e) => setQuizTopic(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+              placeholder="e.g., Photosynthesis, JavaScript Closures, World War II"
+              disabled={isLoadingAI}
+            />
+          </div>
+        )}
 
         {/* Error and Success Messages */}
         {error && (
@@ -616,14 +742,14 @@ const Study = () => {
         )}
 
         {/* Action Button */}
-            <button
-          onClick={generateQuizFromTopic}
+        <button
+          onClick={quizGenerationMode === 'note-based' ? generateQuizFromNotes : generateQuizFromTopic}
           className={`w-full px-6 py-4 rounded-lg text-base font-medium text-white transition-all transform hover:scale-[1.02] ${
-            quizTopic.trim() === '' || isLoadingAI 
-              ? 'bg-gray-400 cursor-not-allowed' 
+            (quizGenerationMode === 'note-based' ? selectedQuizNotes.length !== 1 : quizTopic.trim() === '') || isLoadingAI
+              ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
           }`}
-          disabled={!quizTopic.trim() || isLoadingAI}
+          disabled={(quizGenerationMode === 'note-based' ? selectedQuizNotes.length !== 1 : !quizTopic.trim()) || isLoadingAI}
         >
           {isLoadingAI ? (
             <span className="flex items-center justify-center">
@@ -684,6 +810,16 @@ const Study = () => {
             </div>
 
             <div className="text-center space-y-8">
+              {/* Note Source Display */}
+              {selectedQuizNotes.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">Quiz Source</h3>
+                  <p className="text-blue-700 dark:text-blue-300">
+                    Generated from: <span className="font-medium">"{selectedQuizNotes[0].title}"</span>
+                  </p>
+                </div>
+              )}
+
           {/* Score Display */}
               <div className="inline-block p-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-full">
                 <div className="text-5xl font-bold text-indigo-600 dark:text-indigo-400">

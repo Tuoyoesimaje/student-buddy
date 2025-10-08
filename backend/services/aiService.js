@@ -195,67 +195,101 @@ ${topicOrNote}`;
     return questions;
   }
 
-  async gradePracticeExam(questions, userAnswers) {
-    // Construct the prompt for grading
-    let prompt = `You are an expert exam grader.
+  async gradePracticeExam(questions, userAnswers, noteContent = null) {
+    // Construct the prompt for grading based on note content
+    let prompt = `You are an expert exam grader evaluating student answers based on specific course content.
 
-Below are 15 questions and the user's 15 answers.
-Score each answer (0 or 1). Then return:
-- Total score out of 15
-- Short feedback summary of user performance
-- Optional breakdown of each question, user answer, and mark
+${noteContent ? `REFERENCE MATERIAL (grade answers based on this content, not general knowledge):\n${noteContent}\n\n` : ''}
 
-Format the output as:
+Grade each of the ${questions.length} questions using this scoring scale:
+- 9-10: Fully correct, complete understanding
+- 6-8: Partially correct, main idea present but missing details
+- 3-5: Weak understanding, missing context or has errors
+- 0-2: Off-topic, wrong, or no understanding shown
+
+Return a JSON array where each object has:
 {
-  score: 12,
-  feedback: "You did well on most concepts. Improve on Q5, Q7, Q13.",
-  detailed: [
-    { q: "What is a binary tree?", a: "User answer here", mark: 1 },
-    ...
-  ]
+  "question": "exact question text",
+  "studentAnswer": "student's answer (or 'No answer provided')",
+  "mark": number (0-10),
+  "comment": "specific feedback referencing the reference material",
+  "reference": "specific section/page from reference material that supports this answer"
 }
 
-Questions:\n`;
+Example format:
+[
+  {
+    "question": "What is the main function of mitochondria?",
+    "studentAnswer": "They produce energy for the cell",
+    "mark": 8,
+    "comment": "Correct main function but didn't mention ATP production specifically",
+    "reference": "Section 3.2: Cellular Energy Production"
+  }
+]
 
-    // Add questions to prompt
+Questions to grade:\n`;
+
+    // Add questions and answers to prompt
     questions.forEach((q, i) => {
       prompt += `${i + 1}. ${q}\n`;
-    });
-
-    // Add answers to prompt
-    prompt += `\nAnswers:\n`;
-    userAnswers.forEach((a, i) => {
-      prompt += `${i + 1}. ${a}\n`;
+      prompt += `Student Answer: ${userAnswers[i] || 'No answer provided'}\n\n`;
     });
 
     // Get AI response
     const response = await this.generateResponse(prompt);
-    
+
     try {
       // Try to parse the response as JSON
-      // First, find the JSON object in the response (in case there's text before or after)
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
-        throw new Error('Could not find JSON in response');
+        throw new Error('Could not find JSON array in response');
       }
-      
+
       const jsonStr = jsonMatch[0];
-      const result = JSON.parse(jsonStr);
-      
-      // Validate the result has the expected structure
-      if (!result.score || !result.feedback || !Array.isArray(result.detailed)) {
-        throw new Error('Response missing required fields');
+      const detailedResults = JSON.parse(jsonStr);
+
+      // Validate the result structure
+      if (!Array.isArray(detailedResults) || detailedResults.length === 0) {
+        throw new Error('Response is not a valid array');
       }
-      
-      return result;
+
+      // Calculate total score
+      const totalScore = detailedResults.reduce((sum, item) => sum + (item.mark || 0), 0);
+      const maxScore = questions.length * 10;
+      const percentageScore = Math.round((totalScore / maxScore) * 100);
+
+      // Generate overall feedback
+      const averageMark = totalScore / detailedResults.length;
+      let feedback = '';
+      if (averageMark >= 8) {
+        feedback = 'Excellent work! You demonstrated strong understanding of the material.';
+      } else if (averageMark >= 6) {
+        feedback = 'Good effort! You captured most key concepts but could review some details.';
+      } else if (averageMark >= 4) {
+        feedback = 'Fair understanding shown. Focus on reviewing the core concepts and examples.';
+      } else {
+        feedback = 'More review needed. Consider revisiting the fundamental concepts in the material.';
+      }
+
+      return {
+        score: percentageScore,
+        feedback: feedback,
+        detailed: detailedResults
+      };
+
     } catch (error) {
       console.error('Error parsing grade response:', error);
-      // Fallback: return a basic structure with the raw response
+      // Fallback: return a basic structure
       return {
         score: 0,
-        feedback: 'Error processing grades. Please try again.',
-        detailed: [],
-        rawResponse: response
+        feedback: 'Error processing grades. The AI grading system encountered an issue.',
+        detailed: questions.map((q, i) => ({
+          question: q,
+          studentAnswer: userAnswers[i] || 'No answer provided',
+          mark: 0,
+          comment: 'Grading error occurred',
+          reference: 'N/A'
+        }))
       };
     }
   }

@@ -1,6 +1,7 @@
 import { apiRequest } from '../services/api';
 import api from '../utils/axios';
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import FolderCard from '../components/FolderCard';
 import NoteCard from '../components/NoteCard';
 import { useAuth } from '../context/AuthContext';
@@ -66,15 +67,18 @@ export default function Notes() {
   const [noteToEditMetadata, setNoteToEditMetadata] = useState(null);
 
   // AI Explain Feature States
-  const [selectedText, setSelectedText] = useState('');
-  const [aiExplanation, setAiExplanation] = useState('');
-  const [showAIExplainModal, setShowAIExplainModal] = useState(false);
-  const [isLoadingAIExplain, setIsLoadingAIExplain] = useState(false);
-  const [showExplainPopup, setShowExplainPopup] = useState(false);
-  const explainPopupPosition = useRef({ x: 0, y: 0 });
+   const [selectedText, setSelectedText] = useState('');
+   const [aiExplanation, setAiExplanation] = useState('');
+   const [aiHint, setAiHint] = useState('');
+   const [showFullExplanation, setShowFullExplanation] = useState(false);
+   const [showAIExplainModal, setShowAIExplainModal] = useState(false);
+   const [isLoadingAIExplain, setIsLoadingAIExplain] = useState(false);
+   const [showExplainPopup, setShowExplainPopup] = useState(false);
+   const explainPopupPosition = useRef({ x: 0, y: 0 });
 
 
   const { userId } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (selectedNote) {
@@ -406,6 +410,8 @@ export default function Notes() {
     setSelectedNote(null);
     setHighlightedText(null);
     setAiExplanation(null);
+    setAiHint('');
+    setShowFullExplanation(false);
     setIsExplanationModalOpen(false);
     setIsAILoading(false);
     setAiSummary(null);
@@ -415,6 +421,8 @@ export default function Notes() {
     // Reset popup states
     setSelectedText('');
     setAiExplanation('');
+    setAiHint('');
+    setShowFullExplanation(false);
     setShowAIExplainModal(false);
     setIsLoadingAIExplain(false);
     setShowExplainPopup(false);
@@ -781,29 +789,52 @@ export default function Notes() {
     if (!selectedText.trim()) return;
     setIsLoadingAIExplain(true);
     setAiExplanation('');
+    setAiHint('');
+    setShowFullExplanation(false);
+
+    console.log('Calling AI explain with text:', selectedText.substring(0, 50) + '...');
+
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/ai/explain`, {
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+      const apiUrl = `${backendUrl}/api/ai/explain`;
+
+      console.log('Making request to:', apiUrl);
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ text: selectedText })
+        body: JSON.stringify({
+          text: selectedText,
+          noteContent: selectedNote?.content || ''
+        })
       });
 
+      console.log('Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
-      let explanation = data.explanation || data.response || data.message || 'No explanation received.';
+      console.log('Response data:', data);
 
-      setAiExplanation(String(explanation));
+      setAiHint(data.hint || 'No hint available.');
+      setAiExplanation(data.fullExplanation || 'No full explanation available.');
       setShowAIExplainModal(true);
     } catch (err) {
       console.error('Error getting AI explanation:', err);
-      setAiExplanation('Failed to get explanation. Please try again.');
+      setAiHint(`Failed to get hint: ${err.message}`);
+      setAiExplanation(`Failed to get full explanation: ${err.message}`);
       setShowAIExplainModal(true);
     } finally {
       setIsLoadingAIExplain(false);
@@ -815,6 +846,8 @@ export default function Notes() {
 
     setIsAILoading(true);
     setAiExplanation(null);
+    setAiHint('');
+    setShowFullExplanation(false);
 
     try {
       const token = localStorage.getItem('token');
@@ -824,7 +857,10 @@ export default function Notes() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ text: highlightedText }),
+        body: JSON.stringify({
+          text: highlightedText,
+          noteContent: selectedNote?.content || ''
+        }),
       });
 
       if (!response.ok) {
@@ -832,7 +868,8 @@ export default function Notes() {
       }
 
       const data = await response.json();
-      setAiExplanation(data.explanation);
+      setAiHint(data.hint || 'No hint available.');
+      setAiExplanation(data.fullExplanation || 'No full explanation available.');
     } catch (error) {
       console.error('Error getting AI explanation:', error);
       setError('Failed to get AI explanation. Please try again.');
@@ -1130,12 +1167,20 @@ export default function Notes() {
                 <ClipboardIcon className="w-6 h-6" />
               </button>
               <button
-                onClick={() => handleGenerateQuiz(selectedNote.content)}
-                className="p-2 rounded-full text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors"
+                onClick={() => navigate('/app/study', { state: { selectedNotes: [selectedNote], mode: 'note-based' } })}
+                className="p-2 rounded-full text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
                 aria-label="Generate Quiz from Note"
                 title="Generate quiz from this note"
               >
                 <AcademicCapIcon className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => navigate('/app/practice-exam', { state: { selectedNotes: [selectedNote], mode: 'note-based' } })}
+                className="p-2 rounded-full text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors"
+                aria-label="Generate Practice Exam from Note"
+                title="Generate practice exam from this note"
+              >
+                <DocumentTextIcon className="w-6 h-6" />
               </button>
               <button
                 onClick={() => {
@@ -1321,8 +1366,54 @@ export default function Notes() {
               <div className="flex items-center justify-center py-4">
                 <ArrowPathIcon className="w-6 h-6 animate-spin text-indigo-600" />
               </div>
-            ) : aiExplanation ? (
-              <p className="text-gray-700">{aiExplanation}</p>
+            ) : aiHint ? (
+              <div className="space-y-4">
+                {/* Encouraging Header */}
+                <div className="text-center py-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                    "Learning is a journey, not a destination. Let's explore this together! 🤝"
+                  </p>
+                </div>
+
+                {/* Hint Section */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+                  <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
+                    💡 Think about this...
+                  </h4>
+                  <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">{aiHint}</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 italic">
+                    Does this spark any connections for you?
+                  </p>
+                </div>
+
+                {/* Full Explanation Section */}
+                {showFullExplanation ? (
+                  <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                    <h4 className="text-sm font-semibold text-green-800 dark:text-green-300 mb-2 flex items-center gap-2">
+                      📚 Let's dive deeper...
+                    </h4>
+                    <div className="text-gray-800 dark:text-gray-200 text-sm whitespace-pre-line max-h-60 overflow-y-auto leading-relaxed">
+                      {aiExplanation}
+                    </div>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-2 italic">
+                      How does this fit with what you already know?
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center space-y-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Ready for the complete picture?
+                    </p>
+                    <button
+                      onClick={() => setShowFullExplanation(true)}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
+                    >
+                      <BookOpenIcon className="w-4 h-4" />
+                      Show Full Explanation
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <button
                 onClick={requestAIExplanation}
@@ -1339,7 +1430,10 @@ export default function Notes() {
       {/* AI Explain Modal for Popup */}
       {showAIExplainModal && (
         <AIExplainModalPopup
+          aiHint={aiHint}
           aiExplanation={aiExplanation}
+          showFullExplanation={showFullExplanation}
+          setShowFullExplanation={setShowFullExplanation}
           isLoadingAIExplain={isLoadingAIExplain}
           onClose={() => setShowAIExplainModal(false)}
         />
@@ -1350,17 +1444,7 @@ export default function Notes() {
 }
 
 // AI Explain Modal Component for Popup
-const AIExplainModalPopup = ({ aiExplanation, isLoadingAIExplain, onClose }) => {
-  let displayExplanation = aiExplanation;
-  if (typeof displayExplanation !== 'string') {
-    if (displayExplanation && typeof displayExplanation.explanation === 'string') {
-      displayExplanation = displayExplanation.explanation;
-    } else if (displayExplanation && typeof displayExplanation.message === 'string') {
-      displayExplanation = displayExplanation.message;
-    } else {
-      displayExplanation = JSON.stringify(displayExplanation);
-    }
-  }
+const AIExplainModalPopup = ({ aiHint, aiExplanation, showFullExplanation, setShowFullExplanation, isLoadingAIExplain, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 dark:bg-black dark:bg-opacity-60">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl dark:shadow-gray-900/50 p-8 max-w-lg w-full relative animate-fadeIn border border-gray-200 dark:border-gray-700">
@@ -1377,8 +1461,52 @@ const AIExplainModalPopup = ({ aiExplanation, isLoadingAIExplain, onClose }) => 
             <p className="text-gray-600 dark:text-gray-400">Getting explanation...</p>
           </div>
         ) : (
-          <div className="prose max-w-none text-gray-800 dark:text-gray-200 whitespace-pre-line overflow-y-auto" style={{maxHeight: '50vh'}}>
-            {displayExplanation}
+          <div className="space-y-4">
+            {/* Encouraging Header */}
+            <div className="text-center py-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                "Learning is a journey, not a destination. Let's explore this together! 🤝"
+              </p>
+            </div>
+
+            {/* Hint Section */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
+              <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
+                💡 Think about this...
+              </h3>
+              <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">{aiHint}</p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 italic">
+                Does this spark any connections for you?
+              </p>
+            </div>
+
+            {/* Full Explanation Section */}
+            {showFullExplanation ? (
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                <h3 className="text-sm font-semibold text-green-800 dark:text-green-300 mb-2 flex items-center gap-2">
+                  📚 Let's dive deeper...
+                </h3>
+                <div className="prose max-w-none text-gray-800 dark:text-gray-200 whitespace-pre-line overflow-y-auto text-sm leading-relaxed" style={{maxHeight: '40vh'}}>
+                  {aiExplanation}
+                </div>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-2 italic">
+                  How does this fit with what you already know?
+                </p>
+              </div>
+            ) : (
+              <div className="text-center space-y-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Ready for the complete picture?
+                </p>
+                <button
+                  onClick={() => setShowFullExplanation(true)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
+                >
+                  <BookOpenIcon className="w-4 h-4" />
+                  Show Full Explanation
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
