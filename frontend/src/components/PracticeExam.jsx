@@ -99,10 +99,13 @@ const PracticeExam = () => {
         });
         return;
       }
-      // Combine content from selected notes
-      contentToUse = selectedExamNotes.map(note =>
-        `${note.title}\n${note.content.replace(/<[^>]*>/g, '')}`
-      ).join('\n\n');
+      // Combine content from selected notes with explicit separators and per-note truncation
+      const maxPerNote = 1200; // limit per note to avoid extremely long prompts
+      contentToUse = selectedExamNotes.map((note, idx) => {
+        const plain = (note.content || '').replace(/<[^>]*>/g, '');
+        const truncated = plain.length > maxPerNote ? plain.substring(0, maxPerNote) + '...' : plain;
+        return `--- NOTE ${idx + 1} START: ${note.title} ---\n${truncated}\n--- NOTE ${idx + 1} END ---`;
+      }).join('\n\n');
     } else {
       if (!topicOrNote.trim()) {
         toast({

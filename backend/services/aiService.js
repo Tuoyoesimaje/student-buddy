@@ -178,10 +178,14 @@ Format the notes in a clean, readable structure with headings and bullet points.
   }
 
   async generatePracticeQuestions(topicOrNote) {
-    const prompt = `Generate 15 practice exam questions from the following topic or notes.
-Do NOT include answers. Format the output as a numbered list only.
+    const prompt = `You are an exam question generator. You will be given one or more study notes separated by clear separators. Generate 15 practice exam questions in total, distributing them across the provided notes so each note is represented (if possible). For each question, include in parentheses a short source tag indicating which NOTE it came from (for example: (NOTE 1)). Do NOT include answers. Format the output as a numbered list, one question per line.
 
-Topic/Notes:
+Important:
+- If multiple notes are provided, ensure questions cover each note fairly (aim for roughly equal coverage).
+- If a note is very short, allocate fewer questions to it.
+- If the AI cannot create 15 unique questions, create as many as you can and clearly state how many were generated at the top.
+
+Notes:
 ${topicOrNote}`;
 
     const response = await this.generateResponse(prompt);
