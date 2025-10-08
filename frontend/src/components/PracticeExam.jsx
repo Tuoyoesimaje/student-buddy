@@ -3,16 +3,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useRef, useEffect, useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import api from '../utils/axios';
-import HierarchicalNoteSelector from './HierarchicalNoteSelector';
+import NoteSearchSelector from './NoteSearchSelector';
 
 const PracticeExam = () => {
   const [topicOrNote, setTopicOrNote] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [examGenerationMode, setExamGenerationMode] = useState('note-based'); // 'note-based' or 'topic'
   const [selectedExamNotes, setSelectedExamNotes] = useState([]);
-  const [notes, setNotes] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [isLoadingNotes, setIsLoadingNotes] = useState(true);
+  // Notes and courses loading removed - handled by NoteSearchSelector
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -23,30 +21,6 @@ const PracticeExam = () => {
     return () => { mounted.current = false; };
   }, []);
 
-  // Load notes and courses
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoadingNotes(true);
-        const [notesResponse, coursesResponse] = await Promise.all([
-          api.get('/api/notes'),
-          api.get('/api/courses')
-        ]);
-        setNotes(notesResponse.data);
-        setCourses(coursesResponse.data);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load notes and courses. Please try again.',
-          status: 'error',
-        });
-      } finally {
-        setIsLoadingNotes(false);
-      }
-    };
-    loadData();
-  }, []);
 
   // Handle navigation from Notes page with selected notes
   useEffect(() => {
@@ -146,18 +120,16 @@ const PracticeExam = () => {
         </div>
 
         {examGenerationMode === 'note-based' ? (
-          /* Hierarchical Note Selection Interface */
+          /* Search-based Note Selection Interface */
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Select Notes for Practice Exam
             </label>
-            <HierarchicalNoteSelector
-              notes={notes}
-              courses={courses}
+            <NoteSearchSelector
               selectedNotes={selectedExamNotes}
               onSelectionChange={setSelectedExamNotes}
               maxSelections={3}
-              singleSelect={false}
+              placeholder="Search for notes to include in practice exam..."
               className="border border-gray-200 dark:border-gray-600 rounded-lg"
             />
           </div>

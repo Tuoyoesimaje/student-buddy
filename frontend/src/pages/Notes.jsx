@@ -65,6 +65,7 @@ export default function Notes() {
   const [isAddNoteModalOpen, setIsAddNoteModalOpen] = useState(false);
   const [isEditMetadataModalOpen, setIsEditMetadataModalOpen] = useState(false);
   const [noteToEditMetadata, setNoteToEditMetadata] = useState(null);
+  const [isRetrievalPracticeModalOpen, setIsRetrievalPracticeModalOpen] = useState(false);
 
   // AI Explain Feature States
    const [selectedText, setSelectedText] = useState('');
@@ -1167,20 +1168,12 @@ export default function Notes() {
                 <ClipboardIcon className="w-6 h-6" />
               </button>
               <button
-                onClick={() => navigate('/app/study', { state: { selectedNotes: [selectedNote], mode: 'note-based' } })}
+                onClick={() => setIsRetrievalPracticeModalOpen(true)}
                 className="p-2 rounded-full text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors"
-                aria-label="Generate Quiz from Note"
-                title="Generate quiz from this note"
+                aria-label="Retrieval Practice"
+                title="Quiz and Practice Exam options"
               >
                 <AcademicCapIcon className="w-6 h-6" />
-              </button>
-              <button
-                onClick={() => navigate('/app/practice-exam', { state: { selectedNotes: [selectedNote], mode: 'note-based' } })}
-                className="p-2 rounded-full text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/20 transition-colors"
-                aria-label="Generate Practice Exam from Note"
-                title="Generate practice exam from this note"
-              >
-                <DocumentTextIcon className="w-6 h-6" />
               </button>
               <button
                 onClick={() => {
@@ -1439,6 +1432,21 @@ export default function Notes() {
         />
       )}
 
+      {/* Retrieval Practice Modal */}
+      {isRetrievalPracticeModalOpen && (
+        <RetrievalPracticeModal
+          onClose={() => setIsRetrievalPracticeModalOpen(false)}
+          onSelectQuiz={() => {
+            navigate('/app/study', { state: { selectedNotes: [selectedNote], mode: 'note-based' } });
+            setIsRetrievalPracticeModalOpen(false);
+          }}
+          onSelectPracticeExam={() => {
+            navigate('/app/practice-exam', { state: { selectedNotes: [selectedNote], mode: 'note-based' } });
+            setIsRetrievalPracticeModalOpen(false);
+          }}
+        />
+      )}
+
     </div>
   );
 }
@@ -1510,6 +1518,70 @@ const AIExplainModalPopup = ({ aiHint, aiExplanation, showFullExplanation, setSh
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+// Retrieval Practice Modal Component
+const RetrievalPracticeModal = ({ onClose, onSelectQuiz, onSelectPracticeExam }) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 dark:bg-black dark:bg-opacity-60">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl dark:shadow-gray-900/50 p-8 max-w-md w-full relative border border-gray-200 dark:border-gray-700"
+      >
+        <button
+          className="absolute top-3 right-3 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          onClick={onClose}
+        >
+          <XMarkIcon className="w-6 h-6" />
+        </button>
+        <h2 className="text-xl font-bold mb-6 text-indigo-700 dark:text-indigo-400 text-center">Retrieval Practice</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
+          Strengthen your memory through active recall
+        </p>
+
+        <div className="space-y-4">
+          <button
+            onClick={onSelectQuiz}
+            className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 group"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-500 rounded-lg group-hover:bg-blue-600 transition-colors">
+                <AcademicCapIcon className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-blue-800 dark:text-blue-300">Take Quiz</h3>
+                <p className="text-sm text-blue-600 dark:text-blue-400">Quick questions to test your knowledge</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={onSelectPracticeExam}
+            className="w-full p-4 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all duration-200 group"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-purple-500 rounded-lg group-hover:bg-purple-600 transition-colors">
+                <DocumentTextIcon className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-purple-800 dark:text-purple-300">Practice Exam</h3>
+                <p className="text-sm text-purple-600 dark:text-purple-400">Full-length exam simulation</p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Both options use AI to create personalized questions from your notes
+          </p>
+        </div>
+      </motion.div>
     </div>
   );
 };

@@ -16,7 +16,8 @@ import {
 import api from '../utils/axios';
 import { toast } from 'react-hot-toast';
 import NoteGenerationModal from '../components/NoteGenerationModal';
-import HierarchicalNoteSelector from '../components/HierarchicalNoteSelector';
+import NoteSearchSelector from '../components/NoteSearchSelector';
+import { motion } from 'framer-motion';
 
 const Study = () => {
 
@@ -40,10 +41,7 @@ const Study = () => {
   const [quizAnswers, setQuizAnswers] = useState([]);
   const [quizResults, setQuizResults] = useState(null);
 
-  // Data States
-  const [notes, setNotes] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Data States - removed since NoteSearchSelector handles its own data loading
   const [error, setError] = useState(null);
 
   // Quiz Mode States
@@ -55,6 +53,14 @@ const Study = () => {
   const [success, setSuccess] = useState(null);
   const [quizGenerationMode, setQuizGenerationMode] = useState('note-based'); // 'note-based' or 'topic'
   const [selectedQuizNotes, setSelectedQuizNotes] = useState([]);
+
+  // Quiz interactivity states
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(null);
+  const [isAnswerLocked, setIsAnswerLocked] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [progressWidth, setProgressWidth] = useState(0);
+  const [feedbackType, setFeedbackType] = useState(''); // 'correct' or 'wrong'
 
   // Practice Exam Mode States
   const [practiceExamMode, setPracticeExamMode] = useState('prep');
@@ -107,61 +113,66 @@ const Study = () => {
     combo5: { id: 'combo5', title: 'Combo Legend', description: 'Get 5 correct answers in a row', points: 50 }
   };
 
-  // API functions
-  const getNotes = async () => {
-    try {
-      const response = await api.get('/api/notes');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching notes:', error);
-      if (error.response?.status === 401) {
-        throw new Error('Please log in to access this feature');
-      }
-      throw error;
+  // AI-Driven Encouragement & Humor Feedback System
+  const correctFeedbacks = [
+    "Nice one, scholar! You nailed that concept. 🧠",
+    "Brains and beauty — your neurons are flexing! ✨",
+    "You could tutor me at this point. Keep going! 📚",
+    "Spot on! Your brain is firing on all cylinders! ⚡",
+    "Brilliant! You're making this look easy. 🌟",
+    "Correct! Your knowledge game is strong! 💪",
+    "Perfect! You're on fire today! 🔥",
+    "Excellent work! You're crushing this quiz! 🎯",
+    "Right on target! Keep that momentum! 🚀",
+    "Outstanding! Your brain deserves a high-five! 👏"
+  ];
+
+  const wrongFeedbacks = [
+    "Close, but not quite — your brain almost caught it! 🤔",
+    "Oops! Looks like your coffee hasn't kicked in yet. ☕",
+    "You're warming up — the next one's yours! 🔥",
+    "Not quite, but you're getting warmer! 🌡️",
+    "Missed that one, but keep swinging! ⚾",
+    "Wrong turn, but the journey continues! 🗺️",
+    "Not this time, but you're still awesome! ⭐",
+    "Close call! Next question is your redemption! 🎪",
+    "Wrong answer, but right attitude! 💪",
+    "Missed it, but you're still learning! 📖"
+  ];
+
+  const completionFeedbacks = [
+    "Quiz complete! You're a learning machine! 🤖",
+    "Finished! Your brain just leveled up! ⬆️",
+    "All done! You're officially smarter now! 🧠",
+    "Complete! Your knowledge just got a workout! 💪",
+    "Finished! You're crushing this learning thing! 🎯",
+    "Done! Your brain deserves a victory dance! 💃",
+    "Complete! You're a quiz-conquering champion! 🏆",
+    "Finished! Your neurons are doing the happy dance! 🕺",
+    "All set! You're a learning superstar! ⭐",
+    "Complete! Your brain just earned its PhD! 🎓"
+  ];
+
+  // Function to get random feedback message
+  const getRandomFeedback = (type) => {
+    let messages;
+    switch (type) {
+      case 'correct':
+        messages = correctFeedbacks;
+        break;
+      case 'wrong':
+        messages = wrongFeedbacks;
+        break;
+      case 'completion':
+        messages = completionFeedbacks;
+        break;
+      default:
+        return "Keep going!";
     }
+    return messages[Math.floor(Math.random() * messages.length)];
   };
 
-  const getCourses = async () => {
-    try {
-      const response = await api.get('/api/courses');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      if (error.response?.status === 401) {
-        throw new Error('Please log in to access this feature');
-      }
-      throw error;
-    }
-  };
 
-  // Load data
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true);
-        console.log('Loading study data...');
-
-        const [notesData, coursesData] = await Promise.all([
-          getNotes(),
-          getCourses(),
-        ]);
-
-        setNotes(notesData);
-        setCourses(coursesData);
-        console.log('Data loaded successfully');
-      } catch (error) {
-        console.error('Error loading study data:', error);
-        if (error.message === 'Please log in to access this feature') {
-          setError('Please log in to access the study features');
-        } else {
-          setError('Failed to load study data. Please try again later.');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
-  }, []);
 
   // Auto-populate quiz generation form if note content provided
   useEffect(() => {
@@ -194,6 +205,7 @@ const Study = () => {
       setQuizGenerationMode(mode);
     }
   }, [location.state]);
+
 
 
   // Timer Functions
@@ -388,33 +400,39 @@ const Study = () => {
     return newAchievements;
   };
 
-  // Modified handleQuizAnswer to only handle answer selection
+  // Modified handleQuizAnswer to show immediate feedback with 4-second timer
   const handleQuizAnswer = (answerIndex) => {
     try {
-      if (!quizQuestions[currentQuestion]) {
-        console.error('No question available at current index');
+      if (!quizQuestions[currentQuestion] || isAnswerLocked) {
         return;
       }
 
-    const newAnswers = [...quizAnswers];
-    const answerLetter = String.fromCharCode(65 + answerIndex);
-    newAnswers[currentQuestion] = answerLetter;
-    setQuizAnswers(newAnswers);
-
-      // Check if answer is correct
+      const answerLetter = String.fromCharCode(65 + answerIndex);
       const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
-      
+
+      // Set feedback state
+      setSelectedAnswerIndex(answerIndex);
+      setFeedbackType(isCorrect ? 'correct' : 'wrong');
+      setShowFeedback(true);
+      setIsAnswerLocked(true);
+
+      // Update answers array
+      const newAnswers = [...quizAnswers];
+      newAnswers[currentQuestion] = answerLetter;
+      setQuizAnswers(newAnswers);
+
+      // Handle scoring and achievements
       if (isCorrect) {
         // Update combo
         setCombo(prev => prev + 1);
-        
+
         // Award points based on combo
         const pointsToAward = Math.round(10 * (1 + (combo * 0.5))); // Base 10 points, increases with combo
         setPoints(prev => prev + pointsToAward);
         setPointsToAdd(pointsToAward);
         setShowPointsAnimation(true);
         setTimeout(() => setShowPointsAnimation(false), 1000);
-        
+
         // Check for combo achievements
         if (combo === 3 && !achievements.includes('combo3')) {
           setAchievements(prev => [...prev, achievementDefinitions.combo3]);
@@ -429,6 +447,48 @@ const Study = () => {
       } else {
         setCombo(0);
       }
+
+      // Start 4-second progress bar timer
+      setProgressWidth(0);
+      const startTime = Date.now();
+      const duration = 4000; // 4 seconds
+
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min((elapsed / duration) * 100, 100);
+        setProgressWidth(progress);
+
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+          // Auto-advance to next question after 4 seconds
+          if (currentQuestion < quizQuestions.length - 1) {
+            handleNextQuestion();
+          } else {
+            // Finish quiz if it's the last question
+            const score = quizAnswers.filter((answer, index) => {
+              const correctAnswer = quizQuestions[index].correctAnswer;
+              return answer === correctAnswer;
+            }).length;
+
+            setStreak(prev => prev + 1);
+            const newAchievements = checkAchievements({
+              score,
+              total: quizQuestions.length,
+              percentage: Math.round((score / quizQuestions.length) * 100)
+            });
+
+            setQuizResults({
+              score,
+              total: quizQuestions.length,
+              percentage: Math.round((score / quizQuestions.length) * 100)
+            });
+            setQuizMode('results');
+            setIsRunning(false);
+            toast.success(`${getRandomFeedback('completion')} Score: ${score}/${quizQuestions.length}`);
+          }
+        }
+      }, 50);
+
     } catch (error) {
       console.error('Error handling quiz answer:', error);
       toast.error('An error occurred while processing your answer');
@@ -446,28 +506,34 @@ const Study = () => {
     }
   };
 
-  // Modified handleNextQuestion to include better error handling
+  // Modified handleNextQuestion to include better error handling and reset feedback state
   const handleNextQuestion = () => {
     try {
     if (currentQuestion < quizQuestions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
+      // Reset feedback state for new question
+      setShowFeedback(false);
+      setSelectedAnswerIndex(null);
+      setIsAnswerLocked(false);
+      setFeedbackType('');
+      setProgressWidth(0);
     } else {
       // Calculate results
       const score = quizAnswers.filter((answer, index) => {
         const correctAnswer = quizQuestions[index].correctAnswer;
         return answer === correctAnswer;
       }).length;
-        
+
         // Update streak
         setStreak(prev => prev + 1);
-        
+
         // Check achievements
         const newAchievements = checkAchievements({
           score,
           total: quizQuestions.length,
           percentage: Math.round((score / quizQuestions.length) * 100)
         });
-      
+
       setQuizResults({
         score,
         total: quizQuestions.length,
@@ -475,9 +541,9 @@ const Study = () => {
       });
       setQuizMode('results');
         setIsRunning(false); // Stop the timer
-        
-        // Show completion message
-        toast.success(`Quiz completed! Score: ${score}/${quizQuestions.length}`);
+
+        // Show completion message with randomized feedback
+        toast.success(`${getRandomFeedback('completion')} Score: ${score}/${quizQuestions.length}`);
       }
     } catch (error) {
       console.error('Error handling next question:', error);
@@ -704,16 +770,14 @@ const Study = () => {
         </div>
 
         {quizGenerationMode === 'note-based' ? (
-          /* Hierarchical Note Selection Interface */
+          /* Search-based Note Selection Interface */
           <div className="mb-8">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Select Note for Quiz</h3>
-            <HierarchicalNoteSelector
-              notes={notes}
-              courses={courses}
+            <NoteSearchSelector
               selectedNotes={selectedQuizNotes}
               onSelectionChange={setSelectedQuizNotes}
               maxSelections={1}
-              singleSelect={true}
+              placeholder="Search for a note to generate quiz..."
               className="border border-gray-200 dark:border-gray-600 rounded-lg"
             />
           </div>
@@ -943,44 +1007,118 @@ const Study = () => {
               />
             </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {quizQuestions[currentQuestion].options.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswerAndNext(index)}
-                      className={`p-4 text-left rounded-xl border transition-all transform hover:scale-[1.02] ${
-                        quizAnswers[currentQuestion] === String.fromCharCode(65 + index)
-                          ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-500 dark:border-indigo-400 shadow-sm'
-                        : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
-                    }`}
-                  >
+
+                {/* Progress Bar */}
+                {showFeedback && (
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
                     <div
-                      className="prose max-w-none text-sm text-gray-900 dark:text-gray-100"
-                      dangerouslySetInnerHTML={{
-                        __html: option
-                          .replace(/<p>/g, '<p class="mb-0 text-gray-900 dark:text-gray-100">')
-                          .replace(/<strong>/g, '<strong class="font-bold text-gray-900 dark:text-white">')
-                          .replace(/<em>/g, '<em class="italic text-gray-800 dark:text-gray-200">')
-                          .replace(/<ul>/g, '<ul class="list-disc ml-6 mb-0">')
-                          .replace(/<ol>/g, '<ol class="list-decimal ml-6 mb-0">')
-                          .replace(/<li>/g, '<li class="mb-1 text-gray-900 dark:text-gray-100">')
-                      }}
-                    />
-                  </button>
-                ))}
+                      className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-100 ease-linear"
+                      style={{ width: `${progressWidth}%` }}
+                    ></div>
+                  </div>
+                )}
+
+                {/* Feedback Message */}
+                {showFeedback && feedbackType && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -20, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
+                    className="text-center mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700"
+                  >
+                    <motion.p
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2, duration: 0.3 }}
+                      className="text-blue-800 dark:text-blue-300 font-medium"
+                    >
+                      {getRandomFeedback(feedbackType)}
+                    </motion.p>
+                  </motion.div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {quizQuestions[currentQuestion].options.map((option, index) => {
+                  const isSelected = selectedAnswerIndex === index;
+                  const isCorrect = String.fromCharCode(65 + index) === quizQuestions[currentQuestion].correctAnswer;
+                  const isWrong = isSelected && !isCorrect;
+
+                  let buttonClass = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600';
+
+                  if (showFeedback) {
+                    if (isCorrect) {
+                      buttonClass = 'bg-green-100 dark:bg-green-900/30 border-green-500 dark:border-green-400 shadow-md';
+                    } else if (isWrong) {
+                      buttonClass = 'bg-red-100 dark:bg-red-900/30 border-red-500 dark:border-red-400 shadow-md';
+                    } else {
+                      buttonClass = 'bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500 opacity-50';
+                    }
+                  } else if (isAnswerLocked) {
+                    buttonClass = 'bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500 cursor-not-allowed opacity-50';
+                  } else {
+                    buttonClass = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600';
+                  }
+
+                  return (
+                    <motion.button
+                      key={index}
+                      onClick={() => !isAnswerLocked && handleQuizAnswer(index)}
+                      disabled={isAnswerLocked}
+                      className={`p-4 text-left rounded-xl border transition-all ${!isAnswerLocked ? 'hover:scale-[1.02]' : ''} ${buttonClass} ${isAnswerLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                      animate={showFeedback && isCorrect ? { scale: [1, 1.05, 1] } : {}}
+                      transition={{ duration: 0.5, repeat: isCorrect ? 1 : 0 }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div
+                          className="prose max-w-none text-sm text-gray-900 dark:text-gray-100 flex-1"
+                          dangerouslySetInnerHTML={{
+                            __html: option
+                              .replace(/<p>/g, '<p class="mb-0 text-gray-900 dark:text-gray-100">')
+                              .replace(/<strong>/g, '<strong class="font-bold text-gray-900 dark:text-white">')
+                              .replace(/<em>/g, '<em class="italic text-gray-800 dark:text-gray-200">')
+                              .replace(/<ul>/g, '<ul class="list-disc ml-6 mb-0">')
+                              .replace(/<ol>/g, '<ol class="list-decimal ml-6 mb-0">')
+                              .replace(/<li>/g, '<li class="mb-1 text-gray-900 dark:text-gray-100">')
+                          }}
+                        />
+                        {showFeedback && isCorrect && (
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                            className="ml-2 text-green-600 dark:text-green-400"
+                          >
+                            <CheckCircleIcon className="w-5 h-5" />
+                          </motion.div>
+                        )}
+                        {showFeedback && isWrong && (
+                          <motion.div
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.3, duration: 0.3 }}
+                            className="ml-2 text-red-600 dark:text-red-400"
+                          >
+                            <XMarkIcon className="w-5 h-5" />
+                          </motion.div>
+                        )}
+                      </div>
+                    </motion.button>
+                  );
+                })}
               </div>
 
               <div className="flex flex-col sm:flex-row justify-between items-center pt-6 space-y-4 sm:space-y-0">
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 {quizAnswers.filter(a => a !== null).length} of {quizQuestions.length} answered
               </div>
-              <button
-                onClick={handleNextQuestion}
-                disabled={!quizAnswers[currentQuestion]}
-                  className="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                {currentQuestion < quizQuestions.length - 1 ? 'Next Question' : 'Finish Quiz'}
-              </button>
+              {showFeedback && (
+                <button
+                  onClick={handleNextQuestion}
+                  className="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  {currentQuestion < quizQuestions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+                </button>
+              )}
             </div>
           </div>
         </div>
