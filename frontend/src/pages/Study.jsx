@@ -81,6 +81,8 @@ const Study = () => {
   // Refs for timers and intervals
   const timerRef = useRef(null);
   const timeRemainingRef = useRef(null);
+  const progressIntervalRef = useRef(null);
+  const answersRef = useRef([]);
 
 
 
@@ -354,7 +356,9 @@ const Study = () => {
       }
     
     setQuizQuestions(questions);
-    setQuizAnswers(new Array(questions.length).fill(null));
+      const initAnswers = new Array(questions.length).fill(null);
+      setQuizAnswers(initAnswers);
+      answersRef.current = initAnswers;
     setCurrentQuestion(0);
     setCurrentMode('quiz');
       setQuizMode('in_progress');
@@ -400,6 +404,32 @@ const Study = () => {
     return newAchievements;
   };
 
+  // Finalize quiz helper to calculate results and handle completion logic
+  const finalizeQuiz = (answersSnapshot) => {
+    const answersToUse = answersSnapshot || answersRef.current || quizAnswers;
+    const score = answersToUse.filter((answer, index) => {
+      const correctAnswer = quizQuestions[index]?.correctAnswer;
+      return answer === correctAnswer;
+    }).length;
+
+    setStreak(prev => prev + 1);
+
+    const newAchievements = checkAchievements({
+      score,
+      total: quizQuestions.length,
+      percentage: Math.round((score / quizQuestions.length) * 100)
+    });
+
+    setQuizResults({
+      score,
+      total: quizQuestions.length,
+      percentage: Math.round((score / quizQuestions.length) * 100)
+    });
+    setQuizMode('results');
+    setIsRunning(false);
+    toast.success(`${getRandomFeedback('completion')} Score: ${score}/${quizQuestions.length}`);
+  };
+
   // Modified handleQuizAnswer to show immediate feedback with 4-second timer
   const handleQuizAnswer = (answerIndex) => {
     try {
@@ -410,16 +440,20 @@ const Study = () => {
       const answerLetter = String.fromCharCode(65 + answerIndex);
       const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
 
-      // Set feedback state
-      setSelectedAnswerIndex(answerIndex);
-      setFeedbackType(isCorrect ? 'correct' : 'wrong');
-      setShowFeedback(true);
-      setIsAnswerLocked(true);
+  // Set feedback state
+  setSelectedAnswerIndex(answerIndex);
+  setFeedbackType(isCorrect ? 'correct' : 'wrong');
+  const msg = getRandomFeedback(isCorrect ? 'correct' : 'wrong');
+  setFeedbackMessage(msg);
+  setShowFeedback(true);
+  setIsAnswerLocked(true);
 
       // Update answers array
-      const newAnswers = [...quizAnswers];
-      newAnswers[currentQuestion] = answerLetter;
-      setQuizAnswers(newAnswers);
+  const newAnswers = [...quizAnswers];
+  newAnswers[currentQuestion] = answerLetter;
+  setQuizAnswers(newAnswers);
+  // keep a ref copy for immediate calculations inside intervals/closures
+  answersRef.current = newAnswers;
 
       // Handle scoring and achievements
       if (isCorrect) {
@@ -448,43 +482,31 @@ const Study = () => {
         setCombo(0);
       }
 
-      // Start 4-second progress bar timer
+      // Start 4-second progress bar timer (clear existing first)
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       setProgressWidth(0);
       const startTime = Date.now();
       const duration = 4000; // 4 seconds
 
-      const progressInterval = setInterval(() => {
+      progressIntervalRef.current = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min((elapsed / duration) * 100, 100);
         setProgressWidth(progress);
 
         if (progress >= 100) {
-          clearInterval(progressInterval);
+          // clear and finalize/advance
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+          setProgressWidth(100);
           // Auto-advance to next question after 4 seconds
           if (currentQuestion < quizQuestions.length - 1) {
             handleNextQuestion();
           } else {
             // Finish quiz if it's the last question
-            const score = quizAnswers.filter((answer, index) => {
-              const correctAnswer = quizQuestions[index].correctAnswer;
-              return answer === correctAnswer;
-            }).length;
-
-            setStreak(prev => prev + 1);
-            const newAchievements = checkAchievements({
-              score,
-              total: quizQuestions.length,
-              percentage: Math.round((score / quizQuestions.length) * 100)
-            });
-
-            setQuizResults({
-              score,
-              total: quizQuestions.length,
-              percentage: Math.round((score / quizQuestions.length) * 100)
-            });
-            setQuizMode('results');
-            setIsRunning(false);
-            toast.success(`${getRandomFeedback('completion')} Score: ${score}/${quizQuestions.length}`);
+            finalizeQuiz(answersRef.current);
           }
         }
       }, 50);
@@ -497,18 +519,25 @@ const Study = () => {
 
   // Add a new function to handle answer selection and next question
   const handleAnswerAndNext = (answerIndex) => {
-    handleQuizAnswer(answerIndex);
-    // Only proceed to next question if there are more questions
-    if (currentQuestion < quizQuestions.length - 1) {
-      setTimeout(() => {
-        handleNextQuestion();
-      }, 500); // Add a small delay to show the answer feedback
+    // Ensure any existing progress interval is cleared to avoid overlap
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
     }
+    handleQuizAnswer(answerIndex);
+    // We no longer auto-call handleNextQuestion here because handleQuizAnswer
+    // starts its own progress timer which will call handleNextQuestion when complete.
   };
 
   // Modified handleNextQuestion to include better error handling and reset feedback state
   const handleNextQuestion = () => {
     try {
+    // Clear any progress interval to avoid double-advancing
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+
     if (currentQuestion < quizQuestions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
       // Reset feedback state for new question
@@ -516,6 +545,7 @@ const Study = () => {
       setSelectedAnswerIndex(null);
       setIsAnswerLocked(false);
       setFeedbackType('');
+      setFeedbackMessage('');
       setProgressWidth(0);
     } else {
       // Calculate results
@@ -541,15 +571,24 @@ const Study = () => {
       });
       setQuizMode('results');
         setIsRunning(false); // Stop the timer
-
-        // Show completion message with randomized feedback
-        toast.success(`${getRandomFeedback('completion')} Score: ${score}/${quizQuestions.length}`);
+      // Show completion message with randomized feedback
+      // (finalizeQuiz already handles toast on completion in other flow)
       }
     } catch (error) {
       console.error('Error handling next question:', error);
       toast.error('An error occurred while processing the quiz');
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -645,7 +684,9 @@ const Study = () => {
 
       if (questionsArray.length > 0) {
         setQuizQuestions(questionsArray);
-        setQuizAnswers(new Array(questionsArray.length).fill(null));
+        const initAnswers = new Array(questionsArray.length).fill(null);
+        setQuizAnswers(initAnswers);
+        answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
         setIsRunning(true); // Start the timer
@@ -713,7 +754,9 @@ const Study = () => {
 
       if (questionsArray.length > 0) {
         setQuizQuestions(questionsArray);
-        setQuizAnswers(new Array(questionsArray.length).fill(null));
+        const initAnswers = new Array(questionsArray.length).fill(null);
+        setQuizAnswers(initAnswers);
+        answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
         setIsRunning(true); // Start the timer
@@ -1026,14 +1069,14 @@ const Study = () => {
                     transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
                     className="text-center mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700"
                   >
-                    <motion.p
-                      initial={{ scale: 0.8 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2, duration: 0.3 }}
-                      className="text-blue-800 dark:text-blue-300 font-medium"
-                    >
-                      {getRandomFeedback(feedbackType)}
-                    </motion.p>
+                        <motion.p
+                          initial={{ scale: 0.8 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.2, duration: 0.3 }}
+                          className="text-blue-800 dark:text-blue-300 font-medium"
+                        >
+                          {feedbackMessage}
+                        </motion.p>
                   </motion.div>
                 )}
 
