@@ -13,8 +13,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Use body parsing middleware for JSON
-app.use(express.json());
+// Use body parsing middleware for JSON with increased limit for large notes
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Configure CORS to allow requests from production frontend
 app.use(cors({
