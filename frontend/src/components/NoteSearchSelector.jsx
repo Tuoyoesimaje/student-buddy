@@ -70,6 +70,7 @@ const NoteSearchSelector = ({
   }, []);
 
   const handleNoteSelect = (note) => {
+    console.debug('[NoteSearchSelector] handleNoteSelect called', { note, stack: (new Error()).stack });
     if (selectedNotes.length >= maxSelections) {
       return; // Don't allow more selections than max
     }
@@ -119,6 +120,7 @@ const NoteSearchSelector = ({
                   >
                     <span className="font-medium truncate max-w-32">{note.title}</span>
                     <button
+                      type="button"
                       onClick={() => handleRemoveNote(note._id)}
                       className="ml-2 p-0.5 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
                     >
@@ -166,6 +168,7 @@ const NoteSearchSelector = ({
               >
                 {filteredNotes.map((note) => (
                   <motion.button
+                    type="button"
                     key={note._id}
                     onClick={() => handleNoteSelect(note)}
                     className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors"
@@ -200,7 +203,8 @@ const NoteSearchSelector = ({
 
       {/* Add Another Note Button */}
       {selectedNotes.length > 0 && canAddMore && (
-        <motion.button
+            <motion.button
+          type="button"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           onClick={() => {

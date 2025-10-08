@@ -40,7 +40,8 @@ const PracticeExam = () => {
       setExamGenerationMode(mode);
     }
 
-    if (navAutoStart && selectedNotes && selectedNotes.length > 0) {
+  // Only auto-start for the explicit 'notes-quick' token coming from Notes quick-action
+  if (navAutoStart === 'notes-quick' && selectedNotes && selectedNotes.length > 0) {
       // mark as auto-started to avoid any accidental retriggers
       autoStartedRef.current = true;
       // Programmatic call to submit — make handleSubmit tolerant to missing event
@@ -62,11 +63,30 @@ const PracticeExam = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Debug logging: show when selected notes change
+  useEffect(() => {
+    console.debug('[PracticeExam] selectedExamNotes changed', { length: selectedExamNotes.length, selectedExamNotes });
+  }, [selectedExamNotes]);
+
+  // Debug logging: show location state on mount
+  useEffect(() => {
+    console.debug('[PracticeExam] location.state on mount:', location.state || {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSubmit = async (e) => {
     // Support programmatic calls without an event
     if (e && e.preventDefault) {
       e.preventDefault();
     }
+    console.debug('[PracticeExam] handleSubmit called', {
+      eventType: e?.type || 'programmatic',
+      selectedExamNotesLength: selectedExamNotes.length,
+      selectedExamNotes,
+      locationState: location.state,
+      autoStartedRef: autoStartedRef.current,
+      stack: (new Error()).stack
+    });
 
     let contentToUse = '';
 
@@ -122,6 +142,10 @@ const PracticeExam = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700">
+      {/* Debug banner - remove in production if not needed */}
+      <div className="mb-4 text-xs text-gray-600 dark:text-gray-300">
+        <strong>Debug:</strong> autoStartToken={String(location.state?.autoStart)} • selectedFromNav={String(Boolean(location.state && location.state.selectedNotes && location.state.selectedNotes.length > 0))} • autoStarted={String(autoStartedRef.current)}
+      </div>
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Generate Practice Exam</h2>
 
       <form onSubmit={handleSubmit}>

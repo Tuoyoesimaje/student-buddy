@@ -1440,8 +1440,8 @@ export default function Notes() {
             navigate('/app/active-learning', { state: { selectedNotes: [selectedNote], mode: 'note-based' } });
             setIsRetrievalPracticeModalOpen(false);
           }}
-          onSelectPracticeExam={() => {
-            navigate('/app/practice-exam', { state: { selectedNotes: [selectedNote], mode: 'note-based', autoStart: true } });
+            onSelectPracticeExam={() => {
+            navigate('/app/practice-exam', { state: { selectedNotes: [selectedNote], mode: 'note-based', autoStart: 'notes-quick' } });
             setIsRetrievalPracticeModalOpen(false);
           }}
         />
