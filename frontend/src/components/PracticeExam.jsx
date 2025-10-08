@@ -13,8 +13,11 @@ const PracticeExam = () => {
   // Notes and courses loading removed - handled by NoteSearchSelector
   const navigate = useNavigate();
   const location = useLocation();
+  const { autoStart } = location.state || {};
   const { toast } = useToast();
   const mounted = useRef(false);
+  const autoStartedRef = useRef(false);
+  const initialSelectionFromNav = useRef(Boolean(location.state && location.state.selectedNotes && location.state.selectedNotes.length > 0));
 
   useEffect(() => {
     mounted.current = true;
@@ -22,9 +25,13 @@ const PracticeExam = () => {
   }, []);
 
 
-  // Handle navigation from Notes page with selected notes
+  // Consume navigation state only on mount. If the navigation explicitly requested autoStart
+  // with selectedNotes, auto-generate once. Otherwise, preselect notes but DO NOT auto-start
+  // when the user later selects notes interactively on this page.
   useEffect(() => {
-    const { selectedNotes, mode } = location.state || {};
+    const st = location.state || {};
+    const { selectedNotes, mode, autoStart: navAutoStart } = st;
+
     if (selectedNotes && Array.isArray(selectedNotes)) {
       setSelectedExamNotes(selectedNotes);
       setExamGenerationMode('note-based');
@@ -32,10 +39,34 @@ const PracticeExam = () => {
     if (mode) {
       setExamGenerationMode(mode);
     }
-  }, [location.state]);
+
+    if (navAutoStart && selectedNotes && selectedNotes.length > 0) {
+      // mark as auto-started to avoid any accidental retriggers
+      autoStartedRef.current = true;
+      // Programmatic call to submit — make handleSubmit tolerant to missing event
+      (async () => {
+        try {
+          await handleSubmit();
+        } catch (err) {
+          console.error('Auto-start submission failed:', err);
+        }
+      })();
+
+      // Clear navigation state so it doesn't persist if the user navigates back
+      try {
+        navigate(location.pathname, { replace: true, state: {} });
+      } catch (navErr) {
+        // ignore
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    // Support programmatic calls without an event
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
 
     let contentToUse = '';
 

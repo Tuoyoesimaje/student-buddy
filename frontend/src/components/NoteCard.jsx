@@ -93,13 +93,15 @@ export default function NoteCard({ note, index, onView, onEdit, onDelete, onShar
           >
             <TrashIcon className="h-5 w-5" />
           </button>
-          <button
-            onClick={handleShareClick}
-            className="p-1 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 focus:outline-none ml-1 transition-colors duration-200"
-            aria-label="Share note"
-          >
-            <ShareIcon className="h-5 w-5" />
-          </button>
+          {typeof onShare === 'function' && (
+            <button
+              onClick={handleShareClick}
+              className="p-1 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 focus:outline-none ml-1 transition-colors duration-200"
+              aria-label="Share note"
+            >
+              <ShareIcon className="h-5 w-5" />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();

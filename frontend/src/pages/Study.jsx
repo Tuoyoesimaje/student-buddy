@@ -698,6 +698,23 @@ const Study = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Helper to escape HTML so tags are visible in the UI
+  const escapeHtml = (unsafe) => {
+    if (!unsafe && unsafe !== '') return '';
+    return unsafe
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  // Detect whether a string contains HTML-like tags
+  const looksLikeHtml = (str) => {
+    if (!str || typeof str !== 'string') return false;
+    return /<[^>]+>/.test(str);
+  };
+
 
 
   const renderMainScreen = () => (
@@ -1140,18 +1157,24 @@ const Study = () => {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 sm:p-8">
             <div className="space-y-8">
             <div className="prose max-w-none">
-              <div
+              {looksLikeHtml(quizQuestions[currentQuestion].question) ? (
+                <pre className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg overflow-auto text-sm text-gray-900 dark:text-gray-100 mb-6">
+                  <code dangerouslySetInnerHTML={{ __html: escapeHtml(quizQuestions[currentQuestion].question) }} />
+                </pre>
+              ) : (
+                <div
                   className="text-xl font-medium text-gray-900 dark:text-white mb-8"
-                dangerouslySetInnerHTML={{
-                  __html: quizQuestions[currentQuestion].question
-                    .replace(/<p>/g, '<p class="mb-4">')
-                    .replace(/<strong>/g, '<strong class="font-bold text-gray-900 dark:text-white">')
-                    .replace(/<em>/g, '<em class="italic text-gray-800 dark:text-gray-200">')
-                    .replace(/<ul>/g, '<ul class="list-disc ml-6 mb-4">')
-                    .replace(/<ol>/g, '<ol class="list-decimal ml-6 mb-4">')
-                    .replace(/<li>/g, '<li class="mb-2">')
-                }}
-              />
+                  dangerouslySetInnerHTML={{
+                    __html: quizQuestions[currentQuestion].question
+                      .replace(/<p>/g, '<p class="mb-4">')
+                      .replace(/<strong>/g, '<strong class="font-bold text-gray-900 dark:text-white">')
+                      .replace(/<em>/g, '<em class="italic text-gray-800 dark:text-gray-200">')
+                      .replace(/<ul>/g, '<ul class="list-disc ml-6 mb-4">')
+                      .replace(/<ol>/g, '<ol class="list-decimal ml-6 mb-4">')
+                      .replace(/<li>/g, '<li class="mb-2">')
+                  }}
+                />
+              )}
             </div>
 
 
@@ -1218,16 +1241,25 @@ const Study = () => {
                       <div className="flex items-center justify-between">
                         <div
                           className="prose max-w-none text-sm text-gray-900 dark:text-gray-100 flex-1"
-                          dangerouslySetInnerHTML={{
-                            __html: option
-                              .replace(/<p>/g, '<p class="mb-0 text-gray-900 dark:text-gray-100">')
-                              .replace(/<strong>/g, '<strong class="font-bold text-gray-900 dark:text-white">')
-                              .replace(/<em>/g, '<em class="italic text-gray-800 dark:text-gray-200">')
-                              .replace(/<ul>/g, '<ul class="list-disc ml-6 mb-0">')
-                              .replace(/<ol>/g, '<ol class="list-decimal ml-6 mb-0">')
-                              .replace(/<li>/g, '<li class="mb-1 text-gray-900 dark:text-gray-100">')
-                          }}
-                        />
+                        >
+                          {looksLikeHtml(option) ? (
+                            <pre className="bg-gray-50 dark:bg-gray-900 p-2 rounded-md overflow-auto text-sm text-gray-900 dark:text-gray-100 mb-0">
+                              <code dangerouslySetInnerHTML={{ __html: escapeHtml(option) }} />
+                            </pre>
+                          ) : (
+                            <div
+                              dangerouslySetInnerHTML={{
+                                __html: option
+                                  .replace(/<p>/g, '<p class="mb-0 text-gray-900 dark:text-gray-100">')
+                                  .replace(/<strong>/g, '<strong class="font-bold text-gray-900 dark:text-white">')
+                                  .replace(/<em>/g, '<em class="italic text-gray-800 dark:text-gray-200">')
+                                  .replace(/<ul>/g, '<ul class="list-disc ml-6 mb-0">')
+                                  .replace(/<ol>/g, '<ol class="list-decimal ml-6 mb-0">')
+                                  .replace(/<li>/g, '<li class="mb-1 text-gray-900 dark:text-gray-100">')
+                              }}
+                            />
+                          )}
+                        </div>
                         {showFeedback && isCorrect && (
                           <motion.div
                             initial={{ scale: 0, rotate: -180 }}

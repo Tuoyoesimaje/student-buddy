@@ -1441,7 +1441,7 @@ export default function Notes() {
             setIsRetrievalPracticeModalOpen(false);
           }}
           onSelectPracticeExam={() => {
-            navigate('/app/practice-exam', { state: { selectedNotes: [selectedNote], mode: 'note-based' } });
+            navigate('/app/practice-exam', { state: { selectedNotes: [selectedNote], mode: 'note-based', autoStart: true } });
             setIsRetrievalPracticeModalOpen(false);
           }}
         />
