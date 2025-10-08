@@ -52,7 +52,9 @@ Structure your explanation like a natural conversation:
 4. Explain why this matters in the bigger picture
 5. End with a thought-provoking question to deepen their understanding
 
-Use conversational language - phrases like "Think of it this way...", "Here's what makes this interesting...", "The key insight is...". Make them feel like you're having a one-on-one tutoring session.`;
+Use conversational language - phrases like "Think of it this way...", "Here's what makes this interesting...", "The key insight is...". Make them feel like you're having a one-on-one tutoring session.
+
+IMPORTANT: Keep the explanation detailed and concise - aim for 100-200 words total. Do not make it longer than 200 words`;
 
     // Generate both responses
     console.log('Generating hint for text:', text.substring(0, 50) + '...');

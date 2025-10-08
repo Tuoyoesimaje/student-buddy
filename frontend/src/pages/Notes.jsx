@@ -832,11 +832,13 @@ export default function Notes() {
       setAiHint(data.hint || 'No hint available.');
       setAiExplanation(data.fullExplanation || 'No full explanation available.');
       setShowAIExplainModal(true);
+      setShowExplainPopup(false); // Hide the popup button after showing modal
     } catch (err) {
       console.error('Error getting AI explanation:', err);
       setAiHint(`Failed to get hint: ${err.message}`);
       setAiExplanation(`Failed to get full explanation: ${err.message}`);
       setShowAIExplainModal(true);
+      setShowExplainPopup(false); // Hide the popup button even on error
     } finally {
       setIsLoadingAIExplain(false);
     }
@@ -1477,44 +1479,47 @@ const AIExplainModalPopup = ({ aiHint, aiExplanation, showFullExplanation, setSh
               </p>
             </div>
 
-            {/* Hint Section */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
-              <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
-                💡 Think about this...
-              </h3>
-              <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">{aiHint}</p>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 italic">
-                Does this spark any connections for you?
-              </p>
+            {/* Entire modal content is clickable to toggle */}
+            <div
+              className={`p-4 rounded-lg border transition-colors cursor-pointer ${
+                showFullExplanation
+                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/30'
+                  : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+              }`}
+              onClick={() => setShowFullExplanation(!showFullExplanation)}
+            >
+              {showFullExplanation ? (
+                /* Full Explanation Section */
+                <>
+                  <h3 className="text-sm font-semibold text-green-800 dark:text-green-300 mb-2 flex items-center gap-2">
+                    📚 Let's dive deeper...
+                    <span className="text-xs text-green-600 dark:text-green-400 ml-auto">
+                      ▲ Click anywhere to go back
+                    </span>
+                  </h3>
+                  <div className="prose max-w-none text-gray-800 dark:text-gray-200 whitespace-pre-line overflow-y-auto text-sm leading-relaxed" style={{maxHeight: '40vh'}}>
+                    {aiExplanation}
+                  </div>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2 italic">
+                    How does this fit with what you already know?
+                  </p>
+                </>
+              ) : (
+                /* Hint Section */
+                <>
+                  <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
+                    💡 Think about this...
+                    <span className="text-xs text-blue-600 dark:text-blue-400 ml-auto">
+                      ▶ Click anywhere for full explanation
+                    </span>
+                  </h3>
+                  <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">{aiHint}</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2 italic">
+                    Does this spark any connections for you?
+                  </p>
+                </>
+              )}
             </div>
-
-            {/* Full Explanation Section */}
-            {showFullExplanation ? (
-              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-700">
-                <h3 className="text-sm font-semibold text-green-800 dark:text-green-300 mb-2 flex items-center gap-2">
-                  📚 Let's dive deeper...
-                </h3>
-                <div className="prose max-w-none text-gray-800 dark:text-gray-200 whitespace-pre-line overflow-y-auto text-sm leading-relaxed" style={{maxHeight: '40vh'}}>
-                  {aiExplanation}
-                </div>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-2 italic">
-                  How does this fit with what you already know?
-                </p>
-              </div>
-            ) : (
-              <div className="text-center space-y-3">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Ready for the complete picture?
-                </p>
-                <button
-                  onClick={() => setShowFullExplanation(true)}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
-                >
-                  <BookOpenIcon className="w-4 h-4" />
-                  Show Full Explanation
-                </button>
-              </div>
-            )}
           </div>
         )}
       </div>
