@@ -1236,7 +1236,7 @@ export default function Notes() {
 
           {!isEditingNote ? (
             <div
-              className="note-content prose prose-sm max-w-none px-2 py-3 md:px-4 md:py-6 md:prose-lg mb-6 bg-white dark:bg-gray-700 rounded-lg shadow-sm text-gray-800 dark:text-gray-200 relative"
+              className="note-content prose dark:prose-invert prose-sm max-w-none px-2 py-3 md:px-4 md:py-6 md:prose-lg mb-6 bg-white dark:bg-gray-700 rounded-lg shadow-sm text-gray-800 dark:text-gray-200 relative"
               onMouseUp={(e) => {
                 e.stopPropagation();
                 handleTextSelection(e);
