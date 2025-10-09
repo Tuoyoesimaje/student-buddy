@@ -145,10 +145,6 @@ const PracticeExam = () => {
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700">
-      {/* Debug banner - remove in production if not needed */}
-      <div className="mb-4 text-xs text-gray-600 dark:text-gray-300">
-        <strong>Debug:</strong> autoStartToken={String(location.state?.autoStart)} • selectedFromNav={String(Boolean(location.state && location.state.selectedNotes && location.state.selectedNotes.length > 0))} • autoStarted={String(autoStartedRef.current)}
-      </div>
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Generate Practice Exam</h2>
 
       <form onSubmit={handleSubmit}>
