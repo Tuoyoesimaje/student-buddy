@@ -735,6 +735,7 @@ Content-Type: application/json
 
 POST /api/ai/chat
 Authorization: Bearer <token>
+*Note: The FloatingAIAssistant component was removed from the frontend, but this endpoint is kept for future chat implementation.*
 Content-Type: application/json
 {
   "prompt": "string",
