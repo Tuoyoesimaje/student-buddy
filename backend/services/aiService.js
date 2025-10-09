@@ -257,13 +257,22 @@ Questions to grade:\n`;
         throw new Error('Response is not a valid array');
       }
 
+      // Ensure each result has the student answer included
+      const enrichedResults = detailedResults.map((result, index) => ({
+        question: result.question || questions[index] || `Question ${index + 1}`,
+        studentAnswer: result.studentAnswer || userAnswers[index] || 'No answer provided',
+        mark: result.mark || 0,
+        comment: result.comment || 'No feedback available',
+        reference: result.reference || 'N/A'
+      }));
+
       // Calculate total score
-      const totalScore = detailedResults.reduce((sum, item) => sum + (item.mark || 0), 0);
+      const totalScore = enrichedResults.reduce((sum, item) => sum + (item.mark || 0), 0);
       const maxScore = questions.length * 10;
       const percentageScore = Math.round((totalScore / maxScore) * 100);
 
       // Generate overall feedback
-      const averageMark = totalScore / detailedResults.length;
+      const averageMark = totalScore / enrichedResults.length;
       let feedback = '';
       if (averageMark >= 8) {
         feedback = 'Excellent work! You demonstrated strong understanding of the material.';
@@ -278,22 +287,24 @@ Questions to grade:\n`;
       return {
         score: percentageScore,
         feedback: feedback,
-        detailed: detailedResults
+        detailed: enrichedResults
       };
 
     } catch (error) {
       console.error('Error parsing grade response:', error);
-      // Fallback: return a basic structure
+      // Fallback: return a basic structure with student answers
+      const fallbackResults = questions.map((q, i) => ({
+        question: q,
+        studentAnswer: userAnswers[i] || 'No answer provided',
+        mark: 0,
+        comment: 'Grading error occurred - unable to process AI feedback',
+        reference: 'N/A'
+      }));
+
       return {
         score: 0,
         feedback: 'Error processing grades. The AI grading system encountered an issue.',
-        detailed: questions.map((q, i) => ({
-          question: q,
-          studentAnswer: userAnswers[i] || 'No answer provided',
-          mark: 0,
-          comment: 'Grading error occurred',
-          reference: 'N/A'
-        }))
+        detailed: fallbackResults
       };
     }
   }
