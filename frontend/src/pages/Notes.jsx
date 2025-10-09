@@ -1188,28 +1188,6 @@ export default function Notes() {
               >
                 <TagIcon className="w-6 h-6" />
               </button>
-              {!isEditingNote ? (
-                <button
-                  onClick={() => {
-                    setEditedNoteContent(selectedNote.content);
-                    setIsEditingNote(true);
-                  }}
-                  className="p-2 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                  aria-label="Edit Note Content"
-                  title="Edit note content"
-                >
-                  <PencilIcon className="w-6 h-6" />
-                </button>
-              ) : (
-                <button
-                  onClick={handleSaveEditedNote}
-                  className="p-2 rounded-full text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors"
-                  aria-label="Save Note Content"
-                  title="Save note content"
-                >
-                  <CheckCircleIcon className="w-6 h-6" />
-                </button>
-              )}
               <button
                 onClick={() => handleDeleteNote(selectedNote._id)}
                 className="p-2 rounded-full text-red-600 hover:bg-red-200 transition-colors"
@@ -1281,6 +1259,32 @@ export default function Notes() {
               className="min-h-[300px] md:min-h-[400px] prose prose-sm max-w-none px-2 py-3 md:px-4 md:py-6 md:prose-lg"
             />
           )}
+
+          {/* Floating Edit Button */}
+          <div className="fixed bottom-6 right-6 z-50">
+            {!isEditingNote ? (
+              <button
+                onClick={() => {
+                  setEditedNoteContent(selectedNote.content);
+                  setIsEditingNote(true);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                aria-label="Edit Note Content"
+                title="Edit note content"
+              >
+                <PencilIcon className="w-6 h-6" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSaveEditedNote}
+                className="bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+                aria-label="Save Note Content"
+                title="Save note content"
+              >
+                <CheckCircleIcon className="w-6 h-6" />
+              </button>
+            )}
+          </div>
 
           {/* Floating AI Explain Popup Button */}
           {showExplainPopup && typeof explainPopupPosition.current.x === 'number' && typeof explainPopupPosition.current.y === 'number' && (
