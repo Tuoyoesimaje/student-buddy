@@ -23,7 +23,8 @@ router.post('/start', auth, async (req, res) => {
     console.log('UserId before creating AIGeneratedPracticeExam:', userId);
     
     // Generate questions using AI service
-    const questions = await aiService.generatePracticeQuestions(topicOrNote);
+    const isNoteBased = topicOrNote.startsWith('--- NOTE');
+    const questions = await aiService.generatePracticeQuestions(topicOrNote, isNoteBased);
     
     // Ensure we have exactly 15 questions (or handle fewer if AI couldn't generate enough)
     const finalQuestions = questions.slice(0, 15);
@@ -98,15 +99,12 @@ router.post('/submit/:examId', auth, async (req, res) => {
 
     // Get the original note content for grading reference
     let noteContent = null;
-    console.log('Exam topicOrNote:', exam.topicOrNote.substring(0, 100));
     if (exam.topicOrNote && exam.topicOrNote.startsWith('--- NOTE')) {
       // This is a note-based exam, use the topicOrNote as reference material
       noteContent = exam.topicOrNote;
-      console.log('Note-based exam: using topicOrNote as grading reference');
     } else {
       // This is a topic-based exam, grade without specific reference material (general knowledge)
       noteContent = null;
-      console.log('Topic-based exam: grading without reference material');
     }
 
     // Limit noteContent length to prevent AI response issues (Gemini has token limits)

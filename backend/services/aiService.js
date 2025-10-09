@@ -177,8 +177,10 @@ Format the notes in a clean, readable structure with headings and bullet points.
     return result;
   }
 
-  async generatePracticeQuestions(topicOrNote) {
-    const prompt = `You are an exam question generator. You will be given one or more study notes separated by clear separators. Generate 15 practice exam questions in total, distributing them across the provided notes so each note is represented (if possible). IMPORTANT: Generate questions based ONLY on the content provided in the notes. Do not include topics, concepts, or information not covered in the given notes. For each question, include in parentheses a short source tag indicating which NOTE it came from (for example: (NOTE 1)). Do NOT include answers. Format the output as a numbered list, one question per line.
+  async generatePracticeQuestions(topicOrNote, isNoteBased = true) {
+    let prompt;
+    if (isNoteBased) {
+      prompt = `You are an exam question generator. You will be given one or more study notes separated by clear separators. Generate 15 practice exam questions in total, distributing them across the provided notes so each note is represented (if possible). IMPORTANT: Generate questions based ONLY on the content provided in the notes. Do not include topics, concepts, or information not covered in the given notes. For each question, include in parentheses a short source tag indicating which NOTE it came from (for example: (NOTE 1)). Do NOT include answers. Format the output as a numbered list, one question per line.
 
 Important:
 - If multiple notes are provided, ensure questions cover each note fairly (aim for roughly equal coverage).
@@ -187,6 +189,14 @@ Important:
 
 Notes:
 ${topicOrNote}`;
+    } else {
+      prompt = `You are an exam question generator. Generate 15 practice exam questions on the topic: "${topicOrNote}". Do NOT include answers. Format the output as a numbered list, one question per line.
+
+Important:
+- Generate questions based on general knowledge of the topic.
+- Ensure questions are varied and cover different aspects of the topic.
+- If the AI cannot create 15 unique questions, create as many as you can and clearly state how many were generated at the top.`;
+    }
 
     const response = await this.generateResponse(prompt);
 
