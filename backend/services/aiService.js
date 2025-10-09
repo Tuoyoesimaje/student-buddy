@@ -260,7 +260,7 @@ Questions to grade:\n`;
       // Ensure each result has the student answer included
       const enrichedResults = detailedResults.map((result, index) => ({
         question: result.question || questions[index] || `Question ${index + 1}`,
-        studentAnswer: result.studentAnswer || userAnswers[index] || 'No answer provided',
+        studentAnswer: userAnswers[index] || 'No answer provided',
         mark: result.mark || 0,
         comment: result.comment || 'No feedback available',
         reference: result.reference || 'N/A'

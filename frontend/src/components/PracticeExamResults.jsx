@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPracticeExam } from '../services/practiceExamService';
 import { useToast } from "@/components/ui/use-toast";
+import { extractNoteTitles } from '../lib/utils';
 
 const PracticeExamResults = () => {
   const { examId } = useParams();
@@ -77,7 +78,7 @@ const PracticeExamResults = () => {
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Practice Exam Results</h2>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Topic: {exam.topicOrNote.substring(0, 100)}{exam.topicOrNote.length > 100 ? '...' : ''}
+          Topic: {extractNoteTitles(exam.topicOrNote)}
         </p>
       </div>
 

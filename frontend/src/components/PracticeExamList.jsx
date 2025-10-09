@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllPracticeExams } from '../services/practiceExamService';
 import { useToast } from "@/components/ui/use-toast";
+import { extractNoteTitles } from '../lib/utils';
 
 const PracticeExamList = () => {
   const [exams, setExams] = useState([]);
@@ -102,7 +103,7 @@ const PracticeExamList = () => {
                 >
                   <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm sm:pl-6">
                     <div className="font-medium text-gray-900">
-                      {exam.topicOrNote.substring(0, 50)}{exam.topicOrNote.length > 50 ? '...' : ''}
+                      {extractNoteTitles(exam.topicOrNote)}
                     </div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
