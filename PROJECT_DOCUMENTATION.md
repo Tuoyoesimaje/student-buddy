@@ -21,11 +21,12 @@
 **Student Buddy** is a streamlined web application focused on helping students manage their academic workflow through intelligent note-taking and study tools. The application emphasizes AI-powered assistance for content generation and explanation, combined with a clean, modern interface.
 
 ### Current Features
-- **Note Management**: Rich text editing with AI-powered explanations
-- **Active Learning Tools**: AI-generated quizzes and practice exams
-- **AI Integration**: Note generation, concept explanations, and quiz creation
-- **Course Management**: Organize notes and study materials by courses
-- **Modern UI/UX**: Dark mode, responsive design, and clean interface
+- **Note Management**: Rich text editing, search, sorting, filtering, multi-select operations, AI-powered explanations and summaries
+- **Active Learning Tools**: AI-generated quizzes with gamification (points, streaks, achievements), practice exams with AI grading
+- **AI Integration**: Note generation, concept explanations, quiz creation, practice exam generation, AI summaries, AI chat, note processing
+- **Course Management**: Organize notes and study materials by courses and folders
+- **Modern UI/UX**: Dark mode, responsive design, clean interface with gamification elements
+- **Study Tools**: Pomodoro timer, retrieval practice, note-based quiz generation
 
 ---
 
@@ -92,7 +93,6 @@ student-buddy/
 │   │   │   ├── 📁 layout/          # Layout components (MainLayout)
 │   │   │   ├── 📁 ui/              # Base UI components (button, card, input, etc.)
 │   │   │   ├── AINoteProcessor.jsx  # AI-powered note processing
-│   │   │   ├── FloatingAIAssistant.jsx # AI assistant component
 │   │   │   ├── NoteCard.jsx        # Note display component
 │   │   │   ├── NoteModal.jsx       # Note editing modal
 │   │   │   ├── PracticeExam.jsx    # Practice exam components
@@ -216,10 +216,13 @@ App.jsx (Root)
 
 #### 3. **Feature Components**
 - `NoteCard.jsx` - Individual note display with edit/delete actions
-- `AINoteProcessor.jsx` - AI-powered note generation interface
-- `FloatingAIAssistant.jsx` - AI assistant for content explanations
+- `AINoteProcessor.jsx` - AI-powered note processing (summarize/explain)
 - `NoteModal.jsx` - Modal for creating/editing notes
-- `PracticeExam.jsx` - Practice exam display and management
+- `NoteSearchSelector.jsx` - Advanced note search and selection interface
+- `NoteGenerationModal.jsx` - AI-powered note generation interface
+- `FolderCard.jsx` - Folder display component for note organization
+- `CourseTopicsManager.jsx` - Course topics management interface
+- `PracticeExam.jsx` - Practice exam generation interface
 - `PracticeExamList.jsx` - List of available practice exams
 - `PracticeExamQuestions.jsx` - Interactive exam questions
 - `PracticeExamResults.jsx` - Exam results display
@@ -529,18 +532,19 @@ class AIService {
   _id: ObjectId,
   title: String,
   description: String,
-  subject: String,
-  course: ObjectId (ref: Course),
+  duration: Number, // in minutes
+  totalMarks: Number,
+  passingMarks: Number,
   questions: [{
     question: String,
     options: [String],
     correctAnswer: Number,
-    explanation: String
+    marks: Number
   }],
-  difficulty: String (easy|medium|hard),
-  timeLimit: Number (minutes),
-  user: ObjectId (ref: User),
-  createdAt: Date
+  category: String,
+  difficulty: String, // 'easy' | 'medium' | 'hard'
+  createdAt: Date,
+  updatedAt: Date
 }
 ```
 
@@ -549,15 +553,18 @@ class AIService {
 {
   _id: ObjectId,
   title: String,
+  description: String,
   questions: [{
     question: String,
     options: [String],
     correctAnswer: Number,
     explanation: String
   }],
-  user: ObjectId (ref: User),
-  course: ObjectId (ref: Course),
-  createdAt: Date
+  timeLimit: Number, // in minutes
+  difficulty: String, // 'easy' | 'medium' | 'hard'
+  category: String,
+  createdAt: Date,
+  updatedAt: Date
 }
 ```
 
@@ -565,15 +572,18 @@ class AIService {
 ```javascript
 {
   _id: ObjectId,
-  topic: String,
-  questions: [{
-    question: String,
-    options: [String],
-    correctAnswer: Number,
-    explanation: String
+  userId: ObjectId (ref: User),
+  topicOrNote: String,
+  questions: [String], // Array of question strings
+  userAnswers: [String], // Array of user answer strings
+  score: Number, // Final score (0-100)
+  feedback: String, // Overall feedback
+  detailed: [{ // Detailed results per question
+    q: String, // Question
+    a: String, // User's answer
+    mark: Number // Marks awarded (0-10)
   }],
-  difficulty: String,
-  user: ObjectId (ref: User),
+  submitted: Boolean, // Whether exam is submitted
   createdAt: Date
 }
 ```
@@ -705,44 +715,93 @@ POST /api/ai/generate-quiz
 Authorization: Bearer <token>
 Content-Type: application/json
 {
-  "topic": "string",
-  "difficulty": "easy|medium|hard",
-  "questionCount": number
+  "topic": "string"
+}
+
+POST /api/ai/explain
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "text": "string",
+  "noteContent": "string" // optional
+}
+
+POST /api/ai/summarize
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "text": "string"
+}
+
+POST /api/ai/chat
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "prompt": "string",
+  "messages": [...], // optional chat history
+  "courses": [...] // optional enrolled courses
+}
+
+POST /api/ai/process-note
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "noteId": "ObjectId",
+  "action": "summarize|explain"
 }
 ```
 
 ### Practice Exam API
 ```http
-GET /api/practice-exam
-Authorization: Bearer <token>
-
-POST /api/practice-exam
+POST /api/practice-exam/start
 Authorization: Bearer <token>
 Content-Type: application/json
 {
-  "title": "string",
-  "description": "string",
-  "subject": "string",
-  "course": "ObjectId",
-  "difficulty": "easy|medium|hard"
+  "topicOrNote": "string"
 }
 
-GET /api/practice-exam/:id
+POST /api/practice-exam/submit/:examId
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "userAnswers": ["answer1", "answer2", ...]
+}
+
+GET /api/practice-exam
 Authorization: Bearer <token>
 
-DELETE /api/practice-exam/:id
+GET /api/practice-exam/:examId
 Authorization: Bearer <token>
 ```
 
 ### Study API
 ```http
-POST /api/study/generate-quiz
+GET /api/study/quizzes
+Authorization: Bearer <token>
+
+GET /api/study/quizzes/:id
+Authorization: Bearer <token>
+
+POST /api/study/quizzes/submit
 Authorization: Bearer <token>
 Content-Type: application/json
 {
-  "topic": "string",
-  "course": "ObjectId",
-  "difficulty": "easy|medium|hard"
+  "quizId": "ObjectId",
+  "answers": [0, 1, 2, ...] // Array of answer indices
+}
+
+GET /api/study/practice-exams
+Authorization: Bearer <token>
+
+GET /api/study/practice-exams/:id
+Authorization: Bearer <token>
+
+POST /api/study/practice-exams/submit
+Authorization: Bearer <token>
+Content-Type: application/json
+{
+  "examId": "ObjectId",
+  "answers": ["answer1", "answer2", ...] // Array of answer strings
 }
 ```
 
@@ -834,9 +893,13 @@ class AIService {
 
 ### AI Features Implementation
 1. **Note Generation**: Automatic creation of structured study notes from topics
-2. **Concept Explanation**: AI-powered explanations for complex topics within notes
-3. **Quiz Generation**: Dynamic quiz creation based on specified topics and difficulty
-4. **Practice Exam Creation**: AI-generated practice exams for comprehensive testing
+2. **Concept Explanation**: AI-powered explanations for complex topics within notes (hint + full explanation)
+3. **Quiz Generation**: Dynamic quiz creation based on topics or note content
+4. **Practice Exam Generation**: AI-generated practice exams with 15 questions from notes or topics
+5. **AI Grading**: Intelligent grading of practice exams with detailed feedback
+6. **Note Summarization**: AI-powered summarization of note content
+7. **Note Processing**: AI summarization and explanation of existing notes
+8. **AI Chat**: Conversational AI assistant for study-related queries
 
 ---
 
@@ -983,12 +1046,12 @@ VITE_BACKEND_URL=http://localhost:3001
 
 ### ✅ Implemented Features
 1. **User Authentication** - JWT-based authentication with secure password hashing
-2. **Note Management** - Full CRUD operations with rich text editing capabilities
-3. **AI Integration** - Google Generative AI for note generation and concept explanations
-4. **Study Tools** - AI-powered quiz generation and practice exam system
-5. **Course Management** - Organize study materials by courses and topics
-6. **Modern UI/UX** - Dark mode, responsive design, and clean interface
-7. **Practice Exams** - Comprehensive exam creation and management system
+2. **Advanced Note Management** - Full CRUD operations, rich text editing, search, sorting, filtering, multi-select operations, AI-powered explanations and summaries
+3. **AI Integration** - Google Generative AI for note generation, concept explanations, quiz creation, practice exam generation, AI grading, summarization, and chat
+4. **Gamified Study Tools** - AI-powered quizzes with points/streaks/achievements, practice exams with AI grading, Pomodoro timer, retrieval practice
+5. **Course & Folder Management** - Organize study materials by courses and dynamic folders
+6. **Modern UI/UX** - Dark mode, responsive design, clean interface with gamification elements
+7. **Practice Exam System** - AI-generated practice exams with intelligent grading and detailed feedback
 
 ### 🔧 Technical Implementation
 - **Frontend**: React 18 with Vite, Tailwind CSS, and modern hooks-based state management
@@ -1002,25 +1065,27 @@ VITE_BACKEND_URL=http://localhost:3001
 
 ## 🎯 Documentation Update Summary
 
-This documentation has been updated to accurately reflect the current streamlined implementation of **Student Buddy**. The application has been simplified from its original comprehensive design to focus on core academic productivity features.
+This documentation has been comprehensively updated to accurately reflect the current feature-rich implementation of **Student Buddy**. The analysis revealed extensive undocumented features that have been added to provide a complete picture of the application's capabilities.
 
 ### Key Changes Made:
-- **Removed Features**: Task management, sync spaces, real-time chat, push notifications, and advanced collaboration tools
-- **Maintained Features**: Note management, AI-powered study tools, practice exams, and course organization
-- **Updated Structure**: Documentation now matches the actual codebase architecture
-- **Streamlined APIs**: Removed endpoints for non-existent features
-- **Accurate Models**: Database schemas reflect current simplified structure
+- **Updated Features List**: Added comprehensive feature descriptions including gamification, advanced note management, and AI capabilities
+- **Database Schemas**: Corrected all MongoDB collection schemas to match actual implementations
+- **API Documentation**: Added missing endpoints for quiz management, practice exam grading, AI chat, summarization, and note processing
+- **AI Integration**: Expanded to include all AI service methods and features
+- **Frontend Components**: Added missing component documentation
+- **Feature Scope**: Updated to reflect the full breadth of implemented functionality
 
 ### Current Application Scope:
-**Student Buddy** is now a focused academic productivity tool that emphasizes:
-- Intelligent note-taking with AI assistance
-- AI-generated study materials and explanations
-- Practice exam system for self-assessment
-- Course-based organization of study materials
-- Clean, modern interface for optimal user experience
+**Student Buddy** is a comprehensive academic productivity platform that features:
+- Advanced note management with AI-powered explanations, summaries, and processing
+- Gamified study tools including quizzes with points/streaks/achievements and AI-graded practice exams
+- Intelligent AI integration across all study workflows
+- Course and folder-based organization with advanced search and filtering
+- Modern, responsive interface with dark mode and gamification elements
+- Study tools like Pomodoro timer and retrieval practice features
 
-**Total API Endpoints**: 15+ RESTful endpoints
+**Total API Endpoints**: 20+ RESTful endpoints
 **Database Collections**: 7 MongoDB collections
-**Core Features**: 7 main features
+**Core Features**: 7 main feature categories with extensive sub-features
 
 This documentation serves as an accurate reference for understanding, maintaining, and extending the current Student Buddy application. The streamlined architecture makes it more maintainable while retaining the core AI-powered academic assistance features that provide the most value to students. 🎓📚✨

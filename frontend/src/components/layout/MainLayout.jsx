@@ -17,7 +17,6 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { QuickThemeToggle } from '../ThemeToggle';
-import FloatingAIAssistant from '../FloatingAIAssistant';
 
 const MainLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -187,8 +186,6 @@ const MainLayout = () => {
         </div>
       </div>
 
-      {/* Floating AI Assistant */}
-      <FloatingAIAssistant />
     </div>
   );
 };
