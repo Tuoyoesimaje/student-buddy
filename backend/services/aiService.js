@@ -178,7 +178,7 @@ Format the notes in a clean, readable structure with headings and bullet points.
   }
 
   async generatePracticeQuestions(topicOrNote) {
-    const prompt = `You are an exam question generator. You will be given one or more study notes separated by clear separators. Generate 15 practice exam questions in total, distributing them across the provided notes so each note is represented (if possible). For each question, include in parentheses a short source tag indicating which NOTE it came from (for example: (NOTE 1)). Do NOT include answers. Format the output as a numbered list, one question per line.
+    const prompt = `You are an exam question generator. You will be given one or more study notes separated by clear separators. Generate 15 practice exam questions in total, distributing them across the provided notes so each note is represented (if possible). IMPORTANT: Generate questions based ONLY on the content provided in the notes. Do not include topics, concepts, or information not covered in the given notes. For each question, include in parentheses a short source tag indicating which NOTE it came from (for example: (NOTE 1)). Do NOT include answers. Format the output as a numbered list, one question per line.
 
 Important:
 - If multiple notes are provided, ensure questions cover each note fairly (aim for roughly equal coverage).
@@ -189,13 +189,16 @@ Notes:
 ${topicOrNote}`;
 
     const response = await this.generateResponse(prompt);
-    
+
     // Parse the response to extract questions as an array
-    const questions = response
-      .split(/\d+\.\s+/) // Split by numbered list format (e.g., "1. ", "2. ")
-      .filter(q => q.trim().length > 0) // Remove empty entries
-      .map(q => q.trim()); // Trim whitespace
-    
+    // Use regex to match lines starting with number followed by dot and space
+    const questionRegex = /^\d+\.\s*(.+)$/gm;
+    const questions = [];
+    let match;
+    while ((match = questionRegex.exec(response)) !== null) {
+      questions.push(match[1].trim());
+    }
+
     return questions;
   }
 

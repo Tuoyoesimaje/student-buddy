@@ -98,33 +98,21 @@ router.post('/submit/:examId', auth, async (req, res) => {
 
     // Get the original note content for grading reference
     let noteContent = null;
-    if (exam.topicOrNote && exam.topicOrNote.length > 0) {
-      // Try to find if this was generated from notes by checking if it matches note content
-      try {
-        const Note = require('../models/Note');
-        // Look for notes that might match this content (simple heuristic)
-        const matchingNotes = await Note.find({
-          user: userId,
-          $or: [
-            { content: { $regex: exam.topicOrNote.substring(0, 100), $options: 'i' } },
-            { title: { $regex: exam.topicOrNote.substring(0, 50), $options: 'i' } }
-          ]
-        }).limit(5);
+    console.log('Exam topicOrNote:', exam.topicOrNote.substring(0, 100));
+    if (exam.topicOrNote && exam.topicOrNote.startsWith('--- NOTE')) {
+      // This is a note-based exam, use the topicOrNote as reference material
+      noteContent = exam.topicOrNote;
+      console.log('Note-based exam: using topicOrNote as grading reference');
+    } else {
+      // This is a topic-based exam, grade without specific reference material (general knowledge)
+      noteContent = null;
+      console.log('Topic-based exam: grading without reference material');
+    }
 
-        if (matchingNotes.length > 0) {
-          // Use the most relevant note's content
-          noteContent = matchingNotes[0].content;
-          console.log('Found matching note for grading reference');
-        } else {
-          // Fall back to using the topicOrNote as reference material
-          noteContent = exam.topicOrNote;
-          console.log('Using exam topicOrNote as grading reference');
-        }
-      } catch (noteError) {
-        console.warn('Could not fetch note content for grading:', noteError.message);
-        // Fall back to using the topicOrNote
-        noteContent = exam.topicOrNote;
-      }
+    // Limit noteContent length to prevent AI response issues (Gemini has token limits)
+    if (noteContent && noteContent.length > 10000) {
+      noteContent = noteContent.substring(0, 10000) + '... (content truncated for grading)';
+      console.log('Note content truncated for grading to prevent AI response issues');
     }
 
     // Grade the exam using AI with note content reference

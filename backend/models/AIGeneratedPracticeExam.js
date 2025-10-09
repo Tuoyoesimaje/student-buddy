@@ -27,9 +27,11 @@ const aiGeneratedPracticeExamSchema = new mongoose.Schema({
     default: null
   },
   detailed: [{
-    q: { type: String },
-    a: { type: String },
-    mark: { type: Number }
+    question: { type: String },
+    studentAnswer: { type: String },
+    mark: { type: Number },
+    comment: { type: String },
+    reference: { type: String }
   }],
   submitted: {
     type: Boolean,
