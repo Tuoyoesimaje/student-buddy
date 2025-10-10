@@ -1445,7 +1445,590 @@ exports.createNote = async (req, res) => {
 
 ---
 
-## 14. DEVELOPMENT WORKFLOW
+## 14. FRONTEND-BACKEND INTERACTION FLOWS
+
+### AI Notes Feature: Text Selection and Explanation
+
+#### Frontend: Text Selection Process
+**Location**: `frontend/src/pages/Notes.jsx:760-786`
+
+```javascript
+// Function to handle text selection for popup AI explain
+const handleTextSelection = (e) => {
+  // Small delay for touch events to ensure selection is complete
+  setTimeout(() => {
+    const selection = window.getSelection();
+    const text = selection && selection.toString().trim();
+    if (text && text.trim().length > 0) {
+      setSelectedText(text);
+      // Get popup position near selection
+      if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+
+        // For touch events, position the popup where it's easily tappable
+        const isTouchEvent = e.type === 'touchend';
+        explainPopupPosition.current = {
+          x: rect.left + window.scrollX + rect.width / 2,
+          y: rect.top + window.scrollY - (isTouchEvent ? 10 : 40) // closer to selection on mobile
+        };
+      }
+      setShowExplainPopup(true);
+    } else {
+      setSelectedText('');
+      setShowExplainPopup(false);
+    }
+  }, 50); // Small delay to ensure selection is complete
+};
+```
+
+**Process Flow:**
+1. User selects text in note content
+2. `handleTextSelection` captures selected text and calculates popup position
+3. Floating "AI Explain" button appears near selection
+4. User clicks button → `handleAIExplain()` is called
+
+#### Frontend-Backend Communication
+**Frontend Request**: `frontend/src/pages/Notes.jsx:788-845`
+
+```javascript
+const handleAIExplain = async () => {
+  if (!selectedText.trim()) return;
+  setIsLoadingAIExplain(true);
+  setAiExplanation('');
+  setAiHint('');
+  setShowFullExplanation(false);
+
+  try {
+    const token = localStorage.getItem('token');
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    const apiUrl = `${backendUrl}/api/ai/explain`;
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        text: selectedText,
+        noteContent: selectedNote?.content || ''
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    setAiHint(data.hint || 'No hint available.');
+    setAiExplanation(data.fullExplanation || 'No full explanation available.');
+    setShowAIExplainModal(true);
+    setShowExplainPopup(false);
+  } catch (err) {
+    console.error('Error getting AI explanation:', err);
+    setAiHint(`Failed to get hint: ${err.message}`);
+    setAiExplanation(`Failed to get full explanation: ${err.message}`);
+    setShowAIExplainModal(true);
+  } finally {
+    setIsLoadingAIExplain(false);
+  }
+};
+```
+
+**Backend Processing**: `backend/routes/ai.js:7-72`
+
+```javascript
+// Explain text endpoint
+router.post('/explain', auth, async (req, res) => {
+  try {
+    const { text, noteContent } = req.body;
+    if (!text) {
+      return res.status(400).json({ message: 'Text is required' });
+    }
+
+    // Create prompt for active, thought-provoking hint
+    const hintPrompt = `You are a skilled tutor creating an active learning hint for a student. The student highlighted this text: "${text}"
+
+${noteContent ? `Context from their notes: ${noteContent}` : ''}
+
+Create a brief, engaging hint (2-3 sentences max) that actively pushes the student to think deeply about the concept WITHOUT giving away the answer or explanation directly. Choose the most effective approach:
+
+- Ask a Socratic question that probes their understanding
+- Suggest a connection to something they already know
+- Provide a thought-provoking analogy or comparison
+- Pose a "what if" scenario
+- Challenge a common misconception
+- Ask them to consider implications or applications
+
+Make it conversational and encouraging, like a friendly tutor. Start with phrases like "Think about this...", "Consider...", "Have you ever wondered...", "What if...". The hint should spark curiosity and guide their thinking toward the concept, not explain it.`;
+
+    // Create prompt for conversational full explanation
+    const fullPrompt = `You are a friendly, encouraging tutor explaining this concept to a student. Provide a comprehensive but conversational explanation of: "${text}"
+
+${noteContent ? `Additional context from their notes: ${noteContent}` : ''}
+
+Structure your explanation like a natural conversation:
+1. Start with a clear, relatable explanation
+2. Break down the key components in simple terms
+3. Give a real-world example they can relate to
+4. Explain why this matters in the bigger picture
+5. End with a thought-provoking question to deepen their understanding
+
+Use conversational language - phrases like "Think of it this way...", "Here's what makes this interesting...", "The key insight is...". Make them feel like you're having a one-on-one tutoring session.
+
+IMPORTANT: Keep the explanation concise but comprehensive - aim for 100-300 words total. Do not make it longer than 300 words.`;
+
+    // Generate both responses
+    console.log('Generating hint for text:', text.substring(0, 50) + '...');
+    const [hint, fullExplanation] = await Promise.all([
+      aiService.generateResponse(hintPrompt),
+      aiService.generateResponse(fullPrompt)
+    ]);
+
+    console.log('Hint generated:', hint.substring(0, 100) + '...');
+    console.log('Full explanation length:', fullExplanation.length);
+
+    res.json({
+      hint: hint.trim(),
+      fullExplanation: fullExplanation.trim()
+    });
+  } catch (error) {
+    console.error('Error in explain endpoint:', error);
+    if (error.message.includes('All Gemini keys failed')) {
+      return res.status(503).json({
+        message: 'All Gemini keys failed or hit their limit. Try again later.'
+      });
+    }
+    res.status(500).json({ message: error.message });
+  }
+});
+```
+
+**Response Flow:**
+1. Backend receives `{text, noteContent}` from frontend
+2. Creates two AI prompts: one for hint, one for full explanation
+3. Calls `aiService.generateResponse()` twice in parallel
+4. Returns `{hint, fullExplanation}` to frontend
+5. Frontend displays hint first, then full explanation on user request
+
+### Quiz Feature: AI-Generated Quiz Creation and Taking
+
+#### Frontend: Quiz Generation Request
+**Location**: `frontend/src/pages/Study.jsx:825-895`
+
+```javascript
+// Function to generate quiz questions from selected note using AI
+const generateQuizFromNotes = async () => {
+  if (selectedQuizNotes.length === 0) {
+    setError('Please select a note to generate a quiz.');
+    return;
+  }
+
+  if (selectedQuizNotes.length > 1) {
+    setError('You can only generate a quiz from one note at a time. Please select only one note.');
+    return;
+  }
+
+  setIsLoadingAI(true);
+  setError(null);
+  setQuizQuestions([]); // Clear previous questions
+  setQuizAnswers([]); // Clear previous answers
+  setTimeLeft(3 * 60); // Reset timer to 3 minutes
+
+  try {
+    const selectedNote = selectedQuizNotes[0];
+
+    // Use the note content directly
+    const noteContent = `${selectedNote.title}\n${selectedNote.content.replace(/<[^>]*>/g, '')}`;
+
+    // Call backend endpoint to generate quiz from the note
+    const response = await api.post('/api/ai/generate-quiz', {
+      topic: `Based on this note: ${noteContent.substring(0, 1500)}...` // Limit content length
+    });
+
+    // Parse the AI response
+    const rawQuestions = response.data.response;
+    const questionsArray = rawQuestions.split(/Q\d+:/).filter(Boolean).map(q => {
+      const parts = q.trim().split(/A\)|B\)|C\)|Answer:/);
+      if (parts.length < 5) return null; // Skip if format is incorrect
+
+      const questionText = parts[0].trim();
+      const options = parts.slice(1, 4).map(opt => opt.trim());
+      const correctAnswer = parts[4].trim().toUpperCase();
+
+      // Validate the format
+      if (questionText && options.length === 3 && ['A', 'B', 'C'].includes(correctAnswer)) {
+        return {
+          question: questionText,
+          options: options,
+          correctAnswer: correctAnswer
+        };
+      }
+      return null;
+    }).filter(Boolean); // Remove any null entries
+
+    if (questionsArray.length > 0) {
+      setQuizQuestions(questionsArray);
+      const initAnswers = new Array(questionsArray.length).fill(null);
+      setQuizAnswers(initAnswers);
+      answersRef.current = initAnswers;
+      setCurrentQuestion(0);
+      setQuizMode('in_progress');
+      setTimeLeft(5 * 60); // Reset timer to 5 minutes
+      setIsRunning(true); // Start the timer
+      setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
+    } else {
+      setError('Failed to generate valid questions from the selected note. Please try again.');
+    }
+
+  } catch (err) {
+    console.error('Error generating quiz from note:', err);
+    setError('Failed to generate quiz from the selected note. Please try again.');
+  } finally {
+    setIsLoadingAI(false);
+  }
+};
+```
+
+#### Backend: Quiz Generation Processing
+**Location**: `backend/routes/ai.js:102-172`
+
+```javascript
+// Generate Quiz endpoint
+router.post('/generate-quiz', async (req, res) => {
+  try {
+    const { topic } = req.body;
+
+    // Validate input
+    if (!topic) {
+      return res.status(400).json({
+        success: false,
+        error: 'Topic is required to generate a quiz.'
+      });
+    }
+
+    // Construct prompt for AI to generate quiz questions
+    const prompt = `Generate 10 multiple-choice quiz questions about ${topic}. Each question should have exactly 3 multiple-choice options: A, B, and C. Provide the correct answer for each question.
+Format the output clearly, with each question starting with 'Q#:', followed by the question text, then options A, B, C on separate lines, and finally 'Answer: [Correct Option Letter]'.
+
+Example Format:
+Q1: What is the capital of France?
+A) London
+B) Berlin
+C) Paris
+Answer: C
+
+Q2: What is the main function of photosynthesis?
+A) Producing oxygen
+B) Converting light energy to chemical energy
+C) Absorbing carbon dioxide
+Answer: B
+
+Now generate 10 questions about ${topic} in this exact format, using only options A, B, and C.`;
+
+    console.log('Sending quiz generation prompt to AI service...');
+    const rawQuizText = await aiService.generateResponse(prompt);
+
+    // Log the raw AI response
+    console.log('Raw quiz text from AI:', rawQuizText);
+
+    // Send the raw text back to the frontend for parsing
+    res.json({
+      success: true,
+      response: rawQuizText
+    });
+
+  } catch (error) {
+    console.error('AI Quiz Generation Error:', error);
+
+    // Handle different types of errors
+    if (error.message.includes('Invalid prompt')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+
+    if (error.message.includes('No response received') || error.message.includes('All Gemini keys failed')) {
+      return res.status(503).json({
+        success: false,
+        error: error.message.includes('All Gemini keys failed') ?
+          'All Gemini keys failed or hit their limit. Try again later.' :
+          'AI service is currently unavailable for quiz generation.'
+      });
+    }
+
+    // Default error response
+    res.status(500).json({
+      success: false,
+      error: 'Error generating quiz. Please try again.'
+    });
+  }
+});
+```
+
+#### Frontend: Quiz Answer Processing with Gamification
+**Location**: `frontend/src/pages/Study.jsx:535-620`
+
+```javascript
+const handleQuizAnswer = (answerIndex) => {
+  try {
+    if (!quizQuestions[currentQuestion] || isAnswerLocked) {
+      return;
+    }
+
+    const answerLetter = String.fromCharCode(65 + answerIndex);
+    const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
+
+    // Set feedback state
+    setSelectedAnswerIndex(answerIndex);
+    setFeedbackType(isCorrect ? 'correct' : 'wrong');
+    const msg = getRandomFeedback(isCorrect ? 'correct' : 'wrong');
+    setFeedbackMessage(msg);
+    setShowFeedback(true);
+    setIsAnswerLocked(true);
+
+    // Update answers array
+    const newAnswers = [...quizAnswers];
+    newAnswers[currentQuestion] = answerLetter;
+    setQuizAnswers(newAnswers);
+    answersRef.current = newAnswers;
+
+    // Handle scoring and achievements
+    if (isCorrect) {
+      // Update combo
+      setCombo(prev => prev + 1);
+
+      // Award points based on combo
+      const pointsToAward = Math.round(10 * (1 + (combo * 0.5)));
+      setPoints(prev => prev + pointsToAward);
+      setPointsToAdd(pointsToAward);
+      setShowPointsAnimation(true);
+      setTimeout(() => setShowPointsAnimation(false), 1000);
+
+      // Check for combo achievements
+      if (combo === 3 && !achievements.includes('combo3')) {
+        setAchievements(prev => [...prev, achievementDefinitions.combo3]);
+        setPoints(prev => prev + achievementDefinitions.combo3.points);
+        toast.success('Achievement Unlocked: Combo Master!');
+      }
+      if (combo === 5 && !achievements.includes('combo5')) {
+        setAchievements(prev => [...prev, achievementDefinitions.combo5]);
+        setPoints(prev => prev + achievementDefinitions.combo5.points);
+        toast.success('Achievement Unlocked: Combo Legend!');
+      }
+    } else {
+      setCombo(0);
+    }
+
+    // Start 4-second progress bar timer
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setProgressWidth(0);
+    const startTime = Date.now();
+    const duration = 6000; // 6 seconds
+
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / duration) * 100, 100);
+      setProgressWidth(progress);
+
+      if (progress >= 100) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+        setProgressWidth(100);
+        // Auto-advance to next question
+        if (currentQuestion < quizQuestions.length - 1) {
+          handleNextQuestion();
+        } else {
+          finalizeQuiz(answersRef.current);
+        }
+      }
+    }, 50);
+
+  } catch (error) {
+    console.error('Error handling quiz answer:', error);
+    toast.error('An error occurred while processing your answer');
+  }
+};
+```
+
+### Practice Exam Feature: Full Exam Generation and Grading
+
+#### Frontend: Practice Exam Creation
+**Location**: `frontend/src/pages/PracticeExamPage.jsx` (exam creation flow)
+
+**Request Flow:**
+1. User enters topic or note content
+2. Frontend calls `POST /api/practice-exam/start`
+3. Sends `{topicOrNote: "content"}` to backend
+
+#### Backend: Exam Generation and Storage
+**Location**: `backend/routes/practiceExam.js:7-63`
+
+```javascript
+// Generate practice exam questions
+router.post('/start', auth, async (req, res) => {
+  try {
+    const { topicOrNote } = req.body;
+    const userId = req.user.userId;
+
+    // Validate input
+    if (!topicOrNote || typeof topicOrNote !== 'string' || topicOrNote.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Topic or note content is required'
+      });
+    }
+
+    console.log(`Generating practice exam questions for user ${userId} on topic: ${topicOrNote.substring(0, 50)}...`);
+
+    // Generate questions using AI service
+    const isNoteBased = topicOrNote.startsWith('--- NOTE');
+    const questions = await aiService.generatePracticeQuestions(topicOrNote, isNoteBased);
+
+    // Ensure we have exactly 15 questions
+    const finalQuestions = questions.slice(0, 15);
+    if (finalQuestions.length < 15) {
+      console.warn(`AI only generated ${finalQuestions.length} questions instead of 15`);
+    }
+
+    // Create a new practice exam in the database
+    const practiceExam = new AIGeneratedPracticeExam({
+      userId,
+      topicOrNote,
+      questions: finalQuestions,
+      userAnswers: Array(finalQuestions.length).fill(null),
+      submitted: false
+    });
+
+    console.log('Attempting to save practice exam...');
+    const savedExam = await practiceExam.save();
+    console.log('Practice exam saved successfully. Saved exam ID:', savedExam._id);
+
+    res.status(201).json({
+      success: true,
+      examId: savedExam._id,
+      questions: finalQuestions
+    });
+
+  } catch (error) {
+    console.error('Error generating practice exam:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error generating practice exam questions',
+      details: error.message
+    });
+  }
+});
+```
+
+#### Frontend: Exam Submission and Results
+**Location**: `frontend/src/components/PracticeExamQuestions.jsx`
+
+**Submission Flow:**
+1. User completes all questions and clicks submit
+2. Frontend calls `POST /api/practice-exam/submit/:examId`
+3. Sends `{userAnswers: ["A", "B", "C", ...]}` to backend
+
+#### Backend: AI Grading and Feedback
+**Location**: `backend/routes/practiceExam.js:65-143`
+
+```javascript
+// Submit answers and grade practice exam
+router.post('/submit/:examId', auth, async (req, res) => {
+  try {
+    const { examId } = req.params;
+    const { userAnswers } = req.body;
+    const userId = req.user.userId;
+
+    // Validate input
+    if (!userAnswers || !Array.isArray(userAnswers)) {
+      return res.status(400).json({
+        success: false,
+        error: 'User answers are required and must be an array'
+      });
+    }
+
+    // Find the exam
+    const exam = await AIGeneratedPracticeExam.findOne({ _id: examId, userId });
+    if (!exam) {
+      return res.status(404).json({
+        success: false,
+        error: 'Practice exam not found'
+      });
+    }
+
+    // Check if exam is already submitted
+    if (exam.submitted) {
+      return res.status(400).json({
+        success: false,
+        error: 'This exam has already been submitted'
+      });
+    }
+
+    // Save user answers
+    exam.userAnswers = userAnswers;
+
+    // Get the original note content for grading reference
+    let noteContent = null;
+    if (exam.topicOrNote && exam.topicOrNote.startsWith('--- NOTE')) {
+      noteContent = exam.topicOrNote;
+    } else {
+      noteContent = null;
+    }
+
+    // Limit noteContent length to prevent AI response issues
+    if (noteContent && noteContent.length > 10000) {
+      noteContent = noteContent.substring(0, 10000) + '... (content truncated for grading)';
+      console.log('Note content truncated for grading to prevent AI response issues');
+    }
+
+    // Grade the exam using AI with note content reference
+    const gradeResult = await aiService.gradePracticeExam(exam.questions, userAnswers, noteContent);
+
+    // Update exam with results
+    exam.score = gradeResult.score;
+    exam.feedback = gradeResult.feedback;
+    exam.detailed = gradeResult.detailed;
+    exam.submitted = true;
+
+    // Save the updated exam
+    await exam.save();
+
+    res.json({
+      success: true,
+      score: gradeResult.score,
+      feedback: gradeResult.feedback,
+      detailed: gradeResult.detailed
+    });
+
+  } catch (error) {
+    console.error('Error submitting practice exam:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error submitting practice exam',
+      details: error.message
+    });
+  }
+});
+```
+
+#### Frontend: Results Display
+**Location**: `frontend/src/components/PracticeExamResults.jsx`
+
+**Results Flow:**
+1. Backend returns `{score, feedback, detailed}` object
+2. Frontend displays overall score and feedback
+3. Shows detailed breakdown for each question
+4. Provides recommendations for improvement
+
+---
+
+## 15. DEVELOPMENT WORKFLOW
 
 ### 12.1 Local Development Setup
 
