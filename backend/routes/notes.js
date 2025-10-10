@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 200 * 1024 * 1024 // 50MB limit for large textbooks and documents
   },
   fileFilter: function (req, file, cb) {
     const allowedMimes = [
@@ -155,9 +155,9 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
         return res.status(400).json({ error: 'No readable text found in the uploaded file' });
       }
 
-      // Limit text length to prevent issues
-      if (extractedText.length > 50000) {
-        extractedText = extractedText.substring(0, 50000) + '\n\n[Text truncated due to length...]';
+      // Limit text length to prevent issues - increased for very large textbooks (2M characters)
+      if (extractedText.length > 2000000) { // 2M characters for very large textbooks
+        extractedText = extractedText.substring(0, 2000000) + '\n\n[Text truncated due to length - consider uploading in smaller chunks for extremely large documents...]';
       }
 
       res.json({
