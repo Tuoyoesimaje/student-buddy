@@ -107,9 +107,9 @@ router.post('/submit/:examId', auth, async (req, res) => {
       noteContent = null;
     }
 
-    // Limit noteContent length to prevent AI response issues (Gemini has token limits)
-    if (noteContent && noteContent.length > 10000) {
-      noteContent = noteContent.substring(0, 10000) + '... (content truncated for grading)';
+    // Limit noteContent length to prevent AI response issues (Gemini has token limits) - increased for large textbooks
+    if (noteContent && noteContent.length > 100000) {
+      noteContent = noteContent.substring(0, 100000) + '... (content truncated for grading)';
       console.log('Note content truncated for grading to prevent AI response issues');
     }
 
