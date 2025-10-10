@@ -1,8 +1,49 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 const noteController = require('../controllers/noteController');
 const auth = require('../middleware/auth');
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = 'uploads/temp';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'upload-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedMimes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'text/markdown'
+    ];
+
+    if (allowedMimes.includes(file.mimetype) ||
+        file.originalname.toLowerCase().endsWith('.md') ||
+        file.originalname.toLowerCase().endsWith('.txt')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, DOCX, TXT, and MD files are allowed.'), false);
+    }
+  }
+});
 
 // @route   GET api/notes
 // @desc    Get all notes for a user
@@ -78,5 +119,93 @@ router.delete('/:id', auth, async (req, res) => {
     res.status(500).json({ message: 'Error deleting note' });
   }
 });
+
+// Text extraction endpoint for document upload
+router.post('/upload/extract-text', auth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const filePath = req.file.path;
+    const fileExt = path.extname(req.file.originalname).toLowerCase();
+    let extractedText = '';
+
+    try {
+      if (fileExt === '.pdf') {
+        // For PDF files, we'll use a simple approach
+        // In a production environment, you might want to use pdf-parse or pdfjs-dist
+        extractedText = await extractTextFromPDF(filePath);
+      } else if (fileExt === '.docx') {
+        // For DOCX files, we'll use a simple approach
+        // In a production environment, you might want to use mammoth
+        extractedText = await extractTextFromDOCX(filePath);
+      } else if (fileExt === '.txt' || fileExt === '.md') {
+        // For text and markdown files, read directly
+        extractedText = fs.readFileSync(filePath, 'utf8');
+      } else {
+        throw new Error('Unsupported file type');
+      }
+
+      // Clean up uploaded file
+      fs.unlinkSync(filePath);
+
+      // Validate extracted text
+      if (!extractedText || extractedText.trim().length === 0) {
+        return res.status(400).json({ error: 'No readable text found in the uploaded file' });
+      }
+
+      // Limit text length to prevent issues
+      if (extractedText.length > 50000) {
+        extractedText = extractedText.substring(0, 50000) + '\n\n[Text truncated due to length...]';
+      }
+
+      res.json({
+        success: true,
+        text: extractedText.trim(),
+        filename: req.file.originalname,
+        fileSize: req.file.size
+      });
+
+    } catch (error) {
+      // Clean up file on error
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('Error extracting text from file:', error);
+    res.status(500).json({
+      error: 'Failed to extract text from file. Please ensure the file contains readable text.'
+    });
+  }
+});
+
+// PDF text extraction using pdf-parse
+async function extractTextFromPDF(filePath) {
+  try {
+    const pdf = require('pdf-parse');
+    const dataBuffer = fs.readFileSync(filePath);
+    const data = await pdf(dataBuffer);
+    return data.text;
+  } catch (error) {
+    console.error('Error extracting PDF text:', error);
+    throw new Error('Failed to extract text from PDF file');
+  }
+}
+
+// DOCX text extraction using mammoth
+async function extractTextFromDOCX(filePath) {
+  try {
+    const mammoth = require('mammoth');
+    const result = await mammoth.extractRawText({ path: filePath });
+    return result.value;
+  } catch (error) {
+    console.error('Error extracting DOCX text:', error);
+    throw new Error('Failed to extract text from DOCX file');
+  }
+}
 
 module.exports = router;

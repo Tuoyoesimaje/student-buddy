@@ -26,7 +26,8 @@ import {
   ArrowsUpDownIcon,
   AcademicCapIcon,
   ClipboardIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
 import ReactDOM from 'react-dom';
 
@@ -66,6 +67,9 @@ export default function Notes() {
   const [isEditMetadataModalOpen, setIsEditMetadataModalOpen] = useState(false);
   const [noteToEditMetadata, setNoteToEditMetadata] = useState(null);
   const [isRetrievalPracticeModalOpen, setIsRetrievalPracticeModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // AI Explain Feature States
    const [selectedText, setSelectedText] = useState('');
@@ -706,6 +710,305 @@ export default function Notes() {
       </div>
     );
   };
+  
+  // Upload Document Modal Component
+  const UploadDocumentModal = ({ isOpen, onClose, onUploadComplete, folders, courses }) => {
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [extractedText, setExtractedText] = useState('');
+    const [isExtracting, setIsExtracting] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [noteTitle, setNoteTitle] = useState('');
+    const [selectedFolder, setSelectedFolder] = useState('');
+    const [selectedCourse, setSelectedCourse] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState('');
+    const fileInputRef = useRef(null);
+  
+    const handleFileSelect = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Validate file type
+        const allowedTypes = [
+          'application/pdf',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'text/plain',
+          'text/markdown'
+        ];
+  
+        if (!allowedTypes.includes(file.type) &&
+            !file.name.toLowerCase().endsWith('.md') &&
+            !file.name.toLowerCase().endsWith('.txt')) {
+          setError('Please select a PDF, DOCX, TXT, or MD file.');
+          return;
+        }
+  
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          setError('File size must be less than 10MB.');
+          return;
+        }
+  
+        setSelectedFile(file);
+        setError('');
+        setExtractedText('');
+        setNoteTitle(file.name.replace(/\.[^/.]+$/, '')); // Remove extension for default title
+        extractTextFromFile(file);
+      }
+    };
+  
+    const extractTextFromFile = async (file) => {
+      setIsExtracting(true);
+      setUploadProgress(0);
+  
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+  
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notes/upload/extract-text`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: formData
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to extract text from file');
+        }
+  
+        const data = await response.json();
+        setExtractedText(data.text);
+        setUploadProgress(100);
+      } catch (error) {
+        console.error('Error extracting text:', error);
+        setError('Failed to extract text from file. Please try again.');
+      } finally {
+        setIsExtracting(false);
+      }
+    };
+  
+    const handleSaveNote = async () => {
+      if (!noteTitle.trim() || !extractedText.trim()) {
+        setError('Please provide a title and ensure text was extracted successfully.');
+        return;
+      }
+  
+      setIsSaving(true);
+      setError('');
+  
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notes`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: noteTitle.trim(),
+            content: extractedText.trim(),
+            subject: selectedFolder || '',
+            course: selectedCourse || null
+          })
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to save note');
+        }
+  
+        const savedNote = await response.json();
+        onUploadComplete(savedNote);
+  
+        // Reset form
+        setSelectedFile(null);
+        setExtractedText('');
+        setNoteTitle('');
+        setSelectedFolder('');
+        setSelectedCourse('');
+        setUploadProgress(0);
+        onClose();
+      } catch (error) {
+        console.error('Error saving note:', error);
+        setError('Failed to save note. Please try again.');
+      } finally {
+        setIsSaving(false);
+      }
+    };
+  
+    const handleClose = () => {
+      setSelectedFile(null);
+      setExtractedText('');
+      setNoteTitle('');
+      setSelectedFolder('');
+      setSelectedCourse('');
+      setUploadProgress(0);
+      setError('');
+      onClose();
+    };
+  
+    if (!isOpen) return null;
+  
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Upload Document</h2>
+            <button
+              onClick={handleClose}
+              className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
+            >
+              <XMarkIcon className="w-6 h-6" />
+            </button>
+          </div>
+  
+          {!selectedFile ? (
+            /* File Selection */
+            <div className="space-y-4">
+              <div
+                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <CloudArrowUpIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  Upload your document
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Supports PDF, DOCX, TXT, and MD files (max 10MB)
+                </p>
+                <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                  Select File
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt,.md"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
+            </div>
+          ) : (
+            /* Text Extraction and Note Creation */
+            <div className="space-y-4">
+              {/* Upload Progress */}
+              {isExtracting && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <ArrowPathIcon className="w-5 h-5 text-blue-600 animate-spin" />
+                    <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                      Extracting text from {selectedFile.name}...
+                    </span>
+                  </div>
+                  <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+  
+              {/* Extracted Text Preview */}
+              {extractedText && (
+                <div className="space-y-4">
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <DocumentTextIcon className="w-5 h-5 text-green-600" />
+                      <span className="text-sm font-medium text-green-800 dark:text-green-300">
+                        Text extracted successfully! ({extractedText.length} characters)
+                      </span>
+                    </div>
+                  </div>
+  
+                  {/* Note Configuration */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Note Title
+                      </label>
+                      <input
+                        type="text"
+                        value={noteTitle}
+                        onChange={(e) => setNoteTitle(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter note title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Folder (Optional)
+                      </label>
+                      <select
+                        value={selectedFolder}
+                        onChange={(e) => setSelectedFolder(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">No folder</option>
+                        {folders.map((folder) => (
+                          <option key={folder.id} value={folder.name}>{folder.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Course (Optional)
+                    </label>
+                    <select
+                      value={selectedCourse}
+                      onChange={(e) => setSelectedCourse(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">No course</option>
+                      {courses.map((course) => (
+                        <option key={course._id} value={course._id}>{course.name}</option>
+                      ))}
+                    </select>
+                  </div>
+  
+                  {/* Text Preview */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Preview (first 500 characters)
+                    </label>
+                    <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md p-3 max-h-32 overflow-y-auto">
+                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                        {extractedText.substring(0, 500)}{extractedText.length > 500 ? '...' : ''}
+                      </p>
+                    </div>
+                  </div>
+  
+                  {error && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-3">
+                      <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    </div>
+                  )}
+  
+                  {/* Action Buttons */}
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <button
+                      onClick={handleClose}
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveNote}
+                      disabled={isSaving || !noteTitle.trim()}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isSaving ? 'Saving...' : 'Save as Note'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const handleCopyNote = async () => {
     if (!selectedNote) return;
@@ -966,6 +1269,18 @@ export default function Notes() {
         courses={courses}
       />
 
+      <UploadDocumentModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUploadComplete={(newNote) => {
+          setNotes(prevNotes => [newNote, ...prevNotes]);
+          setSuccess('Document uploaded and note created successfully!');
+          setTimeout(() => setSuccess(''), 3000);
+        }}
+        folders={folders}
+        courses={courses}
+      />
+
       {success && (
         <div className="fixed top-4 right-4 p-4 bg-green-100 dark:bg-green-900/20 border border-green-400 dark:border-green-500 text-green-700 dark:text-green-300 rounded-lg shadow-md flex items-center justify-between z-50 max-w-md">
           <span className="block sm:inline">{success}</span>
@@ -1019,6 +1334,14 @@ export default function Notes() {
                 aria-label="Add Note"
               >
                 <PlusIcon className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="p-2 rounded-full bg-green-600 text-white shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200"
+                aria-label="Upload Document"
+                title="Upload PDF, DOCX, TXT, or MD file"
+              >
+                <CloudArrowUpIcon className="w-6 h-6" />
               </button>
             </div>
           </div>
@@ -1459,6 +1782,36 @@ export default function Notes() {
 
 // AI Explain Modal Component for Popup
 const AIExplainModalPopup = ({ aiHint, aiExplanation, showFullExplanation, setShowFullExplanation, isLoadingAIExplain, onClose }) => {
+  const [countdown, setCountdown] = React.useState(20);
+  const [canShowFullExplanation, setCanShowFullExplanation] = React.useState(false);
+
+  // Start countdown when hint is available and full explanation is not yet unlocked
+  useEffect(() => {
+    if (aiHint && !canShowFullExplanation) {
+      setCountdown(20);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            setCanShowFullExplanation(true);
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [aiHint, canShowFullExplanation]);
+
+  // Reset countdown state when modal closes
+  useEffect(() => {
+    if (!aiHint) {
+      setCountdown(20);
+      setCanShowFullExplanation(false);
+    }
+  }, [aiHint]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 dark:bg-black dark:bg-opacity-60">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl dark:shadow-gray-900/50 p-8 max-w-lg w-full relative animate-fadeIn border border-gray-200 dark:border-gray-700">
@@ -1476,14 +1829,35 @@ const AIExplainModalPopup = ({ aiHint, aiExplanation, showFullExplanation, setSh
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Entire modal content is clickable to toggle */}
+            {/* Subtle Countdown Timer - shows when hint is available but full explanation is locked */}
+            {aiHint && !canShowFullExplanation && (
+              <div className="flex justify-end items-center space-x-2 text-xs text-yellow-600 dark:text-yellow-400 mb-2">
+                <span>Full explanation in {countdown}s</span>
+                <div className="w-16 bg-yellow-200 dark:bg-yellow-800 rounded-full h-1">
+                  <div
+                    className="bg-yellow-500 dark:bg-yellow-400 h-1 rounded-full transition-all duration-1000 ease-linear"
+                    style={{ width: `${((20 - countdown) / 20) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
+            {/* Main content area - clickable to toggle when unlocked */}
             <div
-              className={`p-4 rounded-lg border transition-colors cursor-pointer ${
+              className={`p-4 rounded-lg border transition-colors ${
                 showFullExplanation
                   ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900/30'
                   : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-              }`}
-              onClick={() => setShowFullExplanation(!showFullExplanation)}
+              } ${!canShowFullExplanation && aiHint ? 'opacity-60' : 'cursor-pointer'}`}
+              onClick={() => {
+                // Only allow toggle if countdown is complete
+                if (canShowFullExplanation) {
+                  setShowFullExplanation(!showFullExplanation);
+                }
+              }}
+              role={!canShowFullExplanation && aiHint ? "button" : "button"}
+              tabIndex={!canShowFullExplanation && aiHint ? -1 : 0}
+              aria-disabled={!canShowFullExplanation && aiHint}
             >
               {showFullExplanation ? (
                 /* Full Explanation Section */
@@ -1507,7 +1881,7 @@ const AIExplainModalPopup = ({ aiHint, aiExplanation, showFullExplanation, setSh
                   <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-2">
                     💡 Think about this...
                     <span className="text-xs text-blue-600 dark:text-blue-400 ml-auto">
-                      ▶ Click anywhere for full explanation
+                      {canShowFullExplanation ? '▶ Click anywhere for full explanation' : '⏳ Full explanation coming soon...'}
                     </span>
                   </h3>
                   <p className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">{aiHint}</p>
@@ -1517,6 +1891,15 @@ const AIExplainModalPopup = ({ aiHint, aiExplanation, showFullExplanation, setSh
                 </>
               )}
             </div>
+
+            {/* Unlock message when countdown completes */}
+            {canShowFullExplanation && aiHint && !showFullExplanation && (
+              <div className="text-center">
+                <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                  ✅ Full explanation is now available!
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
