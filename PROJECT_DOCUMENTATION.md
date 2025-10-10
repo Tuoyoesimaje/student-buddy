@@ -23,6 +23,7 @@ Student Buddy addresses several critical challenges in modern education:
 ### 1.3 Key Capabilities
 
 - **AI-Powered Note Generation**: Automatically create comprehensive study notes from course topics
+- **Document Upload & Text Extraction**: Upload PDF, DOCX, TXT, MD files and extract text content
 - **Intelligent Content Analysis**: AI explanations, summaries, and insights from existing notes
 - **Interactive Quizzes**: AI-generated quizzes with gamification and progress tracking
 - **Practice Exams**: Full-length practice examinations with automated grading
@@ -53,6 +54,7 @@ Student Buddy addresses several critical challenges in modern education:
 - Authentication: JWT (jsonwebtoken 9.0.2) with bcryptjs 2.4.3
 - AI Integration: Google Generative AI (@google/generative-ai 0.24.1)
 - File Upload: Multer 2.0.0 with Cloudinary 2.6.1
+- Document Processing: pdf-parse 1.1.1, mammoth 1.6.0
 - Scheduling: node-cron 4.1.0
 - WebSockets: ws 8.16.0 for real-time features
 
@@ -486,6 +488,40 @@ student-buddy/
 **Used By**: Notes.jsx
 **Implementation**: `backend/routes/notes.js` → `backend/controllers/noteController.js`
 
+#### POST /api/notes/upload/extract-text
+**Purpose**: Upload and extract text from document files (PDF, DOCX, TXT, MD)
+**Authentication**: Required
+
+**Request**:
+```
+Content-Type: multipart/form-data
+
+file: [uploaded file]
+title: "optional note title"
+subject: "optional subject/folder"
+course: "optional course ID"
+```
+
+**Response**:
+```json
+{
+  "success": true,
+  "extractedText": "extracted text content",
+  "fileName": "original_filename.pdf",
+  "fileType": "application/pdf",
+  "fileSize": 12345,
+  "note": {
+    "_id": "note_id",
+    "title": "note title",
+    "content": "extracted text content",
+    "subject": "folder name"
+  }
+}
+```
+
+**Used By**: Notes.jsx (UploadDocumentModal component)
+**Implementation**: `backend/routes/notes.js`
+
 ### AI Services Endpoints
 
 #### POST /api/ai/explain
@@ -752,6 +788,45 @@ student-buddy/
 **Returns**: Score, feedback, and detailed analysis object
 **Key Logic**: Constructs complex grading prompt, handles JSON parsing of AI response, provides specific feedback with content references
 
+### Feature: Document Upload and Text Extraction
+
+**User Journey**:
+1. User clicks upload button in Notes page header
+2. Upload modal opens with file selection interface
+3. User selects PDF, DOCX, TXT, or MD file (max 10MB)
+4. Frontend validates file type and size
+5. File is uploaded to backend with progress indicator
+6. Backend processes file using appropriate text extraction library
+7. Extracted text is returned to frontend
+8. User can preview extracted text and modify title/subject
+9. Note is created with extracted content and saved to user's collection
+10. User is redirected to Notes page to view the created note
+
+**Key Files**:
+- Frontend: `frontend/src/pages/Notes.jsx` (UploadDocumentModal component)
+- Backend: `backend/routes/notes.js` (upload endpoint)
+- Database: `backend/models/Note.js` (stores extracted content)
+
+**Major Functions**:
+
+#### `extractTextFromPDF(filePath)` in `backend/routes/notes.js`
+**Purpose**: Extract text content from PDF files using pdf-parse library
+**Parameters**: filePath (string)
+**Returns**: Extracted text content (string)
+**Key Logic**: Uses pdf-parse library to parse PDF buffer, handles multi-page documents, extracts readable text content
+
+#### `extractTextFromDOCX(filePath)` in `backend/routes/notes.js`
+**Purpose**: Extract text content from DOCX files using mammoth library
+**Parameters**: filePath (string)
+**Returns**: Extracted text content (string)
+**Key Logic**: Uses mammoth library to convert DOCX to HTML, strips HTML tags, returns plain text content
+
+#### `handleFileUpload(req, res)` in `backend/routes/notes.js`
+**Purpose**: Main upload endpoint that orchestrates file processing and note creation
+**Parameters**: req (Express request with file), res (Express response)
+**Returns**: JSON response with extracted text and created note
+**Key Logic**: Validates file, determines file type, calls appropriate extraction function, creates note with extracted content
+
 ---
 
 ## 6. DATA FLOW EXAMPLES
@@ -791,6 +866,19 @@ student-buddy/
 7. **AI Grading**: `aiService.gradePracticeExam()` analyzes answers vs original content
 8. **Database Update**: Saves score, feedback, and detailed results
 9. **Frontend**: Shows results with AI feedback and recommendations
+
+### Example 4: Document Upload and Text Extraction
+
+1. **User Action**: User clicks upload button in Notes page and selects a PDF file
+2. **Frontend**: `Notes.jsx` opens UploadDocumentModal, validates file (type/size), shows progress
+3. **HTTP Request**: `POST /api/notes/upload/extract-text` with multipart form data
+4. **Backend Route**: `notes.js` receives file via multer middleware
+5. **File Processing**: Determines file is PDF, calls `extractTextFromPDF()` function
+6. **Text Extraction**: `pdf-parse` library processes PDF buffer, extracts readable text content
+7. **Note Creation**: Creates new Note document with extracted text, user association, metadata
+8. **Database**: Saves note to MongoDB `notes` collection
+9. **Response**: Returns extracted text and created note object
+10. **Frontend Update**: Shows preview of extracted text, allows title/subject editing, creates note
 
 ---
 
@@ -1441,6 +1529,130 @@ exports.createNote = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+```
+
+#### Document Upload and Text Extraction Functions
+**Location**: `backend/routes/notes.js`
+
+**Purpose**: Handles file upload, text extraction, and note creation from documents
+
+```javascript
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueName + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'text/markdown'
+    ];
+
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, DOCX, TXT, and MD files are allowed.'), false);
+    }
+  }
+});
+
+// Text extraction functions
+async function extractTextFromPDF(filePath) {
+  try {
+    const dataBuffer = fs.readFileSync(filePath);
+    const data = await pdfParse(dataBuffer);
+    return data.text;
+  } catch (error) {
+    console.error('Error extracting text from PDF:', error);
+    throw new Error('Failed to extract text from PDF file');
+  }
+}
+
+async function extractTextFromDOCX(filePath) {
+  try {
+    const result = await mammoth.extractRawText({ path: filePath });
+    return result.value;
+  } catch (error) {
+    console.error('Error extracting text from DOCX:', error);
+    throw new Error('Failed to extract text from DOCX file');
+  }
+}
+
+// Main upload endpoint
+router.post('/upload/extract-text', auth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const { title, subject, course } = req.body;
+    const filePath = req.file.path;
+    const fileExt = path.extname(req.file.originalname).toLowerCase();
+
+    let extractedText = '';
+
+    // Extract text based on file type
+    if (fileExt === '.pdf') {
+      extractedText = await extractTextFromPDF(filePath);
+    } else if (fileExt === '.docx') {
+      extractedText = await extractTextFromDOCX(filePath);
+    } else if (fileExt === '.txt' || fileExt === '.md') {
+      extractedText = fs.readFileSync(filePath, 'utf8');
+    }
+
+    if (!extractedText.trim()) {
+      throw new Error('No text content could be extracted from the file');
+    }
+
+    // Create note with extracted content
+    const noteTitle = title || req.file.originalname.replace(/\.[^/.]+$/, '');
+    const newNote = new Note({
+      title: noteTitle,
+      content: extractedText,
+      subject: subject || 'General',
+      course: course || null,
+      user: req.user.userId,
+    });
+
+    const savedNote = await newNote.save();
+
+    // Clean up uploaded file
+    fs.unlinkSync(filePath);
+
+    res.json({
+      success: true,
+      extractedText: extractedText.substring(0, 500) + '...',
+      fileName: req.file.originalname,
+      fileType: req.file.mimetype,
+      fileSize: req.file.size,
+      note: savedNote
+    });
+
+  } catch (error) {
+    console.error('Error in file upload:', error);
+    if (req.file && req.file.path) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ message: error.message });
+  }
+});
 ```
 
 ---
