@@ -1003,7 +1003,449 @@ npm run dev  # Development with nodemon
 
 ---
 
-## 12. DEVELOPMENT WORKFLOW
+## 13. KEY FUNCTIONS AND CODE IMPLEMENTATION
+
+### Core AI Service Functions
+
+#### `generateResponse(prompt)` - Core AI Communication
+**Location**: `backend/services/aiService.js:71-129`
+**Purpose**: Handles all communication with Google Gemini AI with automatic key rotation and error handling
+
+```javascript
+async generateResponse(prompt) {
+  if (this.apiKeys.length === 0) {
+    throw new Error('AI Service not initialized. API keys might be missing or invalid.');
+  }
+
+  if (!prompt || typeof prompt !== 'string') {
+    throw new Error('Invalid prompt provided');
+  }
+
+  // Try all available keys if needed
+  for (let attempt = 0; attempt < this.apiKeys.length; attempt++) {
+    try {
+      if (!this.model) {
+        this.initializeClient();
+        if (!this.model) {
+          throw new Error('Failed to initialize AI model');
+        }
+      }
+
+      console.log(`Sending prompt to Gemini (${this.modelName}) with key index ${this.currentKeyIndex}: "${prompt.substring(0, 100)}..."`);
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      console.log(`Received response from Gemini (${this.modelName}): "${text.substring(0,100)}..."`);
+      return text;
+
+    } catch (error) {
+      console.error(`Error generating response from Google AI (key index ${this.currentKeyIndex}):`, error);
+
+      // Check if error is related to rate limiting or authentication
+      const errorMessage = error.message || '';
+      const statusCode = error.status || error.statusCode || (error.response && error.response.status);
+
+      // If error is related to rate limiting (429), authentication (403), or service unavailable (503)
+      if (statusCode === 403 || statusCode === 429 || statusCode === 503 ||
+          errorMessage.includes('quota') || errorMessage.includes('rate limit') ||
+          errorMessage.includes('authentication') || errorMessage.includes('unauthorized')) {
+
+        // Try rotating to the next key
+        const rotated = this.rotateToNextKey();
+        if (rotated && attempt < this.apiKeys.length - 1) {
+          console.log(`Retrying with next API key (index: ${this.currentKeyIndex})`);
+          continue; // Try again with the new key
+        }
+      }
+
+      // If we've tried all keys or it's not a rate limit/auth error, throw the error
+      if (attempt === this.apiKeys.length - 1) {
+        throw new Error('All Gemini keys failed or hit their limit. Try again later.');
+      } else {
+        throw error; // Throw the original error for other types of errors
+      }
+    }
+  }
+
+  // This should never be reached due to the error handling above
+  throw new Error('Failed to generate response after trying all available API keys.');
+}
+```
+
+#### `generateNotes(topic, level, context)` - AI Note Generation
+**Location**: `backend/services/aiService.js:157-178`
+**Purpose**: Generates comprehensive study notes from topics using AI
+
+```javascript
+async generateNotes(topic, level = 'intermediate', context = '') {
+  console.log(`Generating notes for topic: ${topic}, level: ${level}`);
+
+  const prompt = `Generate comprehensive study notes for the following topic.
+
+Topic: ${topic}
+Level: ${level}
+${context ? `Additional Context:\n${context}` : ''}
+
+Please create detailed, well-structured study notes that include:
+1. **Key Concepts**: Main ideas and definitions
+2. **Detailed Explanations**: Clear explanations of each concept
+3. **Examples**: Practical examples where applicable
+4. **Important Points**: Key takeaways and formulas if relevant
+5. **Summary**: Concise overview at the end
+
+Format the notes in a clean, readable structure with headings and bullet points. Make it suitable for studying, detailed, long if possible and easy to understand.`;
+
+  const result = await this.generateResponse(prompt);
+  console.log(`Notes generated successfully for topic: ${topic}`);
+  return result;
+}
+```
+
+#### `gradePracticeExam(questions, userAnswers, noteContent)` - AI Exam Grading
+**Location**: `backend/services/aiService.js:215-323`
+**Purpose**: Provides intelligent grading and feedback for practice exams
+
+```javascript
+async gradePracticeExam(questions, userAnswers, noteContent = null) {
+  // Construct the prompt for grading based on note content
+  let prompt = `You are an expert exam grader evaluating student answers based on specific course content.
+
+${noteContent ? `REFERENCE MATERIAL (grade answers based on this content, not general knowledge):\n${noteContent}\n\n` : ''}
+
+Grade each of the ${questions.length} questions using this scoring scale:
+- 9-10: Fully correct, complete understanding
+- 6-8: Partially correct, main idea present but missing details
+- 3-5: Weak understanding, missing context or has errors
+- 0-2: Off-topic, wrong, or no understanding shown
+
+Return a JSON array where each object has:
+{
+  "question": "exact question text",
+  "studentAnswer": "student's answer (or 'No answer provided')",
+  "mark": number (0-10),
+  "comment": "specific feedback referencing the reference material",
+  "reference": "specific section/page from reference material that supports this answer"
+}
+
+Example format:
+[
+  {
+    "question": "What is the main function of mitochondria?",
+    "studentAnswer": "They produce energy for the cell",
+    "mark": 8,
+    "comment": "Correct main function but didn't mention ATP production specifically",
+    "reference": "Section 3.2: Cellular Energy Production"
+  }
+]
+
+Questions to grade:\n`;
+
+  // Add questions and answers to prompt
+  questions.forEach((q, i) => {
+    prompt += `${i + 1}. ${q}\n`;
+    prompt += `Student Answer: ${userAnswers[i] || 'No answer provided'}\n\n`;
+  });
+
+  // Get AI response
+  const response = await this.generateResponse(prompt);
+
+  try {
+    // Try to parse the response as JSON
+    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) {
+      throw new Error('Could not find JSON array in response');
+    }
+
+    const jsonStr = jsonMatch[0];
+    const detailedResults = JSON.parse(jsonStr);
+
+    // Validate the result structure
+    if (!Array.isArray(detailedResults) || detailedResults.length === 0) {
+      throw new Error('Response is not a valid array');
+    }
+
+    // Ensure each result has the student answer included
+    const enrichedResults = detailedResults.map((result, index) => ({
+      question: result.question || questions[index] || `Question ${index + 1}`,
+      studentAnswer: userAnswers[index] || 'No answer provided',
+      mark: result.mark || 0,
+      comment: result.comment || 'No feedback available',
+      reference: result.reference || 'N/A'
+    }));
+
+    // Calculate total score
+    const totalScore = enrichedResults.reduce((sum, item) => sum + (item.mark || 0), 0);
+    const maxScore = questions.length * 10;
+    const percentageScore = Math.round((totalScore / maxScore) * 100);
+
+    // Generate overall feedback
+    const averageMark = totalScore / enrichedResults.length;
+    let feedback = '';
+    if (averageMark >= 8) {
+      feedback = 'Excellent work! You demonstrated strong understanding of the material.';
+    } else if (averageMark >= 6) {
+      feedback = 'Good effort! You captured most key concepts but could review some details.';
+    } else if (averageMark >= 4) {
+      feedback = 'Fair understanding shown. Focus on reviewing the core concepts and examples.';
+    } else {
+      feedback = 'More review needed. Consider revisiting the fundamental concepts in the material.';
+    }
+
+    return {
+      score: percentageScore,
+      feedback: feedback,
+      detailed: enrichedResults
+    };
+
+  } catch (error) {
+    console.error('Error parsing grade response:', error);
+    // Fallback: return a basic structure with student answers
+    const fallbackResults = questions.map((q, i) => ({
+      question: q,
+      studentAnswer: userAnswers[i] || 'No answer provided',
+      mark: 0,
+      comment: 'Grading error occurred - unable to process AI feedback',
+      reference: 'N/A'
+    }));
+
+    return {
+      score: 0,
+      feedback: 'Error processing grades. The AI grading system encountered an issue.',
+      detailed: fallbackResults
+    };
+  }
+}
+```
+
+### Frontend Component Functions
+
+#### `handleQuizAnswer(answerIndex)` - Quiz Interaction Logic
+**Location**: `frontend/src/pages/Study.jsx:535-620`
+**Purpose**: Handles quiz answer selection with gamification and feedback
+
+```javascript
+const handleQuizAnswer = (answerIndex) => {
+  try {
+    if (!quizQuestions[currentQuestion] || isAnswerLocked) {
+      return;
+    }
+
+    const answerLetter = String.fromCharCode(65 + answerIndex);
+    const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
+
+    // Set feedback state
+    setSelectedAnswerIndex(answerIndex);
+    setFeedbackType(isCorrect ? 'correct' : 'wrong');
+    const msg = getRandomFeedback(isCorrect ? 'correct' : 'wrong');
+    setFeedbackMessage(msg);
+    setShowFeedback(true);
+    setIsAnswerLocked(true);
+
+    // Update answers array
+    const newAnswers = [...quizAnswers];
+    newAnswers[currentQuestion] = answerLetter;
+    setQuizAnswers(newAnswers);
+    // keep a ref copy for immediate calculations inside intervals/closures
+    answersRef.current = newAnswers;
+
+    // Handle scoring and achievements
+    if (isCorrect) {
+      // Update combo
+      setCombo(prev => prev + 1);
+
+      // Award points based on combo
+      const pointsToAward = Math.round(10 * (1 + (combo * 0.5))); // Base 10 points, increases with combo
+      setPoints(prev => prev + pointsToAward);
+      setPointsToAdd(pointsToAward);
+      setShowPointsAnimation(true);
+      setTimeout(() => setShowPointsAnimation(false), 1000);
+
+      // Check for combo achievements
+      if (combo === 3 && !achievements.includes('combo3')) {
+        setAchievements(prev => [...prev, achievementDefinitions.combo3]);
+        setPoints(prev => prev + achievementDefinitions.combo3.points);
+        toast.success('Achievement Unlocked: Combo Master!');
+      }
+      if (combo === 5 && !achievements.includes('combo5')) {
+        setAchievements(prev => [...prev, achievementDefinitions.combo5]);
+        setPoints(prev => prev + achievementDefinitions.combo5.points);
+        toast.success('Achievement Unlocked: Combo Legend!');
+      }
+    } else {
+      setCombo(0);
+    }
+
+    // Start 4-second progress bar timer (clear existing first)
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setProgressWidth(0);
+    const startTime = Date.now();
+    const duration = 6000; // 6 seconds
+
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min((elapsed / duration) * 100, 100);
+      setProgressWidth(progress);
+
+      if (progress >= 100) {
+        // clear and finalize/advance
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+        setProgressWidth(100);
+        // Auto-advance to next question after 4 seconds
+        if (currentQuestion < quizQuestions.length - 1) {
+          handleNextQuestion();
+        } else {
+          // Finish quiz if it's the last question
+          finalizeQuiz(answersRef.current);
+        }
+      }
+    }, 50);
+
+  } catch (error) {
+    console.error('Error handling quiz answer:', error);
+    toast.error('An error occurred while processing your answer');
+  }
+};
+```
+
+#### `handleAIExplain()` - Text Selection AI Explanation
+**Location**: `frontend/src/pages/Notes.jsx:788-845`
+**Purpose**: Processes selected text and calls AI for explanations
+
+```javascript
+const handleAIExplain = async () => {
+  if (!selectedText.trim()) return;
+  setIsLoadingAIExplain(true);
+  setAiExplanation('');
+  setAiHint('');
+  setShowFullExplanation(false);
+
+  console.log('Calling AI explain with text:', selectedText.substring(0, 50) + '...');
+
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    const apiUrl = `${backendUrl}/api/ai/explain`;
+
+    console.log('Making request to:', apiUrl);
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        text: selectedText,
+        noteContent: selectedNote?.content || ''
+      })
+    });
+
+    console.log('Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Response error:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Response data:', data);
+
+    setAiHint(data.hint || 'No hint available.');
+    setAiExplanation(data.fullExplanation || 'No full explanation available.');
+    setShowAIExplainModal(true);
+    setShowExplainPopup(false); // Hide the popup button after showing modal
+  } catch (err) {
+    console.error('Error getting AI explanation:', err);
+    setAiHint(`Failed to get hint: ${err.message}`);
+    setAiExplanation(`Failed to get full explanation: ${err.message}`);
+    setShowAIExplainModal(true);
+    setShowExplainPopup(false); // Hide the popup button even on error
+  } finally {
+    setIsLoadingAIExplain(false);
+  }
+};
+```
+
+### Authentication Middleware
+
+#### `authenticateToken` - JWT Authentication
+**Location**: `backend/server.js:169-196`
+**Purpose**: Validates JWT tokens and attaches user information to requests
+
+```javascript
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    console.log('No token provided in request');
+    return res.status(401).json({ message: 'Access denied. No token provided.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    console.log('Token verified for user:', decoded.userId);
+
+    // Log specific route access
+    if (req.originalUrl === '/api/notifications/count') {
+      console.log('Accessing notification count route with authenticated token');
+    }
+
+    next();
+  } catch (error) {
+    console.error('Token verification failed:', error.message);
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired. Please login again.' });
+    }
+    res.status(403).json({ message: 'Invalid token.' });
+  }
+};
+```
+
+### Database Operations
+
+#### Note Creation with AI Processing
+**Location**: `backend/controllers/noteController.js:33-53`
+**Purpose**: Creates new notes with proper validation and associations
+
+```javascript
+exports.createNote = async (req, res) => {
+  const { title, content, subject, course, tags, attachments } = req.body;
+
+  try {
+    const newNote = new Note({
+      title,
+      content,
+      subject,
+      course,
+      tags,
+      attachments,
+      user: req.user.userId,
+    });
+
+    const note = await newNote.save();
+    res.json(note);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+```
+
+---
+
+## 14. DEVELOPMENT WORKFLOW
 
 ### 12.1 Local Development Setup
 
