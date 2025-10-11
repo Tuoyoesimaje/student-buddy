@@ -112,24 +112,28 @@ router.post('/generate-quiz', async (req, res) => {
       });
     }
 
-    // Construct prompt for AI to generate quiz questions
-    const prompt = `Generate 10 multiple-choice quiz questions about ${topic}. Each question should have exactly 3 multiple-choice options: A, B, and C. Provide the correct answer for each question.
-Format the output clearly, with each question starting with 'Q#:', followed by the question text, then options A, B, C on separate lines, and finally 'Answer: [Correct Option Letter]'.
+  // Construct prompt for AI to generate quiz questions (include subtle hint per question)
+  // The hint must guide recall without revealing the answer and must avoid keywords from the correct answer.
+  // Output format: Q#: question text\nA) ...\nB) ...\nC) ...\nHint: ...\nAnswer: [A/B/C]
+  const prompt = `Generate 10 multiple-choice quiz questions about ${topic}. Each question should have exactly 3 multiple-choice options: A, B, and C. For each question also generate a single concise hint (one sentence, 8-20 words) that guides thinking without revealing the answer and that does NOT contain keywords from the correct answer.
 
-Example Format:
+Format the output exactly as follows for each question:
+Q1: [Question text]
+A) [option A]
+B) [option B]
+C) [option C]
+Hint: [a short subtle hint that encourages recall and avoids answer keywords]
+Answer: [A/B/C]
+
+Example:
 Q1: What is the capital of France?
 A) London
 B) Berlin
 C) Paris
+Hint: Think of the famous city with the Eiffel Tower and Seine river
 Answer: C
 
-Q2: What is the main function of photosynthesis?
-A) Producing oxygen
-B) Converting light energy to chemical energy
-C) Absorbing carbon dioxide
-Answer: B
-
-Now generate 10 questions about ${topic} in this exact format, using only options A, B, and C.`;
+Now generate 10 questions about ${topic} in this exact format, using only options A, B, and C. Keep hints brief and avoid giving away the answer.`;
 
     console.log('Sending quiz generation prompt to AI service...');
     const rawQuizText = await aiService.generateResponse(prompt);

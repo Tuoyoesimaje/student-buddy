@@ -35,19 +35,34 @@ router.post('/quizzes/submit', auth, async (req, res) => {
       return res.status(404).json({ message: 'Quiz not found' });
     }
 
-    let score = 0;
+    // Expect `answers` to be an array of objects per question like:
+    // { answer: 'A'|'B'|'C', attemptNumber: 1|2 }
+    // We only record scoring based on the first attempt (attemptNumber === 1)
+    let firstAttemptScore = 0;
     const results = quiz.questions.map((question, index) => {
-      const isCorrect = answers[index] === question.correctAnswer;
-      if (isCorrect) score++;
+      const submitted = Array.isArray(answers) ? answers[index] : null;
+      const firstAttempt = submitted && submitted.attemptNumber === 1 ? submitted.answer : (submitted && submitted.firstAttemptAnswer) || null;
+
+      const isFirstAttempt = firstAttempt !== null;
+      const isCorrect = isFirstAttempt && (firstAttempt === question.correctAnswer);
+      if (isCorrect) firstAttemptScore++;
+
+      // Determine whether to show hint/correctAnswerIndex to client: correctAnswerIndex only shown after second attempt or if first was correct
+      // We don't store attempts server-side here; we just return logical flags for the UI
+      const attemptCount = submitted && submitted.attemptCount ? submitted.attemptCount : (submitted && submitted.attemptNumber ? submitted.attemptNumber : 1);
+
       return {
         question: question.question,
         isCorrect,
+        isFirstAttempt: isFirstAttempt,
+        showHint: isFirstAttempt ? !isCorrect : false,
+        correctAnswerIndex: (attemptCount >= 2 || isCorrect) ? (['A','B','C'].indexOf(question.correctAnswer)) : undefined,
         explanation: question.explanation
       };
     });
 
     res.json({
-      score,
+      score: firstAttemptScore,
       totalQuestions: quiz.questions.length,
       results
     });

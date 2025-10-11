@@ -40,6 +40,9 @@ const Study = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState([]);
   const [quizResults, setQuizResults] = useState(null);
+  // Two-stage hint flow state
+  const [attemptCounts, setAttemptCounts] = useState([]); // counts 0,1,2
+  const [firstAttemptAnswers, setFirstAttemptAnswers] = useState([]); // store first attempt per question (A/B/C)
 
   // Data States - removed since NoteSearchSelector handles its own data loading
   const [error, setError] = useState(null);
@@ -83,20 +86,11 @@ const Study = () => {
   const timeRemainingRef = useRef(null);
   const progressIntervalRef = useRef(null);
   const answersRef = useRef([]);
+  const answerTimeoutRef = useRef(null);
 
 
 
-  // New gamification states
-  const [points, setPoints] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [achievements, setAchievements] = useState([]);
-
-
-  const [showAchievement, setShowAchievement] = useState(false);
-  const [currentAchievement, setCurrentAchievement] = useState(null);
-  const [combo, setCombo] = useState(0);
-  const [showPointsAnimation, setShowPointsAnimation] = useState(false);
-  const [pointsToAdd, setPointsToAdd] = useState(0);
+  // remove gamification for minimal, retrieval-practice focused flow
 
 
 
@@ -104,75 +98,7 @@ const Study = () => {
 
 
 
-  // Achievement definitions
-  const achievementDefinitions = {
-    firstQuiz: { id: 'firstQuiz', title: 'First Steps', description: 'Complete your first quiz', points: 50 },
-    perfectScore: { id: 'perfectScore', title: 'Perfect Score!', description: 'Get 100% on a quiz', points: 100 },
-    streak3: { id: 'streak3', title: 'On Fire!', description: 'Complete 3 quizzes in a row', points: 75 },
-    streak5: { id: 'streak5', title: 'Unstoppable!', description: 'Complete 5 quizzes in a row', points: 150 },
-    speedster: { id: 'speedster', title: 'Speedster', description: 'Complete a quiz with more than 2 minutes remaining', points: 50 },
-    combo3: { id: 'combo3', title: 'Combo Master', description: 'Get 3 correct answers in a row', points: 30 },
-    combo5: { id: 'combo5', title: 'Combo Legend', description: 'Get 5 correct answers in a row', points: 50 }
-  };
-
-  // AI-Driven Encouragement & Humor Feedback System
-  const correctFeedbacks = [
-    "Nice one, scholar! You nailed that concept. 🧠",
-    "Brains and beauty — your neurons are flexing! ✨",
-    "You could tutor me at this point. Keep going! 📚",
-    "Spot on! Your brain is firing on all cylinders! ⚡",
-    "Brilliant! You're making this look easy. 🌟",
-    "Correct! Your knowledge game is strong! 💪",
-    "Perfect! You're on fire today! 🔥",
-    "Excellent work! You're crushing this quiz! 🎯",
-    "Right on target! Keep that momentum! 🚀",
-    "Outstanding! Your brain deserves a high-five! 👏"
-  ];
-
-  const wrongFeedbacks = [
-    "Close, but not quite — your brain almost caught it! 🤔",
-    "Oops! Looks like your coffee hasn't kicked in yet. ☕",
-    "You're warming up — the next one's yours! 🔥",
-    "Not quite, but you're getting warmer! 🌡️",
-    "Missed that one, but keep swinging! ⚾",
-    "Wrong turn, but the journey continues! 🗺️",
-    "Not this time, but you're still awesome! ⭐",
-    "Close call! Next question is your redemption! 🎪",
-    "Wrong answer, but right attitude! 💪",
-    "Missed it, but you're still learning! 📖"
-  ];
-
-  const completionFeedbacks = [
-    "Quiz complete! You're a learning machine! 🤖",
-    "Finished! Your brain just leveled up! ⬆️",
-    "All done! You're officially smarter now! 🧠",
-    "Complete! Your knowledge just got a workout! 💪",
-    "Finished! You're crushing this learning thing! 🎯",
-    "Done! Your brain deserves a victory dance! 💃",
-    "Complete! You're a quiz-conquering champion! 🏆",
-    "Finished! Your neurons are doing the happy dance! 🕺",
-    "All set! You're a learning superstar! ⭐",
-    "Complete! Your brain just earned its PhD! 🎓"
-  ];
-
-  // Function to get random feedback message
-  const getRandomFeedback = (type) => {
-    let messages;
-    switch (type) {
-      case 'correct':
-        messages = correctFeedbacks;
-        break;
-      case 'wrong':
-        messages = wrongFeedbacks;
-        break;
-      case 'completion':
-        messages = completionFeedbacks;
-        break;
-      default:
-        return "Keep going!";
-    }
-    return messages[Math.floor(Math.random() * messages.length)];
-  };
+  // Minimal feedback and no gamification/celebration per new quiz UX requirements
 
 
 
@@ -268,19 +194,33 @@ const Study = () => {
       });
 
       const rawQuestions = response.data.response;
+      // Parse AI output including 'Hint:' lines. Expected block per question includes a 'Hint: ' line above Answer.
       const questionsArray = rawQuestions.split(/Q\d+:/).filter(Boolean).map(q => {
-        const parts = q.trim().split(/A\)|B\)|C\)|Answer:/);
-        if (parts.length < 5) return null;
+        const answerSplit = q.split(/Answer:/);
+        if (answerSplit.length < 2) return null;
+        const beforeAnswer = answerSplit[0];
+        const answerLetter = answerSplit[1].trim().charAt(0).toUpperCase();
 
-        const questionText = parts[0].trim();
-        const options = parts.slice(1, 4).map(opt => opt.trim());
-        const correctAnswer = parts[4].trim().toUpperCase();
+  const hintMatch = beforeAnswer.match(/Hint:\s*([\s\S]*)/i);
+  const hint = hintMatch ? hintMatch[1].trim() : '';
 
-        if (questionText && options.length === 3 && ['A', 'B', 'C'].includes(correctAnswer)) {
+  // Remove the Hint: block from the text before splitting into options so the hint
+  // doesn't accidentally become part of an option when AI formatting is inconsistent.
+  const beforeAnswerNoHint = beforeAnswer.replace(/Hint:\s*[\s\S]*$/i, '').trim();
+
+  const parts = beforeAnswerNoHint.split(/A\)|B\)|C\)/);
+        if (parts.length < 4) return null;
+  const questionText = parts[0].trim();
+  // Only strip a leading ')' and only trim surrounding whitespace — avoid removing
+  // internal leading characters which can concatenate the first two words (e.g. 'To encrypt' -> 'Toencrypt')
+  const options = [parts[1].trim(), parts[2].trim(), parts[3].trim()].map(s => s.replace(/^\)\s*/, '').trim());
+
+        if (questionText && options.length === 3 && ['A','B','C'].includes(answerLetter)) {
           return {
             question: questionText,
-            options: options,
-            correctAnswer: correctAnswer
+            options,
+            correctAnswer: answerLetter,
+            hint
           };
         }
         return null;
@@ -289,7 +229,11 @@ const Study = () => {
       if (questionsArray.length > 0) {
         setQuizQuestions(questionsArray);
         const initAnswers = new Array(questionsArray.length).fill(null);
+        const initAttempts = new Array(questionsArray.length).fill(0);
+        const initFirst = new Array(questionsArray.length).fill(null);
         setQuizAnswers(initAnswers);
+        setAttemptCounts(initAttempts);
+        setFirstAttemptAnswers(initFirst);
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
@@ -473,54 +417,16 @@ const Study = () => {
     }
   };
 
-  // Function to check and award achievements
-  const checkAchievements = (quizResults) => {
-    const newAchievements = [];
-    
-    // Check for perfect score
-    if (quizResults.percentage === 100 && !achievements.includes('perfectScore')) {
-      newAchievements.push(achievementDefinitions.perfectScore);
-    }
-    
-    // Check for speedster
-    if (timeLeft > 120 && !achievements.includes('speedster')) {
-      newAchievements.push(achievementDefinitions.speedster);
-    }
-    
-    // Check for streaks
-    if (streak === 3 && !achievements.includes('streak3')) {
-      newAchievements.push(achievementDefinitions.streak3);
-    }
-    if (streak === 5 && !achievements.includes('streak5')) {
-      newAchievements.push(achievementDefinitions.streak5);
-    }
-    
-    // Award points for achievements
-    newAchievements.forEach(achievement => {
-      setPoints(prev => prev + achievement.points);
-      setShowAchievement(true);
-      setCurrentAchievement(achievement);
-      setTimeout(() => setShowAchievement(false), 3000);
-    });
-    
-    return newAchievements;
-  };
+  // Achievements/gamification removed for focused retrieval practice UX
 
-  // Finalize quiz helper to calculate results and handle completion logic
-  const finalizeQuiz = (answersSnapshot) => {
-    const answersToUse = answersSnapshot || answersRef.current || quizAnswers;
-    const score = answersToUse.filter((answer, index) => {
-      const correctAnswer = quizQuestions[index]?.correctAnswer;
-      return answer === correctAnswer;
-    }).length;
-
-    setStreak(prev => prev + 1);
-
-    const newAchievements = checkAchievements({
-      score,
-      total: quizQuestions.length,
-      percentage: Math.round((score / quizQuestions.length) * 100)
-    });
+  // Finalize quiz: score is based ONLY on the first attempt for each question
+  const finalizeQuiz = () => {
+    const firstAnswers = firstAttemptAnswers || [];
+    const score = quizQuestions.reduce((sum, q, index) => {
+      const first = firstAnswers[index];
+      if (first && first === q.correctAnswer) return sum + 1;
+      return sum;
+    }, 0);
 
     setQuizResults({
       score,
@@ -529,106 +435,130 @@ const Study = () => {
     });
     setQuizMode('results');
     setIsRunning(false);
-    toast.success(`${getRandomFeedback('completion')} Score: ${score}/${quizQuestions.length}`);
+
+    // Send result data to backend: include per-question attempt info so backend records first-attempt scoring
+    try {
+      const answersPayload = quizQuestions.map((q, idx) => ({
+        answer: firstAttemptAnswers[idx] || null,
+        attemptNumber: attemptCounts[idx] || 0,
+        firstAttemptAnswer: firstAttemptAnswers[idx] || null,
+        attemptCount: attemptCounts[idx] || 0
+      }));
+      // Use studyService submitQuiz (imported earlier as api.post directly in pages) - call API directly
+      api.post('/api/study/quizzes/submit', { quizId: null, answers: answersPayload }).catch(() => {
+        // Non-blocking: failures to record on server shouldn't affect UX
+      });
+    } catch (e) {
+      // ignore
+    }
   };
 
-  // Modified handleQuizAnswer to show immediate feedback with 4-second timer
+  // Two-stage answer handling: record first attempt only for scoring
   const handleQuizAnswer = (answerIndex) => {
-    try {
-      if (!quizQuestions[currentQuestion] || isAnswerLocked) {
-        return;
-      }
+    if (!quizQuestions[currentQuestion] || isAnswerLocked) return;
 
-      const answerLetter = String.fromCharCode(65 + answerIndex);
+    // Clear any pending answer timeouts to avoid overlapping auto-advance or locks
+    if (answerTimeoutRef.current) {
+      clearTimeout(answerTimeoutRef.current);
+      answerTimeoutRef.current = null;
+    }
+
+    const answerLetter = String.fromCharCode(65 + answerIndex);
+
+    const currentAttempts = attemptCounts[currentQuestion] || 0;
+
+    // Helper to mark selected answer for UI
+    setSelectedAnswerIndex(answerIndex);
+    setShowFeedback(true);
+
+    if (currentAttempts === 0) {
+      // First attempt
+      const newFirst = [...firstAttemptAnswers];
+      newFirst[currentQuestion] = answerLetter;
+      setFirstAttemptAnswers(newFirst);
+
+      const newAttempts = [...attemptCounts];
+      newAttempts[currentQuestion] = 1;
+      setAttemptCounts(newAttempts);
+
+      // Update quizAnswers (for display/recording of latest selection)
+      const newAnswers = [...quizAnswers];
+      newAnswers[currentQuestion] = answerLetter;
+      setQuizAnswers(newAnswers);
+      answersRef.current = newAnswers;
+
+      // Check correctness of first attempt
       const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
+      setFeedbackType(isCorrect ? 'correct' : 'wrong');
+      setFeedbackMessage(isCorrect ? 'Correct' : 'Incorrect');
 
-  // Set feedback state
-  setSelectedAnswerIndex(answerIndex);
-  setFeedbackType(isCorrect ? 'correct' : 'wrong');
-  const msg = getRandomFeedback(isCorrect ? 'correct' : 'wrong');
-  setFeedbackMessage(msg);
-  setShowFeedback(true);
-  setIsAnswerLocked(true);
-
-      // Update answers array
-  const newAnswers = [...quizAnswers];
-  newAnswers[currentQuestion] = answerLetter;
-  setQuizAnswers(newAnswers);
-  // keep a ref copy for immediate calculations inside intervals/closures
-  answersRef.current = newAnswers;
-
-      // Handle scoring and achievements
       if (isCorrect) {
-        // Update combo
-        setCombo(prev => prev + 1);
-
-        // Award points based on combo
-        const pointsToAward = Math.round(10 * (1 + (combo * 0.5))); // Base 10 points, increases with combo
-        setPoints(prev => prev + pointsToAward);
-        setPointsToAdd(pointsToAward);
-        setShowPointsAnimation(true);
-        setTimeout(() => setShowPointsAnimation(false), 1000);
-
-        // Check for combo achievements
-        if (combo === 3 && !achievements.includes('combo3')) {
-          setAchievements(prev => [...prev, achievementDefinitions.combo3]);
-          setPoints(prev => prev + achievementDefinitions.combo3.points);
-          toast.success('Achievement Unlocked: Combo Master!');
-        }
-        if (combo === 5 && !achievements.includes('combo5')) {
-          setAchievements(prev => [...prev, achievementDefinitions.combo5]);
-          setPoints(prev => prev + achievementDefinitions.combo5.points);
-          toast.success('Achievement Unlocked: Combo Legend!');
-        }
-      } else {
-        setCombo(0);
-      }
-
-      // Start 4-second progress bar timer (clear existing first)
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-      setProgressWidth(0);
-      const startTime = Date.now();
-  const duration = 6000; // 6 seconds
-
-      progressIntervalRef.current = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min((elapsed / duration) * 100, 100);
-        setProgressWidth(progress);
-
-        if (progress >= 100) {
-          // clear and finalize/advance
-          clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
-          setProgressWidth(100);
-          // Auto-advance to next question after 4 seconds
+        // Auto-advance after 2.2 seconds
+        setIsAnswerLocked(true);
+        answerTimeoutRef.current = setTimeout(() => {
+          answerTimeoutRef.current = null;
+          setIsAnswerLocked(false);
+          setShowFeedback(false);
+          setSelectedAnswerIndex(null);
+          // auto-advance
           if (currentQuestion < quizQuestions.length - 1) {
-            handleNextQuestion();
+            setCurrentQuestion(prev => prev + 1);
           } else {
-            // Finish quiz if it's the last question
-            finalizeQuiz(answersRef.current);
+            finalizeQuiz();
           }
-        }
-      }, 50);
+        }, 4000);
+      } else {
+        // Show hint and allow second attempt.
+        // Add a very short temporary lock to prevent rapid double-clicking which
+        // can cause multiple state transitions and skip questions.
+        setIsAnswerLocked(true);
+        answerTimeoutRef.current = setTimeout(() => {
+          answerTimeoutRef.current = null;
+          setIsAnswerLocked(false);
+        }, 300);
+        // Do not auto-advance; keep options clickable for second attempt
+      }
+    } else if (currentAttempts === 1) {
+      // Second attempt - reveal correct answer afterwards
+      const newAttempts = [...attemptCounts];
+      newAttempts[currentQuestion] = 2;
+      setAttemptCounts(newAttempts);
 
-    } catch (error) {
-      console.error('Error handling quiz answer:', error);
-      toast.error('An error occurred while processing your answer');
+      const newAnswers = [...quizAnswers];
+      newAnswers[currentQuestion] = answerLetter;
+      setQuizAnswers(newAnswers);
+      answersRef.current = newAnswers;
+
+      const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
+      setFeedbackType(isCorrect ? 'correct' : 'wrong');
+      setFeedbackMessage(isCorrect ? 'Correct' : 'Incorrect');
+
+      // Reveal correct answer in UI by leaving state; lock inputs
+      setIsAnswerLocked(true);
+
+      // After 2.2 seconds, auto-advance
+      answerTimeoutRef.current = setTimeout(() => {
+        answerTimeoutRef.current = null;
+        setIsAnswerLocked(false);
+        setShowFeedback(false);
+        setSelectedAnswerIndex(null);
+        if (currentQuestion < quizQuestions.length - 1) {
+          setCurrentQuestion(prev => prev + 1);
+        } else {
+          finalizeQuiz();
+        }
+      }, 4000);
     }
   };
 
   // Add a new function to handle answer selection and next question
   const handleAnswerAndNext = (answerIndex) => {
-    // Ensure any existing progress interval is cleared to avoid overlap
+    // Clear any old timers
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = null;
     }
     handleQuizAnswer(answerIndex);
-    // We no longer auto-call handleNextQuestion here because handleQuizAnswer
-    // starts its own progress timer which will call handleNextQuestion when complete.
   };
 
   // Modified handleNextQuestion to include better error handling and reset feedback state
@@ -649,33 +579,15 @@ const Study = () => {
       setFeedbackType('');
       setFeedbackMessage('');
       setProgressWidth(0);
-    } else {
-      // Calculate results
-      const score = quizAnswers.filter((answer, index) => {
-        const correctAnswer = quizQuestions[index].correctAnswer;
-        return answer === correctAnswer;
-      }).length;
-
-        // Update streak
-        setStreak(prev => prev + 1);
-
-        // Check achievements
-        const newAchievements = checkAchievements({
-          score,
-          total: quizQuestions.length,
-          percentage: Math.round((score / quizQuestions.length) * 100)
-        });
-
-      setQuizResults({
-        score,
-        total: quizQuestions.length,
-        percentage: Math.round((score / quizQuestions.length) * 100)
-      });
-      setQuizMode('results');
-        setIsRunning(false); // Stop the timer
-      // Show completion message with randomized feedback
-      // (finalizeQuiz already handles toast on completion in other flow)
+      // Clear any pending answer timeouts when manually moving to next question
+      if (answerTimeoutRef.current) {
+        clearTimeout(answerTimeoutRef.current);
+        answerTimeoutRef.current = null;
       }
+    } else {
+      // Finish quiz
+      finalizeQuiz();
+    }
     } catch (error) {
       console.error('Error handling next question:', error);
       toast.error('An error occurred while processing the quiz');
@@ -688,6 +600,10 @@ const Study = () => {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
+      }
+      if (answerTimeoutRef.current) {
+        clearTimeout(answerTimeoutRef.current);
+        answerTimeoutRef.current = null;
       }
     };
   }, []);
@@ -780,31 +696,43 @@ const Study = () => {
         topic: quizTopic
       });
 
-      // Parse the AI response
+      // Parse the AI response (extract hints)
       const rawQuestions = response.data.response;
       const questionsArray = rawQuestions.split(/Q\d+:/).filter(Boolean).map(q => {
-        const parts = q.trim().split(/A\)|B\)|C\)|Answer:/);
-        if (parts.length < 5) return null; // Skip if format is incorrect
+        const answerSplit = q.split(/Answer:/);
+        if (answerSplit.length < 2) return null;
+        const beforeAnswer = answerSplit[0];
+        const answerLetter = answerSplit[1].trim().charAt(0).toUpperCase();
 
-        const questionText = parts[0].trim();
-        const options = parts.slice(1, 4).map(opt => opt.trim());
-        const correctAnswer = parts[4].trim().toUpperCase();
+  const hintMatch = beforeAnswer.match(/Hint:\s*([\s\S]*)/i);
+  const hint = hintMatch ? hintMatch[1].trim() : '';
 
-        // Validate the format
-        if (questionText && options.length === 3 && ['A', 'B', 'C'].includes(correctAnswer)) {
+  const beforeAnswerNoHint = beforeAnswer.replace(/Hint:\s*[\s\S]*$/i, '').trim();
+
+  const parts = beforeAnswerNoHint.split(/A\)|B\)|C\)/);
+        if (parts.length < 4) return null;
+  const questionText = parts[0].trim();
+  const options = [parts[1].trim(), parts[2].trim(), parts[3].trim()].map(s => s.replace(/^\)\s*/, '').trim());
+
+        if (questionText && options.length === 3 && ['A','B','C'].includes(answerLetter)) {
           return {
             question: questionText,
-            options: options,
-            correctAnswer: correctAnswer
+            options,
+            correctAnswer: answerLetter,
+            hint
           };
         }
         return null;
-      }).filter(Boolean); // Remove any null entries
+      }).filter(Boolean);
 
       if (questionsArray.length > 0) {
         setQuizQuestions(questionsArray);
         const initAnswers = new Array(questionsArray.length).fill(null);
+        const initAttempts = new Array(questionsArray.length).fill(0);
+        const initFirst = new Array(questionsArray.length).fill(null);
         setQuizAnswers(initAnswers);
+        setAttemptCounts(initAttempts);
+        setFirstAttemptAnswers(initFirst);
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
   setQuizMode('in_progress');
@@ -851,22 +779,30 @@ const Study = () => {
         topic: `Based on this note: ${noteContent.substring(0, 200000)}...` // Increased to 200K characters for large textbook coverage
       });
 
-      // Parse the AI response
+      // Parse the AI response (extract hints)
       const rawQuestions = response.data.response;
       const questionsArray = rawQuestions.split(/Q\d+:/).filter(Boolean).map(q => {
-        const parts = q.trim().split(/A\)|B\)|C\)|Answer:/);
-        if (parts.length < 5) return null; // Skip if format is incorrect
+        const answerSplit = q.split(/Answer:/);
+        if (answerSplit.length < 2) return null;
+        const beforeAnswer = answerSplit[0];
+        const answerLetter = answerSplit[1].trim().charAt(0).toUpperCase();
 
-        const questionText = parts[0].trim();
-        const options = parts.slice(1, 4).map(opt => opt.trim());
-        const correctAnswer = parts[4].trim().toUpperCase();
+  const hintMatch = beforeAnswer.match(/Hint:\s*([\s\S]*)/i);
+  const hint = hintMatch ? hintMatch[1].trim() : '';
 
-        // Validate the format
-        if (questionText && options.length === 3 && ['A', 'B', 'C'].includes(correctAnswer)) {
+  const beforeAnswerNoHint = beforeAnswer.replace(/Hint:\s*[\s\S]*$/i, '').trim();
+
+  const parts = beforeAnswerNoHint.split(/A\)|B\)|C\)/);
+        if (parts.length < 4) return null;
+  const questionText = parts[0].trim();
+  const options = [parts[1].trim(), parts[2].trim(), parts[3].trim()].map(s => s.replace(/^\)\s*/, '').trim());
+
+        if (questionText && options.length === 3 && ['A','B','C'].includes(answerLetter)) {
           return {
             question: questionText,
-            options: options,
-            correctAnswer: correctAnswer
+            options,
+            correctAnswer: answerLetter,
+            hint
           };
         }
         return null;
@@ -875,7 +811,11 @@ const Study = () => {
       if (questionsArray.length > 0) {
         setQuizQuestions(questionsArray);
         const initAnswers = new Array(questionsArray.length).fill(null);
+        const initAttempts = new Array(questionsArray.length).fill(0);
+        const initFirst = new Array(questionsArray.length).fill(null);
         setQuizAnswers(initAnswers);
+        setAttemptCounts(initAttempts);
+        setFirstAttemptAnswers(initFirst);
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
   setQuizMode('in_progress');
@@ -996,28 +936,9 @@ const Study = () => {
   );
 
   // Add points animation component
-  const PointsAnimation = () => (
-    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
-      <div className="animate-bounce text-2xl font-bold text-green-500">
-        +{pointsToAdd} points!
-      </div>
-    </div>
-  );
+  // Points animation removed for minimal quiz UX
 
-  // Add achievement notification component
-  const AchievementNotification = () => (
-    <div className="fixed top-4 right-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded shadow-lg z-50 animate-slide-in">
-      <div className="flex items-center">
-        <div className="py-1">
-          <p className="font-bold">Achievement Unlocked!</p>
-          <p className="text-sm">{currentAchievement?.title}</p>
-          <p className="text-xs">+{currentAchievement?.points} points</p>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Modify the quiz results screen to show gamification elements
+  // Modify the quiz results screen to a clean, minimal review
   const renderQuizResults = () => (
         <div className="fixed inset-0 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-900 dark:to-gray-800 z-50 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8">
@@ -1038,75 +959,52 @@ const Study = () => {
             </div>
 
             <div className="text-center space-y-8">
-              {/* Note Source Display */}
-              {selectedQuizNotes.length > 0 && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
-                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300 mb-2">Quiz Source</h3>
-                  <p className="text-blue-700 dark:text-blue-300">
-                    Generated from: <span className="font-medium">"{selectedQuizNotes[0].title}"</span>
-                  </p>
-                </div>
-              )}
-
-          {/* Score Display */}
+              {/* Score Display */}
               <div className="inline-block p-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-full">
                 <div className="text-5xl font-bold text-indigo-600 dark:text-indigo-400">
                   {quizResults.percentage}%
                 </div>
               </div>
-          
-          {/* Stats Display */}
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-indigo-600">{points}</div>
-              <div className="text-sm text-gray-600">Total Points</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-green-600">{streak}</div>
-              <div className="text-sm text-gray-600">Current Streak</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-purple-600">{combo}</div>
-              <div className="text-sm text-gray-600">Best Combo</div>
-            </div>
-          </div>
 
               <div className="text-xl text-gray-700">
                 You got {quizResults.score} out of {quizResults.total} questions correct
-            </div>
+              </div>
 
-              {/* Show correct answers */}
+              {/* Question Review - minimal and clear */}
               <div className="mt-12 space-y-6">
                 <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Question Review</h2>
                 {quizQuestions.map((question, index) => (
                   <div key={index} className="p-6 bg-gray-50 dark:bg-gray-700 rounded-xl shadow-sm">
                     <p className="font-medium text-gray-900 dark:text-white mb-4 text-lg">{question.question}</p>
                     <div className="space-y-3">
-                      {question.options.map((option, optIndex) => (
-                        <p key={optIndex} className={`text-sm p-3 rounded-lg ${
-                          String.fromCharCode(65 + optIndex) === question.correctAnswer
-                            ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium border border-green-200 dark:border-green-700'
-                            : 'bg-white dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-500'
-                        }`}>
-                          {String.fromCharCode(65 + optIndex)}) {option}
-                          {String.fromCharCode(65 + optIndex) === question.correctAnswer &&
-                            <span className="ml-2 text-green-600 dark:text-green-400">✓</span>
-                          }
-                        </p>
-                      ))}
-          </div>
+                      {question.options.map((option, optIndex) => {
+                        const letter = String.fromCharCode(65 + optIndex);
+                        const isCorrect = letter === question.correctAnswer;
+                        const first = firstAttemptAnswers[index];
+                        const second = quizAnswers[index];
+
+                        const showAsCorrect = isCorrect;
+                        const showAsWrongFirst = first && first !== question.correctAnswer && first === letter;
+                        const showAsWrongSecond = second && second !== question.correctAnswer && second === letter && attemptCounts[index] === 2;
+
+                        let cls = 'bg-white dark:bg-gray-600 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-500';
+                        if (showAsCorrect) cls = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium border border-green-200 dark:border-green-700';
+                        if (showAsWrongFirst || showAsWrongSecond) cls = 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700';
+
+                        return (
+                          <p key={optIndex} className={`text-sm p-3 rounded-lg ${cls}`}>
+                            {letter}) {option}
+                            {isCorrect && <span className="ml-2 text-green-600 dark:text-green-400">✓</span>}
+                          </p>
+                        );
+                      })}
+                    </div>
                     <p className="text-sm mt-4 p-3 bg-gray-100 dark:bg-gray-600 rounded-lg">
-                      <span className="text-gray-700 dark:text-gray-300">Your Answer:</span> {quizAnswers[index] ?
-                        <span className={`font-medium ${
-                          quizAnswers[index] === question.correctAnswer
-                            ? 'text-green-600 dark:text-green-400'
-                            : 'text-red-600 dark:text-red-400'
-                        }`}>
-                          {quizAnswers[index]}
-                        </span> :
-                        <span className="text-gray-500 dark:text-gray-400">Not answered</span>
-                      }
+                      <span className="text-gray-700 dark:text-gray-300">First attempt:</span> {firstAttemptAnswers[index] || '—'}
                     </p>
+                    {question.hint && (
+                      <p className="text-sm mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">Hint: {question.hint}</p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1207,20 +1105,35 @@ const Study = () => {
                   </motion.div>
                 )}
 
+                {/* Hint box: show on first wrong attempt only */}
+                {attemptCounts[currentQuestion] === 1 && firstAttemptAnswers[currentQuestion] && firstAttemptAnswers[currentQuestion] !== quizQuestions[currentQuestion].correctAnswer && quizQuestions[currentQuestion].hint && (
+                  <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-sm text-gray-700 dark:text-blue-200">
+                    <strong>Hint:</strong> {quizQuestions[currentQuestion].hint}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {quizQuestions[currentQuestion].options.map((option, index) => {
                   const isSelected = selectedAnswerIndex === index;
-                  const isCorrect = String.fromCharCode(65 + index) === quizQuestions[currentQuestion].correctAnswer;
-                  const isWrong = isSelected && !isCorrect;
+                  const letter = String.fromCharCode(65 + index);
+                  const isCorrect = letter === quizQuestions[currentQuestion].correctAnswer;
+
+                  // Reveal correct answer only when user has had a second attempt OR their first attempt was correct
+                  const revealCorrect = (attemptCounts[currentQuestion] >= 2) || (firstAttemptAnswers[currentQuestion] === quizQuestions[currentQuestion].correctAnswer);
+
+                  const isWrongSelection = isSelected && !isCorrect;
 
                   let buttonClass = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600';
 
                   if (showFeedback) {
-                    if (isCorrect) {
+                    if (revealCorrect && isCorrect) {
+                      // Reveal correct answer (green) only when allowed
                       buttonClass = 'bg-green-100 dark:bg-green-900/30 border-green-500 dark:border-green-400 shadow-md';
-                    } else if (isWrong) {
+                    } else if (isWrongSelection) {
+                      // Show red on user's (wrong) selection on feedback
                       buttonClass = 'bg-red-100 dark:bg-red-900/30 border-red-500 dark:border-red-400 shadow-md';
                     } else {
+                      // Dim other options but do not reveal which is correct yet
                       buttonClass = 'bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500 opacity-50';
                     }
                   } else if (isAnswerLocked) {
@@ -1235,8 +1148,8 @@ const Study = () => {
                       onClick={() => !isAnswerLocked && handleQuizAnswer(index)}
                       disabled={isAnswerLocked}
                       className={`p-4 text-left rounded-xl border transition-all ${!isAnswerLocked ? 'hover:scale-[1.02]' : ''} ${buttonClass} ${isAnswerLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                      animate={showFeedback && isCorrect ? { scale: [1, 1.05, 1] } : {}}
-                      transition={{ duration: 0.5, repeat: isCorrect ? 1 : 0 }}
+                      animate={showFeedback && revealCorrect && isCorrect ? { scale: [1, 1.05, 1] } : {}}
+                      transition={{ duration: 0.5, repeat: (showFeedback && revealCorrect && isCorrect) ? 1 : 0 }}
                     >
                       <div className="flex items-center justify-between">
                         <div
@@ -1260,7 +1173,7 @@ const Study = () => {
                             />
                           )}
                         </div>
-                        {showFeedback && isCorrect && (
+                        {showFeedback && revealCorrect && isCorrect && (
                           <motion.div
                             initial={{ scale: 0, rotate: -180 }}
                             animate={{ scale: 1, rotate: 0 }}
@@ -1270,7 +1183,7 @@ const Study = () => {
                             <CheckCircleIcon className="w-5 h-5" />
                           </motion.div>
                         )}
-                        {showFeedback && isWrong && (
+                        {showFeedback && isWrongSelection && (
                           <motion.div
                             initial={{ scale: 0, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
@@ -1303,18 +1216,7 @@ const Study = () => {
         </div>
       </div>
 
-        {/* Points Animation */}
-        {showPointsAnimation && <PointsAnimation />}
-        
-        {/* Achievement Notification */}
-        {showAchievement && <AchievementNotification />}
-        
-        {/* Combo Indicator */}
-        {combo > 1 && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full shadow-lg z-50 animate-bounce">
-            {combo}x Combo!
-          </div>
-        )}
+        {/* Minimal UX: no points, achievements, or combo indicators */}
     </div>
   );
 };
