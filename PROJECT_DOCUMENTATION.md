@@ -25,7 +25,7 @@ Student Buddy addresses several critical challenges in modern education:
 - **AI-Powered Note Generation**: Automatically create comprehensive study notes from course topics
 - **Document Upload & Text Extraction**: Upload PDF, DOCX, TXT, MD files and extract text content
 - **Intelligent Content Analysis**: AI explanations, summaries, and insights from existing notes
-- **Interactive Quizzes**: AI-generated quizzes with gamification and progress tracking
+ - **Interactive Quizzes**: AI-generated quizzes using a two-stage hint retrieval-practice flow (minimal feedback, no gamification)
 - **Practice Exams**: Full-length practice examinations with automated grading
 - **Rich Text Note Editor**: Advanced note-taking with formatting and organization
 - **Course Management**: Organize study materials by courses, topics, and subjects
@@ -740,23 +740,53 @@ course: "optional course ID"
 **Returns**: AI-generated response (string)
 **Key Logic**: Manages multiple API keys, handles rate limiting, rotates keys on failure
 
-### Feature: AI-Generated Quizzes
+### Feature: AI-Generated Quizzes — Two-Stage Hint Retrieval Practice
 
-**User Journey**:
-1. User navigates to Study page and selects "Quiz Mode"
-2. User chooses between note-based or topic-based quiz generation
-3. For note-based: User selects a specific note
-4. For topic-based: User enters a topic manually
-5. AI generates 10 multiple-choice questions
-6. User takes quiz with 5-minute timer
-7. Immediate feedback with gamification elements
-8. Results screen shows score and question review
+**Overview**:
+This application uses an AI-generated multiple-choice quiz flow optimized for retrieval practice. Quizzes are generated from a note or topic using the AI service. Each generated question now includes a subtle, non-answer-revealing hint. The user receives only minimal feedback and is encouraged to recall answers before the hint is shown.
 
-**Key Files**:
-- Frontend: `frontend/src/pages/Study.jsx` (quiz UI and logic)
-- Backend: `backend/routes/ai.js`, `backend/services/aiService.js`
+**Key UX rules (two-stage hint flow)**:
+- Each question has three options (A/B/C) and an AI-generated hint that must not contain keywords from the correct answer.
+- First attempt: user selects an option. If correct → minimal positive feedback and auto-advance after 4s. If incorrect → show 'Incorrect' only and display the hint; do NOT reveal the correct answer.
+- Second attempt: user can make a second selection. After the second attempt, the correct answer is revealed with minimal feedback and then auto-advance after 4s.
+- Scoring: only the first attempt is counted for scoring and persisted.
+- Gamification and celebratory messages were intentionally removed for focused retrieval practice.
 
-**Major Functions**:
+**API changes (backend)**:
+- Endpoint: `POST /api/ai/generate-quiz`
+  - Behavior: AI prompt updated to include a per-question `Hint:` line. The AI response (text) is parsed by the frontend; future improvements may request JSON from the model for greater reliability.
+- Endpoint: `POST /api/study/quizzes/submit`
+  - Behavior: Accepts an `answers` payload that includes per-question metadata (`firstAttemptAnswer`, `attemptCount`). The server records/scored only the `firstAttemptAnswer` and returns per-question flags (`isCorrect`, `isFirstAttempt`, `showHint`, `correctAnswerIndex`) where appropriate. The server does not rely on second-attempt answers for scoring.
+
+**Frontend behavior and files changed**:
+- Primary component: `frontend/src/pages/Study.jsx`
+  - New states: `attemptCounts` (0/1/2) and `firstAttemptAnswers` (stores letter A/B/C per question).
+  - Parsing: AI output parsing now extracts `Hint:` lines and removes them from option parsing to avoid hint text leaking into options.
+  - Answer flow: `handleQuizAnswer` implements the two-stage logic, uses an `answerTimeoutRef` to manage auto-advance timers, and uses a `revealCorrect` guard so the correct answer is only highlighted when allowed.
+  - Timing: auto-advance delay increased to 4000ms (4 seconds) to allow time to read hints.
+  - UI: minimal feedback messages only ('Correct' / 'Incorrect'), no confetti/encouragement strings.
+
+**Files updated (summary)**:
+- `frontend/src/pages/Study.jsx` — parsing, two-stage answer logic, hint box, attempt tracking, timing, and UI simplification.
+- `backend/routes/ai.js` — quiz generation prompt changed to require `Hint:` per question.
+- `backend/routes/study.js` — `/quizzes/submit` changed to score only first attempts and return UI flags.
+
+**Migration notes / data model impact**:
+- The existing `Quiz` model remains for static quizzes. AI-generated quizzes are ephemeral in the UI and are not persisted by default. If you plan to persist AI-generated quizzes to the `Quiz` model, ensure mapping of `correctAnswer` (letter A/B/C) to the model's numeric index where required.
+
+**Testing and QA checklist**:
+1. Generate a quiz from a note and confirm each question includes a hint (shown in the hint box after a first wrong attempt).
+2. On first attempt correct: verify 'Correct' feedback and auto-advance after ~4s.
+3. On first attempt wrong: verify 'Incorrect' feedback, hint appears in the dedicated hint box, and correct option is NOT revealed.
+4. On second attempt: verify the correct option is revealed and auto-advance occurs after ~4s.
+5. Rapid clicking: ensure no skipped questions (timeouts and temporary locks prevent accidental skipping).
+6. Confirm no celebratory/gamified messages appear during the quiz flow.
+
+**Notes and future improvements**:
+- The current implementation parses AI text responses on the frontend. For robustness, migrate the AI call to return structured JSON (function-calling or explicit JSON formatting) and update parsing on both backend and frontend.
+- Consider persisting aggregate first-attempt accuracy per user/question for spaced-repetition analytics in a future release.
+
+*** End of updated Quiz system docs ***
 
 #### `generatePracticeQuestions(topicOrNote, isNoteBased)` in `backend/services/aiService.js`
 **Purpose**: Generate quiz questions from content
