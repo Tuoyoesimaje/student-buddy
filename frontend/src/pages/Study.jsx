@@ -190,7 +190,7 @@ const Study = () => {
       const noteContent = `${selectedNote.title}\n${selectedNote.content.replace(/<[^>]*>/g, '')}`;
 
       const response = await api.post('/api/ai/generate-quiz', {
-        topic: `Based on this note: ${noteContent.substring(0, 200000)}...` // Increased to 200K characters for large textbook coverage
+        topic: `Based on this note: ${noteContent.substring(0, 400000)}...` // Increased to 400K characters for large textbook coverage
       });
 
       const rawQuestions = response.data.response;
@@ -776,7 +776,7 @@ const Study = () => {
 
       // Call backend endpoint to generate quiz from the note
       const response = await api.post('/api/ai/generate-quiz', {
-        topic: `Based on this note: ${noteContent.substring(0, 200000)}...` // Increased to 200K characters for large textbook coverage
+        topic: `Based on this note: ${noteContent.substring(0, 400000)}...` // Increased to 400K characters for large textbook coverage
       });
 
       // Parse the AI response (extract hints)

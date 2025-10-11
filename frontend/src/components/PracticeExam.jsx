@@ -100,7 +100,7 @@ const PracticeExam = () => {
         return;
       }
       // Combine content from selected notes with explicit separators and per-note truncation
-      const maxPerNote = 100000; // increased for large textbook content
+      const maxPerNote = 400000; // increased for large textbook content
       contentToUse = selectedExamNotes.map((note, idx) => {
         const plain = (note.content || '').replace(/<[^>]*>/g, '');
         const truncated = plain.length > maxPerNote ? plain.substring(0, maxPerNote) + '...' : plain;
