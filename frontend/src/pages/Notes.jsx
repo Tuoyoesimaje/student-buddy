@@ -1627,11 +1627,17 @@ export default function Notes() {
                   e.stopPropagation();
                   handleAIExplain();
                 }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-all font-semibold flex items-center gap-2 border-2 border-white"
+                className="px-4 py-3 bg-indigo-50 dark:bg-indigo-800 border-2 border-indigo-200 dark:border-indigo-700 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-700 transition-all duration-200 group flex items-center gap-3"
                 disabled={isLoadingAIExplain}
               >
-                <BookOpenIcon className="w-5 h-5" />
-                {isLoadingAIExplain ? 'Explaining...' : 'AI Explain'}
+                <div className="p-2 bg-indigo-600 rounded-lg group-hover:bg-indigo-700 transition-colors">
+                  <BookOpenIcon className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left">
+                  <div className="font-semibold text-indigo-800 dark:text-indigo-300">
+                    {isLoadingAIExplain ? 'Explaining...' : 'AI Explain'}
+                  </div>
+                </div>
               </button>
             </div>
           )}

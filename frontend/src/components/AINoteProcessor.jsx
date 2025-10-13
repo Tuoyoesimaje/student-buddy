@@ -87,7 +87,7 @@ export default function AINoteProcessor({ noteId, onNoteProcessed, className = '
                 <button
                   onClick={() => processNote('summarize')}
                   disabled={isProcessing}
-                  className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 group"
+                  className="w-full p-4 bg-blue-50 dark:bg-blue-900/40 border-2 border-blue-200 dark:border-blue-600 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 group"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-blue-500 rounded-lg group-hover:bg-blue-600 transition-colors">
@@ -104,7 +104,7 @@ export default function AINoteProcessor({ noteId, onNoteProcessed, className = '
                 <button
                   onClick={() => processNote('explain')}
                   disabled={isProcessing}
-                  className="w-full p-4 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all duration-200 group"
+                  className="w-full p-4 bg-purple-50 dark:bg-purple-900/40 border-2 border-purple-200 dark:border-purple-600 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all duration-200 group"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-purple-500 rounded-lg group-hover:bg-purple-600 transition-colors">
