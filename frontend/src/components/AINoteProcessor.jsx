@@ -69,7 +69,7 @@ export default function AINoteProcessor({ noteId, onNoteProcessed, className = '
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl dark:shadow-gray-900/50 w-full max-w-md transform transition-all border border-gray-200 dark:border-gray-700">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Enhance with AI</h3>
+                <h3 className="text-xl font-bold mb-2 text-indigo-700 dark:text-indigo-400">Enhance with AI</h3>
                 <button
                   onClick={() => setIsOpen(false)}
                   className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 transition-colors duration-200"
@@ -87,12 +87,16 @@ export default function AINoteProcessor({ noteId, onNoteProcessed, className = '
                 <button
                   onClick={() => processNote('summarize')}
                   disabled={isProcessing}
-                  className="w-full flex items-center p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors duration-200"
+                  className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 group"
                 >
-                  <DocumentTextIcon className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-3" />
-                  <div className="text-left">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">Summarize</div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Create a concise, easy-to-review summary</p>
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-blue-500 rounded-lg group-hover:bg-blue-600 transition-colors">
+                      <DocumentTextIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-semibold text-blue-800 dark:text-blue-300">Summarize</div>
+                      <p className="text-sm text-blue-600 dark:text-blue-400">Create a concise, easy-to-review summary</p>
+                    </div>
                   </div>
                 </button>
 
@@ -100,12 +104,16 @@ export default function AINoteProcessor({ noteId, onNoteProcessed, className = '
                 <button
                   onClick={() => processNote('explain')}
                   disabled={isProcessing}
-                  className="w-full flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                  className="w-full p-4 bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-200 dark:border-purple-700 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all duration-200 group"
                 >
-                  <LightBulbIcon className="h-5 w-5 text-purple-500 mr-3" />
-                  <div className="text-left">
-                    <div className="font-medium text-gray-900">Explain</div>
-                    <p className="text-sm text-gray-500">Get a beginner-friendly explanation</p>
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-purple-500 rounded-lg group-hover:bg-purple-600 transition-colors">
+                      <LightBulbIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-semibold text-purple-800 dark:text-purple-300">Explain</div>
+                      <p className="text-sm text-purple-600 dark:text-purple-400">Get a beginner-friendly explanation</p>
+                    </div>
                   </div>
                 </button>
 
