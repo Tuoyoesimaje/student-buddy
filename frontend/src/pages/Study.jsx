@@ -12,6 +12,7 @@ import {
   PlusIcon,
   ArrowLeftIcon,
   DocumentTextIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline';
 import api from '../utils/axios';
 import { toast } from 'react-hot-toast';
@@ -849,27 +850,23 @@ const Study = () => {
         </button>
       </div>
 
-        {/* Mode Toggle */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center space-x-4">
-            <span className={`text-sm font-medium ${quizGenerationMode === 'note-based' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`}>
-              Note-Based Mode
-            </span>
+        {/* Mode Toggle - icon placed at top-right */}
+        <div className="mb-8 relative">
+          <div className="absolute right-0 top-0">
             <button
               onClick={() => setQuizGenerationMode(quizGenerationMode === 'note-based' ? 'topic' : 'note-based')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                quizGenerationMode === 'note-based' ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
-              }`}
+              title={quizGenerationMode === 'note-based' ? 'Switch to Topic mode' : 'Switch to Note-based mode'}
+              className="p-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
             >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  quizGenerationMode === 'note-based' ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
+              {quizGenerationMode === 'note-based' ? (
+                <DocumentTextIcon className="w-5 h-5" />
+              ) : (
+                <PencilIcon className="w-5 h-5" />
+              )}
             </button>
-            <span className={`text-sm font-medium ${quizGenerationMode === 'topic' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`}>
-              Topic Mode
-            </span>
+          </div>
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">{quizGenerationMode === 'note-based' ? 'Note-Based Mode' : 'Topic Mode'}</h3>
           </div>
         </div>
 

@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import api from '../utils/axios';
 import NoteSearchSelector from './NoteSearchSelector';
+import { DocumentTextIcon, PencilIcon } from '@heroicons/react/24/outline';
 
 const PracticeExam = () => {
   const [topicOrNote, setTopicOrNote] = useState('');
@@ -148,28 +149,24 @@ const PracticeExam = () => {
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Generate Practice Exam</h2>
 
       <form onSubmit={handleSubmit}>
-        {/* Mode Toggle */}
-        <div className="mb-6">
-          <div className="flex items-center justify-center space-x-4">
-            <span className={`text-sm font-medium ${examGenerationMode === 'note-based' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`}>
-              Note-Based Mode
-            </span>
+        {/* Mode Toggle - icon on top-right */}
+        <div className="mb-6 relative">
+          <div className="absolute right-0 top-0">
             <button
               type="button"
               onClick={() => setExamGenerationMode(examGenerationMode === 'note-based' ? 'topic' : 'note-based')}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                examGenerationMode === 'note-based' ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'
-              }`}
+              title={examGenerationMode === 'note-based' ? 'Switch to Topic mode' : 'Switch to Note-based mode'}
+              className="p-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
             >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  examGenerationMode === 'note-based' ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
+              {examGenerationMode === 'note-based' ? (
+                <DocumentTextIcon className="w-5 h-5" />
+              ) : (
+                <PencilIcon className="w-5 h-5" />
+              )}
             </button>
-            <span className={`text-sm font-medium ${examGenerationMode === 'topic' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400'}`}>
-              Topic Mode
-            </span>
+          </div>
+          <div>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Mode: <span className="font-medium">{examGenerationMode === 'note-based' ? 'Note-Based' : 'Topic'}</span></p>
           </div>
         </div>
 
