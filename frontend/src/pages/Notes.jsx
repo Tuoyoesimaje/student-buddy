@@ -32,6 +32,7 @@ import {
 import ReactDOM from 'react-dom';
 
 import AINoteProcessor from '../components/AINoteProcessor';
+import AssessmentTrackerModal from '../components/AssessmentTrackerModal';
 import { motion } from 'framer-motion';
 import { marked } from 'marked';
 import RichTextEditor from '../components/RichTextEditor';
@@ -70,6 +71,7 @@ export default function Notes() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isAssessmentTrackerModalOpen, setIsAssessmentTrackerModalOpen] = useState(false);
 
   // AI Explain Feature States
    const [selectedText, setSelectedText] = useState('');
@@ -1642,23 +1644,23 @@ export default function Notes() {
             </div>
           )}
 
-          <div className="space-y-6">
-          <button
-            onClick={() => requestAISummary(selectedNote.content)}
-            disabled={isSummaryLoading}
-            className="p-2 rounded-full text-green-600 hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={isSummaryLoading ? 'Summarizing...' : 'AI Summary'}
-          >
-            <DocumentTextIcon className="w-6 h-6" />
-          </button>
-
-          {aiSummary && (
-              <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200 text-gray-700 text-sm leading-relaxed">
-              <h3 className="text-lg font-semibold text-indigo-800 mb-2">AI Summary</h3>
-                <p>{aiSummary}</p>
-            </div>
-          )}
-
+          <div className="flex space-x-2">
+            <button
+              onClick={() => requestAISummary(selectedNote.content)}
+              disabled={isSummaryLoading}
+              className="p-2 rounded-full text-green-600 hover:bg-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label={isSummaryLoading ? 'Summarizing...' : 'AI Summary'}
+            >
+              <DocumentTextIcon className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setIsAssessmentTrackerModalOpen(true)}
+              className="p-2 rounded-full text-blue-600 hover:bg-blue-200 transition-colors"
+              aria-label="Assessment Tracker"
+              title="View quiz and practice exam history for this note"
+            >
+              <AcademicCapIcon className="w-6 h-6" />
+            </button>
             <button
               onClick={() => requestAIExplanation(highlightedText)}
               disabled={!highlightedText || isAILoading}
@@ -1668,6 +1670,13 @@ export default function Notes() {
               <LightBulbIcon className="w-6 h-6" />
             </button>
           </div>
+
+          {aiSummary && (
+            <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200 text-gray-700 text-sm leading-relaxed">
+              <h3 className="text-lg font-semibold text-indigo-800 mb-2">AI Summary</h3>
+              <p>{aiSummary}</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -1764,6 +1773,16 @@ export default function Notes() {
           setShowFullExplanation={setShowFullExplanation}
           isLoadingAIExplain={isLoadingAIExplain}
           onClose={() => setShowAIExplainModal(false)}
+        />
+      )}
+
+      {/* Assessment Tracker Modal */}
+      {isAssessmentTrackerModalOpen && (
+        <AssessmentTrackerModal
+          isOpen={isAssessmentTrackerModalOpen}
+          onClose={() => setIsAssessmentTrackerModalOpen(false)}
+          noteId={selectedNote?._id}
+          noteTitle={selectedNote?.title}
         />
       )}
 

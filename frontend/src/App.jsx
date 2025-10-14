@@ -18,6 +18,7 @@ const PracticeExamPage = React.lazy(() => import('./pages/PracticeExamPage'));
 const PracticeExamQuestionsPage = React.lazy(() => import('./pages/PracticeExamQuestionsPage'));
 const PracticeExamResultsPage = React.lazy(() => import('./pages/PracticeExamResultsPage'));
 const PracticeExamListPage = React.lazy(() => import('./pages/PracticeExamListPage'));
+const QuizResultsPage = React.lazy(() => import('./pages/QuizResultsPage'));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -99,6 +100,11 @@ const App = () => {
           } />
           <Route path="practice-exam/questions/:examId" element={<PracticeExamQuestionsPage />} />
           <Route path="practice-exam/results/:examId" element={<PracticeExamResultsPage />} />
+          <Route path="quiz-results/:quizId" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <QuizResultsPage />
+            </Suspense>
+          } />
         </Route>
 
         {/* Redirect authenticated users from root to notes */}

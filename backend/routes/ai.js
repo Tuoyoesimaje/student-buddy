@@ -133,6 +133,8 @@ C) Paris
 Hint: Think of the famous city with the Eiffel Tower and Seine river
 Answer: C
 
+Answers should not be always the same letter. They should be mixed evenly among A, B, and C. Randomly distributed.
+
 Now generate 10 questions about ${topic} in this exact format, using only options A, B, and C. Keep hints brief and avoid giving away the answer.`;
 
     console.log('Sending quiz generation prompt to AI service...');

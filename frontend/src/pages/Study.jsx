@@ -437,16 +437,35 @@ const Study = () => {
     setQuizMode('results');
     setIsRunning(false);
 
-    // Send result data to backend: include per-question attempt info so backend records first-attempt scoring
+    // Save quiz results for tracking (no formal submission needed for quizzes)
     try {
-      const answersPayload = quizQuestions.map((q, idx) => ({
-        answer: firstAttemptAnswers[idx] || null,
-        attemptNumber: attemptCounts[idx] || 0,
-        firstAttemptAnswer: firstAttemptAnswers[idx] || null,
-        attemptCount: attemptCounts[idx] || 0
-      }));
-      // Use studyService submitQuiz (imported earlier as api.post directly in pages) - call API directly
-      api.post('/api/study/quizzes/submit', { quizId: null, answers: answersPayload }).catch(() => {
+      const selectedNote = selectedQuizNotes.length > 0 ? selectedQuizNotes[0] : null;
+
+      const quizResultData = {
+        noteId: selectedNote?._id || null,
+        noteTitle: selectedNote?.title || 'Quiz',
+        questions: quizQuestions.map((q, idx) => ({
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          userAnswer: firstAttemptAnswers[idx] || null,
+          isCorrect: firstAttemptAnswers[idx] === q.correctAnswer,
+          explanation: q.hint || ''
+        })),
+        score: score,
+        totalQuestions: quizQuestions.length,
+        percentage: Math.round((score / quizQuestions.length) * 100),
+        passed: score / quizQuestions.length >= 0.6, // 60% passing threshold
+        timeSpent: 5 * 60 - timeLeft, // Calculate time spent
+        aiRemarks: `Quiz completed with ${Math.round((score / quizQuestions.length) * 100)}% accuracy. ${score / quizQuestions.length >= 0.8 ? 'Excellent performance!' : score / quizQuestions.length >= 0.6 ? 'Good job!' : 'Keep practicing to improve.'}`
+      };
+
+      // Save to our QuizResult model for tracking
+      console.log('Saving quiz results:', quizResultData);
+      api.post('/api/practice-exam/quiz-results', quizResultData).then((response) => {
+        console.log('Quiz results saved successfully:', response.data);
+      }).catch((error) => {
+        console.error('Failed to save quiz results:', error);
         // Non-blocking: failures to record on server shouldn't affect UX
       });
     } catch (e) {

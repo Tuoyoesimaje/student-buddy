@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const AIGeneratedPracticeExam = require('../models/AIGeneratedPracticeExam');
+const QuizResult = require('../models/QuizResult');
 const aiService = require('../services/aiService');
 
 // Generate practice exam questions
@@ -165,6 +166,114 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Get aggregated assessment history for authenticated user
+router.get('/history', auth, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { noteId } = req.query; // Optional filter by note
+
+    // Build query for both assessment types
+    const practiceExamQuery = {
+      userId,
+      ...(noteId && { topicOrNote: { $regex: `--- NOTE.*${noteId}`, $options: 'i' } })
+    };
+
+    const quizResultQuery = {
+      userId,
+      ...(noteId && { noteId })
+    };
+
+    // Fetch practice exams
+    const practiceExams = await AIGeneratedPracticeExam.find(practiceExamQuery)
+      .select('topicOrNote createdAt submitted score feedback')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Fetch quiz results
+    let quizResults = await QuizResult.find(quizResultQuery)
+      .select('noteTitle createdAt score totalQuestions percentage passed aiRemarks')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // If no quiz results found by noteId, try searching by noteTitle
+    if (quizResults.length === 0 && noteId) {
+      console.log('No quiz results found by noteId, trying noteTitle search');
+      const noteTitleQuery = {
+        userId,
+        noteTitle: { $regex: new RegExp(noteId, 'i') } // Search by noteId as title pattern
+      };
+      quizResults = await QuizResult.find(noteTitleQuery)
+        .select('noteTitle createdAt score totalQuestions percentage passed aiRemarks')
+        .sort({ createdAt: -1 })
+        .lean();
+    }
+
+    // Format and combine results
+    const formattedPracticeExams = practiceExams.map(exam => ({
+      id: exam._id,
+      type: 'practice-exam',
+      title: exam.topicOrNote.replace('--- NOTE: ', '').substring(0, 50) + (exam.topicOrNote.length > 50 ? '...' : ''),
+      date: exam.createdAt,
+      score: exam.submitted ? exam.score : null,
+      totalQuestions: null, // Practice exams don't have fixed question count in the same way
+      status: exam.submitted ? 'completed' : 'in-progress',
+      feedback: exam.feedback,
+      link: `/app/practice-exam/results/${exam._id}`
+    }));
+
+    const formattedQuizResults = quizResults.map(quiz => ({
+      id: quiz._id,
+      type: 'quiz',
+      title: quiz.noteTitle,
+      date: quiz.createdAt,
+      score: quiz.score,
+      totalQuestions: quiz.totalQuestions,
+      percentage: quiz.percentage,
+      status: 'completed',
+      passed: quiz.passed,
+      aiRemarks: quiz.aiRemarks,
+      link: `/app/quiz-results/${quiz._id}`
+    }));
+
+    // Combine and sort by date (newest first)
+    const allAssessments = [...formattedPracticeExams, ...formattedQuizResults]
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // If no assessments found for this specific note, include a note about it
+    const responseData = {
+      success: true,
+      assessments: allAssessments,
+      summary: {
+        totalAssessments: allAssessments.length,
+        completedAssessments: allAssessments.filter(a => a.status === 'completed').length,
+        averageScore: calculateAverageScore(allAssessments),
+        practiceExamsCount: formattedPracticeExams.length,
+        quizResultsCount: formattedQuizResults.length
+      }
+    };
+
+    // Add debugging info if no assessments found
+    if (allAssessments.length === 0) {
+      responseData.debug = {
+        noteId,
+        allQuizResults: allQuizResults.length,
+        practiceExams: formattedPracticeExams.length,
+        message: 'No assessments found for this note'
+      };
+    }
+
+    res.json(responseData);
+
+  } catch (error) {
+    console.error('Error fetching assessment history:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching assessment history',
+      details: error.message
+    });
+  }
+});
+
 // Get a specific practice exam
 router.get('/:examId', auth, async (req, res) => {
   try {
@@ -194,5 +303,234 @@ router.get('/:examId', auth, async (req, res) => {
     });
   }
 });
+
+// Get individual quiz result
+router.get('/quiz-results/:quizId', auth, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { noteId } = req.query; // Optional filter by note
+
+    // Build query for both assessment types
+    const practiceExamQuery = {
+      userId,
+      ...(noteId && { topicOrNote: { $regex: `--- NOTE.*${noteId}`, $options: 'i' } })
+    };
+
+    const quizResultQuery = {
+      userId,
+      ...(noteId && { noteId })
+    };
+
+    console.log('Assessment history query:', {
+      noteId,
+      practiceExamQuery,
+      quizResultQuery
+    });
+
+    // Also fetch all quiz results for the user to debug
+    const allQuizResults = await QuizResult.find({ userId })
+      .select('noteId noteTitle createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log('All quiz results for user:', allQuizResults.map(q => ({
+      id: q._id,
+      noteId: q.noteId,
+      noteTitle: q.noteTitle,
+      createdAt: q.createdAt
+    })));
+
+    // Fetch practice exams
+    const practiceExams = await AIGeneratedPracticeExam.find(practiceExamQuery)
+      .select('topicOrNote createdAt submitted score feedback')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Fetch quiz results
+    const quizResults = await QuizResult.find(quizResultQuery)
+      .select('noteTitle createdAt score totalQuestions percentage passed aiRemarks')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Format and combine results
+    const formattedPracticeExams = practiceExams.map(exam => ({
+      id: exam._id,
+      type: 'practice-exam',
+      title: exam.topicOrNote.replace('--- NOTE: ', '').substring(0, 50) + (exam.topicOrNote.length > 50 ? '...' : ''),
+      date: exam.createdAt,
+      score: exam.submitted ? exam.score : null,
+      totalQuestions: null, // Practice exams don't have fixed question count in the same way
+      status: exam.submitted ? 'completed' : 'in-progress',
+      feedback: exam.feedback,
+      link: `/app/practice-exam/results/${exam._id}`
+    }));
+
+    const formattedQuizResults = quizResults.map(quiz => ({
+      id: quiz._id,
+      type: 'quiz',
+      title: quiz.noteTitle,
+      date: quiz.createdAt,
+      score: quiz.score,
+      totalQuestions: quiz.totalQuestions,
+      percentage: quiz.percentage,
+      status: 'completed',
+      passed: quiz.passed,
+      aiRemarks: quiz.aiRemarks,
+      link: `/app/quiz-results/${quiz._id}`
+    }));
+
+    // Combine and sort by date (newest first)
+    const allAssessments = [...formattedPracticeExams, ...formattedQuizResults]
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.json({
+      success: true,
+      assessments: allAssessments,
+      summary: {
+        totalAssessments: allAssessments.length,
+        completedAssessments: allAssessments.filter(a => a.status === 'completed').length,
+        averageScore: calculateAverageScore(allAssessments),
+        practiceExamsCount: formattedPracticeExams.length,
+        quizResultsCount: formattedQuizResults.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching assessment history:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching assessment history',
+      details: error.message
+    });
+  }
+});
+
+// Save quiz results (for tracking purposes - no formal submission needed)
+router.post('/quiz-results', auth, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const {
+      noteId,
+      noteTitle,
+      questions,
+      score,
+      totalQuestions,
+      percentage,
+      passed,
+      timeSpent,
+      aiRemarks
+    } = req.body;
+
+    console.log('Saving quiz results:', {
+      userId,
+      noteId,
+      noteTitle,
+      score,
+      totalQuestions,
+      percentage
+    });
+
+    // Find the note ID if it exists (for tracking purposes)
+    let resolvedNoteId = null;
+    if (noteTitle) {
+      const Note = require('../models/Note');
+      const note = await Note.findOne({ title: noteTitle, userId });
+      if (note) {
+        resolvedNoteId = note._id;
+      }
+    }
+
+    // Generate areas of concern from quiz performance
+    const areasOfConcern = [];
+    questions.forEach((question, index) => {
+      if (!question.isCorrect && question.userAnswer) {
+        const keyword = question.question.substring(0, 50) + '...';
+        areasOfConcern.push({
+          keyword,
+          failedCount: 1,
+          lastFailed: new Date()
+        });
+      }
+    });
+
+    // Create quiz result record
+    const quizResult = new QuizResult({
+      userId,
+      noteId: noteId || resolvedNoteId, // Use provided noteId or resolved noteId
+      noteTitle,
+      questions,
+      score,
+      totalQuestions,
+      percentage,
+      passed,
+      timeSpent,
+      aiRemarks,
+      areasOfConcern,
+      difficulty: percentage >= 80 ? 'hard' : percentage >= 60 ? 'medium' : 'easy'
+    });
+
+    const savedQuizResult = await quizResult.save();
+
+    res.status(201).json({
+      success: true,
+      quizResultId: savedQuizResult._id,
+      message: 'Quiz results saved successfully'
+    });
+
+  } catch (error) {
+    console.error('Error saving quiz results:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error saving quiz results',
+      details: error.message
+    });
+  }
+});
+
+// Get individual quiz result
+router.get('/quiz-results/:quizId', auth, async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const userId = req.user.userId;
+
+    const quizResult = await QuizResult.findOne({ _id: quizId, userId });
+
+    if (!quizResult) {
+      return res.status(404).json({
+        success: false,
+        error: 'Quiz result not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      quizResult
+    });
+
+  } catch (error) {
+    console.error('Error fetching quiz result:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching quiz result',
+      details: error.message
+    });
+  }
+});
+
+// Helper function to calculate average score
+function calculateAverageScore(assessments) {
+  const completedAssessments = assessments.filter(a => a.status === 'completed' && a.score !== null);
+
+  if (completedAssessments.length === 0) return 0;
+
+  const totalScore = completedAssessments.reduce((sum, assessment) => {
+    if (assessment.percentage !== undefined) {
+      return sum + assessment.percentage;
+    }
+    return sum + assessment.score;
+  }, 0);
+
+  return Math.round((totalScore / completedAssessments.length) * 100) / 100;
+}
 
 module.exports = router;
