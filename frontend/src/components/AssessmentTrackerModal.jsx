@@ -156,6 +156,53 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
     );
   };
 
+  const DeltaRing = ({ percentDelta = 0, improved = true, size = 96, strokeWidth = 8 }) => {
+    const absPercent = Math.min(Math.abs(percentDelta), 200); // cap visual at 200%
+    // Map percent magnitude to a 0-100 range for the visual ring
+    const visualPercent = Math.min(absPercent, 100);
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const strokeDasharray = circumference;
+    const strokeDashoffset = circumference - (visualPercent / 100) * circumference;
+
+    const ringColor = improved ? 'text-green-500' : 'text-red-500';
+
+    return (
+      <div className="relative inline-flex items-center justify-center">
+        <svg width={size} height={size} className="transform -rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            className="text-gray-200 dark:text-gray-700"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeDasharray={strokeDasharray}
+            strokeDashoffset={strokeDashoffset}
+            className={`${ringColor} transition-all duration-300`}
+            strokeLinecap="round"
+          />
+        </svg>
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className={`text-lg font-bold ${improved ? 'text-green-500' : 'text-red-500'}`}>
+            {percentDelta >= 0 ? '+' : ''}{percentDelta.toFixed(1)}%
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">vs previous</div>
+        </div>
+      </div>
+    );
+  };
+
   // Areas of Concern feature removed
 
   if (!isOpen) return null;
@@ -287,25 +334,46 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
                   <CircularProgressBar percentage={summary?.averageScore || 0} />
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg flex flex-col items-center justify-center">
+                <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 text-center">
                     Improvement
                   </h3>
                   {improvement ? (
-                    <div className="text-center">
-                      <div className={`text-2xl font-bold ${improvement.improved ? 'text-green-600' : 'text-red-600'}`}>
-                        {improvement.percent >= 0 ? '+' : ''}{improvement.percent.toFixed(1)}%
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center space-x-3">
+                        <div className={`text-4xl font-bold ${improvement.improved ? 'text-green-500' : 'text-red-500'}`}>
+                          {improvement.percent >= 0 ? '+' : ''}{improvement.percent.toFixed(1)}%
+                        </div>
+                        <div className="w-6 h-6 flex items-center justify-center">
+                          {improvement.improved ? (
+                            <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-green-500"><path d="M10 4l4 6H6l4-6z" fill="currentColor"/></svg>
+                          ) : (
+                            <svg viewBox="0 0 20 20" fill="none" className="w-5 h-5 text-red-500"><path d="M10 16l-4-6h8l-4 6z" fill="currentColor"/></svg>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        {improvement.improved ? 'Improved vs previous attempt' : 'Declined vs previous attempt'}
+
+                      <div className="mt-4 grid grid-cols-2 gap-3 w-full">
+                        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md text-center">
+                          <div className="text-xs text-gray-500">Previous</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {improvement.previousAssessment?._computedPercentage?.toFixed(1) ?? '-'}%
+                          </div>
+                          <div className="text-xs text-gray-400">{improvement.previousAssessment?.type ?? '-'}</div>
+                          <div className="text-xs text-gray-400">{improvement.previousAssessment ? new Date(improvement.previousAssessment.date).toLocaleDateString() : '-'}</div>
+                        </div>
+
+                        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-md text-center">
+                          <div className="text-xs text-gray-500">Latest</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {improvement.latestAssessment?._computedPercentage?.toFixed(1) ?? '-'}%
+                          </div>
+                          <div className="text-xs text-gray-400">{improvement.latestAssessment?.type ?? '-'}</div>
+                          <div className="text-xs text-gray-400">{improvement.latestAssessment ? new Date(improvement.latestAssessment.date).toLocaleDateString() : '-'}</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        {improvement.latestAssessment && improvement.previousAssessment ? (
-                          <>
-                            Compared: <strong>{improvement.previousAssessment.type}</strong> on {new Date(improvement.previousAssessment.date).toLocaleDateString()} → <strong>{improvement.latestAssessment.type}</strong> on {new Date(improvement.latestAssessment.date).toLocaleDateString()}
-                          </>
-                        ) : null}
-                      </div>
+
+                      <div className="text-xs text-gray-500 mt-3">{improvement.improved ? 'Improved vs previous attempt' : 'Declined vs previous attempt'}</div>
                     </div>
                   ) : (
                     <div className="text-sm text-gray-600 dark:text-gray-400">Not enough data to calculate improvement</div>
