@@ -48,7 +48,7 @@ const Settings = () => {
     name: '',
     code: '',
     semester: '',
-    schedule: [{ day: 'Monday', startTime: '', endTime: '', location: '' }]
+    // schedule removed per user request
   });
 
   // State for messages
@@ -178,29 +178,7 @@ const Settings = () => {
 
 
 
-  const handleAddSchedule = () => {
-    setCourseForm({
-      ...courseForm,
-      schedule: [...courseForm.schedule, { day: 'Monday', startTime: '', endTime: '', location: '' }]
-    });
-  };
-
-  const handleRemoveSchedule = (index) => {
-    const newSchedule = courseForm.schedule.filter((_, i) => i !== index);
-    setCourseForm({
-      ...courseForm,
-      schedule: newSchedule
-    });
-  };
-
-  const handleScheduleChange = (index, field, value) => {
-    const newSchedule = [...courseForm.schedule];
-    newSchedule[index] = { ...newSchedule[index], [field]: value };
-    setCourseForm({
-      ...courseForm,
-      schedule: newSchedule
-    });
-  };
+  // Schedule handlers removed (no longer collecting schedule information)
 
   const handleCourseSubmit = async (e) => {
     e.preventDefault();
@@ -209,16 +187,7 @@ const Settings = () => {
       setError('');
       setSuccess('');
 
-      // Validate schedule times
-      const hasInvalidSchedule = courseForm.schedule.some(slot => {
-        if (!slot.startTime || !slot.endTime) return true;
-        return new Date(`2000-01-01T${slot.startTime}`) >= new Date(`2000-01-01T${slot.endTime}`);
-      });
-
-      if (hasInvalidSchedule) {
-        setError('Please ensure all schedule times are valid and end time is after start time');
-        return;
-      }
+      // No schedule validation required (schedule removed)
 
       const url = editingCourse 
         ? `/api/courses/${editingCourse._id}`
@@ -236,12 +205,7 @@ const Settings = () => {
       setSuccess(editingCourse ? 'Course updated successfully' : 'Course added successfully');
       setShowAddCourse(false);
       setEditingCourse(null);
-      setCourseForm({
-        name: '',
-        code: '',
-        semester: '',
-        schedule: [{ day: 'Monday', startTime: '', endTime: '', location: '' }]
-      });
+      setCourseForm({ name: '', code: '', semester: '' });
       fetchCourses();
     } catch (error) {
       console.error('Course submission error:', error);
@@ -517,81 +481,7 @@ const Settings = () => {
                   />
               </div>
 
-              <div className="mt-4">
-                <h3 className="text-md font-semibold mb-2 text-gray-900 dark:text-gray-100">Class Schedule</h3>
-                {courseForm.schedule.map((item, index) => (
-                  <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2 items-center">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Day</label>
-                      <select
-                        name="day"
-                        value={item.day}
-                        onChange={(e) => handleScheduleChange(index, 'day', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      >
-                        <option value="Monday">Monday</option>
-                        <option value="Tuesday">Tuesday</option>
-                        <option value="Wednesday">Wednesday</option>
-                        <option value="Thursday">Thursday</option>
-                        <option value="Friday">Friday</option>
-                        <option value="Saturday">Saturday</option>
-                        <option value="Sunday">Sunday</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start Time</label>
-                      <input
-                        type="time"
-                        name="startTime"
-                        value={item.startTime}
-                        onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">End Time</label>
-                      <input
-                        type="time"
-                        name="endTime"
-                        value={item.endTime}
-                        onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
-                      <input
-                        type="text"
-                        name="location"
-                        value={item.location}
-                        onChange={(e) => handleScheduleChange(index, 'location', e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Room/Location"
-                        required
-                      />
-                    </div>
-                    {index > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSchedule(index)}
-                        className="ml-2 text-red-600 hover:text-red-800"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={handleAddSchedule}
-                  className="mt-2 text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  + Add Another Schedule
-                </button>
-              </div>
+              {/* Class schedule removed per user request */}
 
               <div className="flex justify-end space-x-4 mt-4">
                 <button
@@ -623,10 +513,10 @@ const Settings = () => {
                       <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                         <strong>Schedule:</strong>
                         {course.schedule.map((slot, slotIndex) => (
-                          <span key={slotIndex} className="mr-2">
-                            {slot.day}: {slot.startTime} - {slot.endTime} {slot.location && `(${slot.location})`}
-                          </span>
-                        ))}
+                              <span key={slotIndex} className="mr-2">
+                                {slot.startTime} - {slot.endTime}
+                              </span>
+                            ))}
                       </div>
                     )}
                     </div>
