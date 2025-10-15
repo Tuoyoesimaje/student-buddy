@@ -29,17 +29,31 @@ const QuizResultsPage = () => {
     setError(null);
 
     try {
-      // For now, we'll need to add a specific endpoint for fetching individual quiz results
-      // This is a placeholder until we implement the backend endpoint
-      const response = await apiRequest(`/quiz-results/${quizId}`);
+      console.log('QuizResultsPage - Fetching quiz result for quizId:', quizId);
+      console.log('Making API call to:', `/practice-exam/quiz-results/${quizId}`);
+
+      // Fetch individual quiz results from the practice-exam endpoint
+      const response = await apiRequest(`/practice-exam/quiz-results/${quizId}`);
+
+      console.log('QuizResultsPage - API response:', response);
 
       if (response.success) {
-        setQuizResult(response.quizResult);
+        console.log('QuizResultsPage - Full response:', response);
+
+        // The API returns quizResult directly
+        if (response.quizResult) {
+          console.log('QuizResultsPage - Found quiz result:', response.quizResult);
+          setQuizResult(response.quizResult);
+        } else {
+          console.error('QuizResultsPage - quizResult field not found in response');
+          setError('Quiz result not found');
+        }
       } else {
+        console.error('QuizResultsPage - API response not successful:', response);
         setError('Failed to load quiz results');
       }
     } catch (err) {
-      console.error('Error fetching quiz results:', err);
+      console.error('QuizResultsPage - Error fetching quiz results:', err);
       setError('Failed to load quiz results');
     } finally {
       setLoading(false);

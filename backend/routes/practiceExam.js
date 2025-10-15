@@ -208,6 +208,16 @@ router.get('/history', auth, async (req, res) => {
         .lean();
     }
 
+    // If still no results and we have a noteId, show all recent quiz results for debugging
+    if (quizResults.length === 0 && noteId) {
+      console.log('Still no quiz results found, fetching all recent quiz results for user');
+      quizResults = await QuizResult.find({ userId })
+        .select('noteId noteTitle createdAt score totalQuestions percentage passed aiRemarks')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean();
+    }
+
     // Format and combine results
     const formattedPracticeExams = practiceExams.map(exam => ({
       id: exam._id,
@@ -252,14 +262,25 @@ router.get('/history', auth, async (req, res) => {
       }
     };
 
-    // Add debugging info if no assessments found
+    // Add debugging info if no assessments found or if using fallback
     if (allAssessments.length === 0) {
       responseData.debug = {
         noteId,
-        allQuizResults: allQuizResults.length,
+        totalQuizResults: quizResults.length,
         practiceExams: formattedPracticeExams.length,
         message: 'No assessments found for this note'
       };
+    } else if (quizResults.length > 0 && noteId) {
+      // Check if we're showing fallback results (not filtered by note)
+      const hasSpecificNoteResults = quizResults.some(q => q.noteId === noteId);
+      if (!hasSpecificNoteResults) {
+        responseData.debug = {
+          noteId,
+          showingFallbackResults: true,
+          totalQuizResults: quizResults.length,
+          message: 'Showing all quiz results (not filtered by note)'
+        };
+      }
     }
 
     res.json(responseData);
@@ -304,106 +325,7 @@ router.get('/:examId', auth, async (req, res) => {
   }
 });
 
-// Get individual quiz result
-router.get('/quiz-results/:quizId', auth, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { noteId } = req.query; // Optional filter by note
-
-    // Build query for both assessment types
-    const practiceExamQuery = {
-      userId,
-      ...(noteId && { topicOrNote: { $regex: `--- NOTE.*${noteId}`, $options: 'i' } })
-    };
-
-    const quizResultQuery = {
-      userId,
-      ...(noteId && { noteId })
-    };
-
-    console.log('Assessment history query:', {
-      noteId,
-      practiceExamQuery,
-      quizResultQuery
-    });
-
-    // Also fetch all quiz results for the user to debug
-    const allQuizResults = await QuizResult.find({ userId })
-      .select('noteId noteTitle createdAt')
-      .sort({ createdAt: -1 })
-      .lean();
-
-    console.log('All quiz results for user:', allQuizResults.map(q => ({
-      id: q._id,
-      noteId: q.noteId,
-      noteTitle: q.noteTitle,
-      createdAt: q.createdAt
-    })));
-
-    // Fetch practice exams
-    const practiceExams = await AIGeneratedPracticeExam.find(practiceExamQuery)
-      .select('topicOrNote createdAt submitted score feedback')
-      .sort({ createdAt: -1 })
-      .lean();
-
-    // Fetch quiz results
-    const quizResults = await QuizResult.find(quizResultQuery)
-      .select('noteTitle createdAt score totalQuestions percentage passed aiRemarks')
-      .sort({ createdAt: -1 })
-      .lean();
-
-    // Format and combine results
-    const formattedPracticeExams = practiceExams.map(exam => ({
-      id: exam._id,
-      type: 'practice-exam',
-      title: exam.topicOrNote.replace('--- NOTE: ', '').substring(0, 50) + (exam.topicOrNote.length > 50 ? '...' : ''),
-      date: exam.createdAt,
-      score: exam.submitted ? exam.score : null,
-      totalQuestions: null, // Practice exams don't have fixed question count in the same way
-      status: exam.submitted ? 'completed' : 'in-progress',
-      feedback: exam.feedback,
-      link: `/app/practice-exam/results/${exam._id}`
-    }));
-
-    const formattedQuizResults = quizResults.map(quiz => ({
-      id: quiz._id,
-      type: 'quiz',
-      title: quiz.noteTitle,
-      date: quiz.createdAt,
-      score: quiz.score,
-      totalQuestions: quiz.totalQuestions,
-      percentage: quiz.percentage,
-      status: 'completed',
-      passed: quiz.passed,
-      aiRemarks: quiz.aiRemarks,
-      link: `/app/quiz-results/${quiz._id}`
-    }));
-
-    // Combine and sort by date (newest first)
-    const allAssessments = [...formattedPracticeExams, ...formattedQuizResults]
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    res.json({
-      success: true,
-      assessments: allAssessments,
-      summary: {
-        totalAssessments: allAssessments.length,
-        completedAssessments: allAssessments.filter(a => a.status === 'completed').length,
-        averageScore: calculateAverageScore(allAssessments),
-        practiceExamsCount: formattedPracticeExams.length,
-        quizResultsCount: formattedQuizResults.length
-      }
-    });
-
-  } catch (error) {
-    console.error('Error fetching assessment history:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error fetching assessment history',
-      details: error.message
-    });
-  }
-});
+// Duplicate assessment-aggregation handler removed to avoid route conflicts.
 
 // Save quiz results (for tracking purposes - no formal submission needed)
 router.post('/quiz-results', auth, async (req, res) => {
@@ -493,14 +415,24 @@ router.get('/quiz-results/:quizId', auth, async (req, res) => {
     const { quizId } = req.params;
     const userId = req.user.userId;
 
+    console.log('Fetching individual quiz result:', { quizId, userId });
+
     const quizResult = await QuizResult.findOne({ _id: quizId, userId });
 
     if (!quizResult) {
+      console.log('Quiz result not found in database');
       return res.status(404).json({
         success: false,
         error: 'Quiz result not found'
       });
     }
+
+    console.log('Quiz result found:', {
+      id: quizResult._id,
+      noteTitle: quizResult.noteTitle,
+      score: quizResult.score,
+      totalQuestions: quizResult.totalQuestions
+    });
 
     res.json({
       success: true,

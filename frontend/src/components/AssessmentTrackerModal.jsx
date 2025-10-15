@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { XMarkIcon, AcademicCapIcon, DocumentTextIcon, ClockIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
 import { apiRequest } from '../services/api';
 
 const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
+  const navigate = useNavigate();
   const [assessments, setAssessments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -44,8 +46,21 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
   };
 
   const handleAssessmentClick = (assessment) => {
-    // Navigate to the specific result page
-    window.location.href = assessment.link;
+    console.log('Assessment clicked:', assessment);
+    console.log('Assessment type:', assessment.type);
+    console.log('Assessment ID:', assessment.id);
+
+    // Close the modal first
+    onClose();
+
+    // Navigate to the specific result page using React Router
+    if (assessment.type === 'quiz') {
+      console.log('Navigating to quiz results:', `/app/quiz-results/${assessment.id}`);
+      navigate(`/app/quiz-results/${assessment.id}`);
+    } else if (assessment.type === 'practice-exam') {
+      console.log('Navigating to practice exam results:', `/app/practice-exam/results/${assessment.id}`);
+      navigate(`/app/practice-exam/results/${assessment.id}`);
+    }
   };
 
   const CircularProgressBar = ({ percentage, size = 120, strokeWidth = 8 }) => {
@@ -180,8 +195,13 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
                     Practice exams: {debugInfo.practiceExams || 0}
                   </p>
                   <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                    Message: {debugInfo.message || 'Unknown'}
+                    Status: {debugInfo.message || 'Unknown'}
                   </p>
+                  {debugInfo.showingFallbackResults && (
+                    <p className="text-sm text-orange-700 dark:text-orange-400 font-medium">
+                      ⚠️ Showing all quiz results (not filtered by this specific note)
+                    </p>
+                  )}
                 </div>
               )}
 
