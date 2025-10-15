@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const AIGeneratedPracticeExam = require('../models/AIGeneratedPracticeExam');
 const QuizResult = require('../models/QuizResult');
+const Note = require('../models/Note');
 const aiService = require('../services/aiService');
 
 // Generate practice exam questions
@@ -173,21 +174,77 @@ router.get('/history', auth, async (req, res) => {
     const { noteId } = req.query; // Optional filter by note
 
     // Build query for both assessment types
-    const practiceExamQuery = {
-      userId,
-      ...(noteId && { topicOrNote: { $regex: `--- NOTE.*${noteId}`, $options: 'i' } })
-    };
-
+    // For practice exams we store the note content inside `topicOrNote` (string).
+    // When a noteId is passed, try to resolve the Note and match by its title/content
+    // instead of looking for the noteId string inside topicOrNote (which won't match).
     const quizResultQuery = {
       userId,
       ...(noteId && { noteId })
     };
 
+    let practiceExamQuery = { userId };
+    if (noteId) {
+      try {
+        const resolvedNote = await Note.findOne({ _id: noteId, userId }).select('title content').lean();
+        if (resolvedNote) {
+          // Escape regex special chars in title
+          const escapedTitle = (resolvedNote.title || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          // Use a short snippet from content as additional match term
+          const snippet = (resolvedNote.content || '').replace(/<[^>]*>/g, '').trim().substring(0, 80);
+          const escapedSnippet = snippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+          practiceExamQuery.$or = [
+            { topicOrNote: { $regex: escapedTitle, $options: 'i' } },
+            { topicOrNote: { $regex: escapedSnippet, $options: 'i' } }
+          ];
+
+          console.log(`practiceExam history filter for noteId ${noteId}: title='${resolvedNote.title}', snippet='${snippet}'`);
+        } else {
+          // Note wasn't found for this user - keep user-only query and rely on fallback
+          practiceExamQuery = { userId };
+        }
+      } catch (e) {
+        console.warn('Error resolving noteId for practice exam history filter:', e.message);
+        practiceExamQuery = { userId };
+      }
+    }
+
     // Fetch practice exams
-    const practiceExams = await AIGeneratedPracticeExam.find(practiceExamQuery)
+    let practiceExams = await AIGeneratedPracticeExam.find(practiceExamQuery)
       .select('topicOrNote createdAt submitted score feedback')
       .sort({ createdAt: -1 })
       .lean();
+
+    // If no practice exams matched the filter but we were given a noteId, do a fallback scan of recent exams
+    if ((!practiceExams || practiceExams.length === 0) && noteId) {
+      try {
+        const recentExams = await AIGeneratedPracticeExam.find({ userId })
+          .select('topicOrNote createdAt submitted score feedback')
+          .sort({ createdAt: -1 })
+          .limit(50)
+          .lean();
+
+        const resolvedNote = await Note.findOne({ _id: noteId, userId }).select('title content').lean();
+        if (resolvedNote) {
+          const title = (resolvedNote.title || '').trim().toLowerCase();
+          const snippet = (resolvedNote.content || '').replace(/<[^>]*>/g, '').trim().substring(0, 80).toLowerCase();
+
+          const matched = recentExams.filter(ex => {
+            const txt = (ex.topicOrNote || '').toLowerCase();
+            return (title && txt.includes(title)) || (snippet && txt.includes(snippet));
+          });
+
+          if (matched.length > 0) {
+            console.log(`Found ${matched.length} fallback-matched practice exams for noteId ${noteId}`);
+            practiceExams = matched;
+          } else {
+            console.log('Fallback scan found no matching practice exams');
+          }
+        }
+      } catch (e) {
+        console.warn('Error during fallback scan for practice exams:', e.message);
+      }
+    }
 
     // Fetch quiz results
     let quizResults = await QuizResult.find(quizResultQuery)
@@ -219,10 +276,22 @@ router.get('/history', auth, async (req, res) => {
     }
 
     // Format and combine results
+    // Helper: try to extract a readable title from the topicOrNote content (which contains separators when note-based)
+    const extractTitleFromTopic = (topicOrNoteStr) => {
+      if (!topicOrNoteStr) return '';
+      // Look for patterns like: --- NOTE 1 START: Note Title ---
+      const match = topicOrNoteStr.match(/---\s*NOTE\s*\d+\s*START:\s*(.+?)\s*---/i);
+      if (match && match[1]) return match[1].trim();
+      // Fallback: take first 80 chars of the string or first line
+      const firstLine = topicOrNoteStr.split('\n')[0] || '';
+      const candidate = firstLine.length > 0 ? firstLine : topicOrNoteStr;
+      return candidate.substring(0, 80) + (candidate.length > 80 ? '...' : '');
+    };
+
     const formattedPracticeExams = practiceExams.map(exam => ({
       id: exam._id,
       type: 'practice-exam',
-      title: exam.topicOrNote.replace('--- NOTE: ', '').substring(0, 50) + (exam.topicOrNote.length > 50 ? '...' : ''),
+      title: extractTitleFromTopic(exam.topicOrNote),
       date: exam.createdAt,
       score: exam.submitted ? exam.score : null,
       totalQuestions: null, // Practice exams don't have fixed question count in the same way
