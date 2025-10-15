@@ -10,6 +10,13 @@ const aiGeneratedPracticeExamSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  noteIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Note'
+  }],
+  noteTitles: [{
+    type: String
+  }],
   questions: [{
     type: String,
     required: true

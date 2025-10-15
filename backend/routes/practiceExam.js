@@ -10,7 +10,7 @@ const aiService = require('../services/aiService');
 router.post('/start', auth, async (req, res) => {
   console.log('PracticeExam.js /start route: req.user.userId at start:', req.user.userId);
   try {
-    const { topicOrNote } = req.body;
+  const { topicOrNote, noteIds } = req.body;
     const userId = req.user.userId;
 
     // Validate input
@@ -38,6 +38,7 @@ router.post('/start', auth, async (req, res) => {
     const practiceExam = new AIGeneratedPracticeExam({
       userId,
       topicOrNote,
+      ...(Array.isArray(noteIds) && noteIds.length > 0 ? { noteIds } : {}),
       questions: finalQuestions,
       userAnswers: Array(finalQuestions.length).fill(null),
       submitted: false
@@ -185,27 +186,11 @@ router.get('/history', auth, async (req, res) => {
     let practiceExamQuery = { userId };
     if (noteId) {
       try {
-        const resolvedNote = await Note.findOne({ _id: noteId, userId }).select('title content').lean();
-        if (resolvedNote) {
-          // Escape regex special chars in title
-          const escapedTitle = (resolvedNote.title || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          // Use a short snippet from content as additional match term
-          const snippet = (resolvedNote.content || '').replace(/<[^>]*>/g, '').trim().substring(0, 80);
-          const escapedSnippet = snippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-          practiceExamQuery.$or = [
-            { topicOrNote: { $regex: escapedTitle, $options: 'i' } },
-            { topicOrNote: { $regex: escapedSnippet, $options: 'i' } }
-          ];
-
-          console.log(`practiceExam history filter for noteId ${noteId}: title='${resolvedNote.title}', snippet='${snippet}'`);
-        } else {
-          // Note wasn't found for this user - keep user-only query and rely on fallback
-          practiceExamQuery = { userId };
-        }
+        // Prefer matching by stored noteIds (if practice exams were saved with noteIds)
+        practiceExamQuery.noteIds = noteId;
       } catch (e) {
         console.warn('Error resolving noteId for practice exam history filter:', e.message);
-        practiceExamQuery = { userId };
+        practiceExamQuery = { userId, _id: { $in: [] } };
       }
     }
 
@@ -275,7 +260,7 @@ router.get('/history', auth, async (req, res) => {
         .lean();
     }
 
-    // Format and combine results
+  // Format and combine results
     // Helper: try to extract a readable title from the topicOrNote content (which contains separators when note-based)
     const extractTitleFromTopic = (topicOrNoteStr) => {
       if (!topicOrNoteStr) return '';
@@ -349,6 +334,19 @@ router.get('/history', auth, async (req, res) => {
           totalQuizResults: quizResults.length,
           message: 'Showing all quiz results (not filtered by note)'
         };
+      }
+    }
+
+    // If debug query param provided, include resolvedNote info and matched practice exam ids
+    if (req.query.debug === 'true') {
+      try {
+        const resolvedNote = noteId ? await Note.findOne({ _id: noteId, userId }).select('title content').lean() : null;
+        responseData.debugInfo = {
+          resolvedNote: resolvedNote ? { title: resolvedNote.title, snippet: (resolvedNote.content || '').replace(/<[^>]*>/g, '').substring(0, 120) } : null,
+          matchedPracticeExamIds: practiceExams.map(e => e._id)
+        };
+      } catch (e) {
+        responseData.debugInfoError = e.message;
       }
     }
 

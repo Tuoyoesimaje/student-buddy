@@ -121,7 +121,8 @@ const PracticeExam = () => {
 
     setIsLoading(true);
     try {
-      const response = await startPracticeExam(contentToUse);
+  const noteIdsToSend = selectedExamNotes.map(n => n._id).filter(Boolean);
+  const response = await startPracticeExam(contentToUse, noteIdsToSend);
       console.log('Response from startPracticeExam:', response);
 
       // Only navigate if we have a valid examId

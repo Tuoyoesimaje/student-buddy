@@ -7,8 +7,10 @@ import api from '../api';
  * @param {string} topicOrNote - The topic or note content to generate questions from
  * @returns {Promise} - The response containing examId and questions
  */
-export const startPracticeExam = async (topicOrNote) => {
-  const response = await api.post('/practice-exam/start', { topicOrNote });
+export const startPracticeExam = async (topicOrNote, noteIds = []) => {
+  const payload = { topicOrNote };
+  if (Array.isArray(noteIds) && noteIds.length > 0) payload.noteIds = noteIds;
+  const response = await api.post('/practice-exam/start', payload);
   return response.data;
 };
 
