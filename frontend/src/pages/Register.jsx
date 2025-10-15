@@ -86,285 +86,103 @@ export default function Register() {
   };
 
   const inputClasses = "block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all duration-200";
+  // Multi-step UI state
+  const [step, setStep] = useState(1);
+  const totalSteps = 4;
+  const next = () => setStep((s) => Math.min(totalSteps, s + 1));
+  const back = () => setStep((s) => Math.max(1, s - 1));
 
-  const renderForm = () => (
+  const handleFinalSubmit = async (e) => {
+    await handleSubmit(e);
+  };
+
+  const StepIndicator = () => (
+    <div className="flex items-center justify-center gap-6 mb-6">
+      {[1,2,3,4].map((n) => (
+        <div key={n} className="flex items-center gap-4">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${n === step ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{n}</div>
+          {n < 4 && <div className="w-12 h-px bg-gray-200" />}
+        </div>
+      ))}
+    </div>
+  );
+
+  const StepCard = () => (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, delay: 0.4 }}
+      transition={{ duration: 0.35 }}
       className="mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-gray-900/50 p-8 space-y-6 border border-gray-200 dark:border-gray-700"
     >
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        <div className="space-y-4">
-          {/* Username */}
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Username
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaUser className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-              </div>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                className={inputClasses}
-                placeholder="Choose a username"
-                value={formData.username}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
+      <StepIndicator />
+
+      <form onSubmit={step === totalSteps ? handleFinalSubmit : (e) => { e.preventDefault(); next(); }}>
+        {step === 1 && (
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Username</label>
+            <input name="username" className="w-full rounded-xl py-4 px-4 bg-gray-50 dark:bg-gray-700 placeholder-gray-400" placeholder="Choose a username" value={formData.username} onChange={handleChange} required />
+
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email address</label>
+            <input name="email" type="email" className="w-full rounded-xl py-4 px-4 bg-gray-50 dark:bg-gray-700 placeholder-gray-400" placeholder="Enter your email" value={formData.email} onChange={handleChange} required />
+
+            <div className="flex justify-end">
+              <button type="button" onClick={next} className="px-4 py-2 bg-indigo-600 text-white rounded-md">Next</button>
             </div>
           </div>
+        )}
 
-          {/* Email */}
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email address
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaEnvelope className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className={inputClasses}
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
+        {step === 2 && (
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+            <input name="password" type={showPassword ? 'text' : 'password'} className="w-full rounded-xl py-4 px-4 bg-gray-50 dark:bg-gray-700 placeholder-gray-400" placeholder="Create a password" value={formData.password} onChange={handleChange} required />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password</label>
+            <input name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} className="w-full rounded-xl py-4 px-4 bg-gray-50 dark:bg-gray-700 placeholder-gray-400" placeholder="Confirm your password" value={formData.confirmPassword} onChange={handleChange} required />
+
+            <div className="flex justify-between">
+              <button type="button" onClick={back} className="px-4 py-2 border rounded-md">Back</button>
+              <button type="button" onClick={next} className="px-4 py-2 bg-indigo-600 text-white rounded-md">Next</button>
             </div>
           </div>
+        )}
 
-          {/* Password */}
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                required
-                className={inputClasses}
-                placeholder="Create a password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
-                >
-                  {showPassword ? (
-                    <FaEyeSlash className="h-5 w-5" />
-                  ) : (
-                    <FaEye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
+        {step === 3 && (
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">School</label>
+            <input name="school" className="w-full rounded-xl py-4 px-4 bg-gray-50 dark:bg-gray-700 placeholder-gray-400" placeholder="Enter your school name" value={formData.school} onChange={handleChange} required />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Level/Class</label>
+            <input name="level" className="w-full rounded-xl py-4 px-4 bg-gray-50 dark:bg-gray-700 placeholder-gray-400" placeholder="Enter your level/class" value={formData.level} onChange={handleChange} required />
+
+            <div className="flex justify-between">
+              <button type="button" onClick={back} className="px-4 py-2 border rounded-md">Back</button>
+              <button type="button" onClick={next} className="px-4 py-2 bg-indigo-600 text-white rounded-md">Next</button>
             </div>
           </div>
+        )}
 
-          {/* Confirm Password */}
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm Password
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaLock className="h-5 w-5 text-gray-400" />
+        {step === 4 && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Semester Start</label>
+                <input name="semesterStart" type="date" className="w-full rounded-xl py-3 px-3 bg-gray-50 dark:bg-gray-700" value={formData.semesterStart} onChange={handleChange} required />
               </div>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                required
-                className={inputClasses}
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
-                >
-                  {showConfirmPassword ? (
-                    <FaEyeSlash className="h-5 w-5" />
-                  ) : (
-                    <FaEye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* School */}
-          <div>
-            <label htmlFor="school" className="block text-sm font-medium text-gray-700 mb-2">
-              School
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaSchool className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                id="school"
-                name="school"
-                type="text"
-                required
-                className={inputClasses}
-                placeholder="Enter your school name"
-                value={formData.school}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          {/* Level */}
-          <div>
-            <label htmlFor="level" className="block text-sm font-medium text-gray-700 mb-2">
-              Level/Class
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaGraduationCap className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                id="level"
-                name="level"
-                type="text"
-                required
-                className={inputClasses}
-                placeholder="Enter your level/class"
-                value={formData.level}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          {/* Semester Dates */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="semesterStart" className="block text-sm font-medium text-gray-700 mb-2">
-                Semester Start
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaCalendarAlt className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="semesterStart"
-                  name="semesterStart"
-                  type="date"
-                  required
-                  className={inputClasses}
-                  value={formData.semesterStart}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Semester End</label>
+                <input name="semesterEnd" type="date" className="w-full rounded-xl py-3 px-3 bg-gray-50 dark:bg-gray-700" value={formData.semesterEnd} onChange={handleChange} required />
               </div>
             </div>
 
-            <div>
-              <label htmlFor="semesterEnd" className="block text-sm font-medium text-gray-700 mb-2">
-                Semester End
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaCalendarAlt className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="semesterEnd"
-                  name="semesterEnd"
-                  type="date"
-                  required
-                  className={inputClasses}
-                  value={formData.semesterEnd}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                />
-              </div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Semester Goals</label>
+            <textarea name="semesterGoals" rows="3" className="w-full rounded-xl py-3 px-3 bg-gray-50 dark:bg-gray-700" placeholder="What are your goals for this semester? (optional)" value={formData.semesterGoals} onChange={handleChange} />
+
+            {message && <div className="text-sm text-red-600">{message}</div>}
+
+            <div className="flex justify-between items-center">
+              <button type="button" onClick={back} className="px-4 py-2 border rounded-md">Back</button>
+              <button type="submit" className="px-6 py-3 bg-indigo-600 text-white rounded-md">Create account</button>
             </div>
           </div>
-
-          {/* Semester Goals */}
-          <div>
-            <label htmlFor="semesterGoals" className="block text-sm font-medium text-gray-700 mb-2">
-              Semester Goals
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FaBullseye className="h-5 w-5 text-gray-400" />
-              </div>
-              <textarea
-                id="semesterGoals"
-                name="semesterGoals"
-                rows="3"
-                className={inputClasses}
-                placeholder="What are your goals for this semester?"
-                value={formData.semesterGoals}
-                onChange={handleChange}
-                disabled={isLoading}
-              />
-            </div>
-            <p className="mt-1 text-sm text-gray-500">
-              Share your academic goals for this semester (optional)
-            </p>
-          </div>
-
-          {message && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-lg bg-red-50 p-4"
-            >
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">{message}</h3>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creating account...
-                </div>
-              ) : (
-                'Create account'
-              )}
-            </button>
-          </div>
-        </div>
+        )}
       </form>
     </motion.div>
   );
@@ -400,7 +218,7 @@ export default function Register() {
           </motion.p>
         </div>
 
-        {renderForm()}
+  {StepCard()}
       </motion.div>
     </div>
   );
