@@ -25,6 +25,7 @@ import {
   FunnelIcon,
   ArrowsUpDownIcon,
   AcademicCapIcon,
+  ChartBarIcon,
   ClipboardIcon,
   BookOpenIcon,
   CloudArrowUpIcon
@@ -1659,7 +1660,7 @@ export default function Notes() {
               aria-label="Assessment Tracker"
               title="View quiz and practice exam history for this note"
             >
-              <AcademicCapIcon className="w-6 h-6" />
+              <ChartBarIcon className="w-6 h-6" />
             </button>
             <button
               onClick={() => requestAIExplanation(highlightedText)}
