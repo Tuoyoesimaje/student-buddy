@@ -23,27 +23,26 @@ export const ThemeProvider = ({ children }) => {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   };
 
-  // Apply theme to document
-  const applyTheme = (themeValue, isDarkMode) => {
+  // Apply theme to document. Tailwind uses a single `dark` class on the root.
+  const applyTheme = (themeValue) => {
     const root = document.documentElement;
-    
-    // Remove existing theme classes
-    root.classList.remove('light', 'dark');
-    
-    // Add new theme class
+
+    // If system, reflect system preference
     if (themeValue === 'system') {
       const systemTheme = getSystemTheme();
-      root.classList.add(systemTheme);
+      if (systemTheme === 'dark') root.classList.add('dark');
+      else root.classList.remove('dark');
       setIsDark(systemTheme === 'dark');
-    } else {
-      root.classList.add(themeValue);
-      setIsDark(themeValue === 'dark');
+      return;
     }
 
-    // Update meta theme-color for mobile browsers
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', isDarkMode ? '#1f2937' : '#ffffff');
+    // For explicit light/dark, toggle only the `dark` class
+    if (themeValue === 'dark') {
+      root.classList.add('dark');
+      setIsDark(true);
+    } else {
+      root.classList.remove('dark');
+      setIsDark(false);
     }
   };
 

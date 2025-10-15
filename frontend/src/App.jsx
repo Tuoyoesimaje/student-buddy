@@ -13,6 +13,7 @@ const Settings = React.lazy(() => import('./pages/Settings'));
 const Study = React.lazy(() => import('./pages/Study'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
+const Landing = React.lazy(() => import('./pages/Landing'));
 // Practice Exam pages
 const PracticeExamPage = React.lazy(() => import('./pages/PracticeExamPage'));
 const PracticeExamQuestionsPage = React.lazy(() => import('./pages/PracticeExamQuestionsPage'));
@@ -51,6 +52,12 @@ const App = () => {
         toastClassName="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700"
       />
       <Routes>
+        {/* Public landing page */}
+        <Route path="/" element={
+          <Suspense fallback={<LoadingFallback />}>
+            {!isAuthenticated ? <Landing /> : <Navigate to="/app/active-learning" />}
+          </Suspense>
+        } />
         {/* Public routes */}
         <Route path="/login" element={
           <Suspense fallback={<LoadingFallback />}>
