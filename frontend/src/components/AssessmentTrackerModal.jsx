@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { XMarkIcon, AcademicCapIcon, DocumentTextIcon, ClockIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
@@ -11,12 +11,59 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState(null);
   const [debugInfo, setDebugInfo] = useState(null);
+  // computed improvement (percent) between last two completed assessments
+  const improvement = useMemo(() => {
+    if (!assessments || assessments.length === 0) return null;
+
+    // Normalize assessments to derive a numeric percentage from either `percentage` or `score`.
+    const normalized = assessments.map(a => {
+      let value = null;
+      if (a.percentage !== undefined && a.percentage !== null) value = Number(a.percentage);
+      else if (a.score !== undefined && a.score !== null) value = Number(a.score);
+
+      if (value !== null && !Number.isNaN(value)) {
+        // If the value looks like a 0-1 fraction, convert to percentage
+        if (value > 0 && value <= 1) value = value * 100;
+      } else {
+        value = null;
+      }
+
+      return { ...a, _computedPercentage: value };
+    });
+
+    const completed = normalized
+      .filter(a => a._computedPercentage !== null)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (completed.length < 2) return null;
+
+    const latestAssessment = completed[0];
+    const previousAssessment = completed[1];
+    const latest = latestAssessment._computedPercentage;
+    const previous = previousAssessment._computedPercentage;
+
+    if (previous === 0) {
+      return {
+        percent: latest > 0 ? 100 : 0,
+        delta: latest - previous,
+        improved: latest > 0,
+        latestAssessment,
+        previousAssessment,
+      };
+    }
+
+    const delta = latest - previous;
+    const percent = (delta / previous) * 100;
+
+    return { percent, delta, improved: percent > 0, latestAssessment, previousAssessment };
+  }, [assessments]);
 
   useEffect(() => {
     if (isOpen && noteId) {
       fetchAssessmentHistory();
     }
   }, [isOpen, noteId]);
+
 
   const fetchAssessmentHistory = async () => {
     setLoading(true);
@@ -231,26 +278,49 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
                 </div>
               )}
 
-              {/* Average Score Progress Bar */}
-              {summary && summary.averageScore > 0 && (
-                <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg">
+              {/* Second row: Average Score + Improvement in a 2x2 style (on narrow screens stacks) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg flex flex-col items-center justify-center">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 text-center">
                     Average Score
                   </h3>
-                  <div className="flex items-center justify-center">
-                    <CircularProgressBar percentage={summary.averageScore} />
-                  </div>
+                  <CircularProgressBar percentage={summary?.averageScore || 0} />
                 </div>
-              )}
+
+                <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg flex flex-col items-center justify-center">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 text-center">
+                    Improvement
+                  </h3>
+                  {improvement ? (
+                    <div className="text-center">
+                      <div className={`text-2xl font-bold ${improvement.improved ? 'text-green-600' : 'text-red-600'}`}>
+                        {improvement.percent >= 0 ? '+' : ''}{improvement.percent.toFixed(1)}%
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                        {improvement.improved ? 'Improved vs previous attempt' : 'Declined vs previous attempt'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        {improvement.latestAssessment && improvement.previousAssessment ? (
+                          <>
+                            Compared: <strong>{improvement.previousAssessment.type}</strong> on {new Date(improvement.previousAssessment.date).toLocaleDateString()} → <strong>{improvement.latestAssessment.type}</strong> on {new Date(improvement.latestAssessment.date).toLocaleDateString()}
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Not enough data to calculate improvement</div>
+                  )}
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Assessment History */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                    Assessment History
+                    Quizzes
                   </h3>
                   <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {assessments.map((assessment) => (
+                    {assessments.filter(a => a.type === 'quiz').map((assessment) => (
                       <motion.div
                         key={assessment.id}
                         initial={{ opacity: 0, y: 10 }}
@@ -260,11 +330,7 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            {assessment.type === 'practice-exam' ? (
-                              <DocumentTextIcon className="w-5 h-5 text-purple-600" />
-                            ) : (
-                              <AcademicCapIcon className="w-5 h-5 text-blue-600" />
-                            )}
+                            <AcademicCapIcon className="w-5 h-5 text-blue-600" />
                             <div>
                               <div className="font-medium text-gray-900 dark:text-gray-100">
                                 {assessment.title}
@@ -297,7 +363,53 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
                   </div>
                 </div>
 
-                {/* Areas of Concern removed per user request */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                    Practice Exams
+                  </h3>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {assessments.filter(a => a.type === 'practice-exam').map((assessment) => (
+                      <motion.div
+                        key={assessment.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors"
+                        onClick={() => handleAssessmentClick(assessment)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <DocumentTextIcon className="w-5 h-5 text-purple-600" />
+                            <div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">
+                                {assessment.title}
+                              </div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {new Date(assessment.date).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            {assessment.score !== null ? (
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {assessment.percentage !== undefined
+                                  ? `${assessment.percentage.toFixed(1)}%`
+                                  : assessment.score
+                                }
+                              </div>
+                            ) : (
+                              <div className="text-sm text-gray-500">In Progress</div>
+                            )}
+                            {assessment.passed !== undefined && (
+                              <div className={`text-xs ${assessment.passed ? 'text-green-600' : 'text-red-600'}`}>
+                                {assessment.passed ? 'Passed' : 'Failed'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           )}
