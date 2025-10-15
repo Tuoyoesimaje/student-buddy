@@ -246,7 +246,39 @@ const QuizResultsPage = () => {
           </h3>
 
           <div className="space-y-6">
-            {quizResult.questions.map((question, index) => (
+            {quizResult.questions.map((question, index) => {
+              // Normalize correctAnswer and userAnswer so we can reliably compare against optionIndex
+              // correctAnswer may be stored as a numeric index (0,1,2), a letter ('A','B','C'),
+              // or occasionally as a stringified number. userAnswer may be a letter, an index,
+              // or the option text itself. Convert both to numeric indices when possible.
+              const parseLetterToIndex = (val) => {
+                if (!val && val !== 0) return null;
+                if (typeof val === 'number') return val;
+                const s = String(val).trim();
+                // Single letter A/B/C -> index
+                if (/^[A-Z]$/i.test(s)) return s.toUpperCase().charCodeAt(0) - 65;
+                // Numeric string -> number
+                if (!isNaN(Number(s))) return Number(s);
+                return null;
+              };
+
+              const correctIndex = parseLetterToIndex(question.correctAnswer);
+
+              let userIndex = parseLetterToIndex(question.userAnswer);
+              // If userAnswer wasn't a letter/index, it might be the option text - try to find it
+              if ((userIndex === null || userIndex === undefined) && Array.isArray(question.options)) {
+                const found = question.options.findIndex(opt => {
+                  if (!opt && !question.userAnswer) return false;
+                  try {
+                    return String(opt).trim() === String(question.userAnswer).trim();
+                  } catch (e) {
+                    return false;
+                  }
+                });
+                if (found >= 0) userIndex = found;
+              }
+
+              return (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
@@ -280,27 +312,27 @@ const QuizResultsPage = () => {
                         <div
                           key={optionIndex}
                           className={`p-3 rounded-lg ${
-                            optionIndex === question.correctAnswer
+                            optionIndex === correctIndex
                               ? 'bg-green-100 dark:bg-green-900/30 border-2 border-green-300 dark:border-green-600'
-                              : question.userAnswer === option
+                              : optionIndex === userIndex
                               ? 'bg-red-100 dark:bg-red-900/30 border-2 border-red-300 dark:border-red-600'
                               : 'bg-gray-50 dark:bg-gray-700'
                           }`}
                         >
                           <div className="flex items-center space-x-3">
                             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-                              optionIndex === question.correctAnswer
+                              optionIndex === correctIndex
                                 ? 'bg-green-600 text-white'
-                                : question.userAnswer === option
+                                : optionIndex === userIndex
                                 ? 'bg-red-600 text-white'
                                 : 'bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
                             }`}>
                               {String.fromCharCode(65 + optionIndex)}
                             </span>
                             <span className={`${
-                              optionIndex === question.correctAnswer
+                              optionIndex === correctIndex
                                 ? 'text-green-800 dark:text-green-200'
-                                : question.userAnswer === option
+                                : optionIndex === userIndex
                                 ? 'text-red-800 dark:text-red-200'
                                 : 'text-gray-700 dark:text-gray-300'
                             }`}>
@@ -324,7 +356,8 @@ const QuizResultsPage = () => {
                   </div>
                 )}
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
