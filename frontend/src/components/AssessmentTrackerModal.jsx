@@ -109,30 +109,7 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
     );
   };
 
-  const getAreasOfConcern = () => {
-    // Extract areas of concern from quiz results
-    const concerns = {};
-
-    assessments
-      .filter(assessment => assessment.type === 'quiz')
-      .forEach(quiz => {
-        // This would need to be enhanced based on actual quiz question data
-        // For now, we'll use AI remarks as a proxy for areas of concern
-        if (quiz.aiRemarks) {
-          const keywords = quiz.aiRemarks.toLowerCase().split(' ');
-          keywords.forEach(keyword => {
-            if (keyword.length > 4) { // Only consider meaningful keywords
-              concerns[keyword] = (concerns[keyword] || 0) + 1;
-            }
-          });
-        }
-      });
-
-    return Object.entries(concerns)
-      .filter(([_, count]) => count >= 2) // At least 2 mentions
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5); // Top 5 concerns
-  };
+  // Areas of Concern feature removed
 
   if (!isOpen) return null;
 
@@ -320,37 +297,7 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
                   </div>
                 </div>
 
-                {/* Areas of Concern */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                    Areas of Concern
-                  </h3>
-                  {getAreasOfConcern().length > 0 ? (
-                    <div className="space-y-3">
-                      {getAreasOfConcern().map(([keyword, count]) => (
-                        <div key={keyword} className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-                          <div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100 capitalize">
-                              {keyword}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                              Appears in {count} assessment{count > 1 ? 's' : ''}
-                            </div>
-                          </div>
-                          <button className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm underline">
-                            Review
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <CheckCircleIcon className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                      <p>No major areas of concern detected</p>
-                      <p className="text-sm">Keep up the good work!</p>
-                    </div>
-                  )}
-                </div>
+                {/* Areas of Concern removed per user request */}
               </div>
             </div>
           )}

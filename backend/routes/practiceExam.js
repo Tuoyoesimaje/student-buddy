@@ -429,18 +429,6 @@ router.post('/quiz-results', auth, async (req, res) => {
       }
     }
 
-    // Generate areas of concern from quiz performance
-    const areasOfConcern = [];
-    questions.forEach((question, index) => {
-      if (!question.isCorrect && question.userAnswer) {
-        const keyword = question.question.substring(0, 50) + '...';
-        areasOfConcern.push({
-          keyword,
-          failedCount: 1,
-          lastFailed: new Date()
-        });
-      }
-    });
 
     // Create quiz result record
     const quizResult = new QuizResult({
@@ -453,8 +441,7 @@ router.post('/quiz-results', auth, async (req, res) => {
       percentage,
       passed,
       timeSpent,
-      aiRemarks,
-      areasOfConcern,
+  aiRemarks,
       difficulty: percentage >= 80 ? 'hard' : percentage >= 60 ? 'medium' : 'easy'
     });
 

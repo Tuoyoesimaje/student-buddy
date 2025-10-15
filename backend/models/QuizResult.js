@@ -70,20 +70,6 @@ const quizResultSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  areasOfConcern: [{
-    keyword: {
-      type: String,
-      required: true
-    },
-    failedCount: {
-      type: Number,
-      default: 1
-    },
-    lastFailed: {
-      type: Date,
-      default: Date.now
-    }
-  }],
   createdAt: {
     type: Date,
     default: Date.now

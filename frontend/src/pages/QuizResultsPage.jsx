@@ -328,31 +328,7 @@ const QuizResultsPage = () => {
           </div>
         </div>
 
-        {/* Areas of Concern */}
-        {quizResult.areasOfConcern && quizResult.areasOfConcern.length > 0 && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-xl p-6 mt-8">
-            <h3 className="text-lg font-semibold text-yellow-900 dark:text-yellow-300 mb-4">
-              Areas That Need Attention
-            </h3>
-            <div className="space-y-3">
-              {quizResult.areasOfConcern.map((concern, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg">
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100 capitalize">
-                      {concern.keyword}
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      Failed {concern.failedCount} time{concern.failedCount > 1 ? 's' : ''}
-                    </div>
-                  </div>
-                  <button className="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300 text-sm underline">
-                    Review Topic
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Areas of Concern removed per user request */}
       </div>
     </div>
   );
