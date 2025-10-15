@@ -4,7 +4,7 @@
 
 ### 1.1 What This Application Is
 
-Student Buddy is a comprehensive AI-powered study companion platform designed to enhance student learning through intelligent note-taking, automated content generation, and interactive assessment tools. The application serves as a digital study assistant that combines traditional note management with cutting-edge AI capabilities to create personalized learning experiences.
+Student Buddy is an AI-powered retrieval practice tool designed to enhance student learning through intelligent note-taking, automated content generation, and interactive assessment tools. The application serves as a digital study assistant that combines traditional note management with cutting-edge AI capabilities to create personalized learning experiences.
 
 ### 1.2 Core Problem Being Solved
 
@@ -31,6 +31,7 @@ Student Buddy addresses several critical challenges in modern education:
 - **Course Management**: Organize study materials by courses, topics, and subjects
 - **Study Tools**: Pomodoro timer and retrieval practice techniques
 - **Progress Tracking**: Monitor learning progress and identify knowledge gaps
+- **Assessment Tracker**: Aggregate per-note assessment history (quizzes + AI practice exams) with average scores, an improvement metric, and quick links to result pages
 
 ---
 
@@ -329,6 +330,9 @@ student-buddy/
 {
   userId: ObjectId (references User, required),
   topicOrNote: String (required),
+  // Linked notes (optional) for per-note tracking
+  noteIds: [ObjectId] (references Note, optional),
+  noteTitles: [String] (optional, cached at generation time),
   questions: [String] (required),
   userAnswers: [String] (default: null),
   score: Number (default: null),
@@ -347,6 +351,13 @@ student-buddy/
 
 **Relationships**:
 - References: User
+
+**Notes**:
+- `noteIds` is a new optional array added to link generated practice exams to one or more `Note` documents. This enables per-note aggregation in the Assessment Tracker. New practice exams created after the feature was added will populate `noteIds` when triggered from a note.
+- Existing `AIGeneratedPracticeExam` documents will not automatically contain `noteIds`; consider running the included migration helper to backfill where possible.
+
+### QuizResult / Quiz Result Notes
+- The `areasOfConcern` field (previously used to store repeated failure topics) was removed from the `QuizResult` model and UI by product decision. If you had migrations or analytics depending on that field, migrate or re-compute the data before removing dependent code.
 
 ---
 
@@ -615,6 +626,44 @@ course: "optional course ID"
 **Used By**: PracticeExamPage.jsx
 **Implementation**: `backend/routes/practiceExam.js` → `backend/services/aiService.js`
 
+#### GET /api/practice-exam/history
+**Purpose**: Retrieve a combined history of assessments (quizzes and AI-generated practice exams) related to a specific note or across the user.
+**Authentication**: Required
+
+**Query Parameters**:
+- `noteId` (optional): ObjectId of a Note to return assessments related to that note. If omitted, returns recent assessments for the authenticated user (but prefer noteId for per-note trackers).
+- `limit` (optional): number of items to return (default: 20)
+- `debug` (optional): boolean to request extra diagnostics in the response (not for production use)
+
+**Response** (200):
+```json
+{
+  "summary": {
+    "averageScore": 82,         // percent
+    "totalAssessments": 12,
+    "practiceExamCount": 5,
+    "quizCount": 7
+  },
+  "items": [
+    {
+      "type": "quiz|practiceExam",
+      "id": "result_or_exam_id",
+      "title": "Quiz Title or Exam Title",
+      "noteIds": ["noteId1", "noteId2"],
+      "score": 78,        // percent or integer score normalized to percent
+      "percentage": 78,   // optional, normalized
+      "completedAt": "2025-10-01T12:34:56.000Z",
+      "mainRemark": "AI summary remark or short feedback"
+    }
+  ],
+  "debug": { /* optional debug info when debug=true */ }
+}
+```
+
+**Notes**:
+- The endpoint prefers matching by `noteIds` stored on `AIGeneratedPracticeExam` documents; if none exist the server attempts a safer heuristic match (title/snippet). The tracker UI should always call with `noteId` when available.
+
+
 #### POST /api/practice-exam/submit/:examId
 **Purpose**: Submit answers and get AI grading
 **Authentication**: Required
@@ -809,6 +858,15 @@ This application uses an AI-generated multiple-choice quiz flow optimized for re
 - Frontend: `frontend/src/pages/PracticeExamPage.jsx`, `frontend/src/components/PracticeExamQuestions.jsx`, `frontend/src/components/PracticeExamResults.jsx`
 - Backend: `backend/routes/practiceExam.js`, `backend/services/aiService.js`
 - Database: `backend/models/AIGeneratedPracticeExam.js`
+
+### Feature: Assessment Tracker (Core)
+
+**Overview**: Aggregates a user's recent assessments (quizzes and AI-generated practice exams) on a per-note basis. Shows average score, an improvement metric (most recent vs previous attempt), and links to detailed result pages. Accessible from the `Notes` page via a tracker icon.
+
+**Key Files**:
+- Frontend: `frontend/src/components/AssessmentTrackerModal.jsx`, `frontend/src/pages/Notes.jsx` (trigger)
+- Backend: `backend/routes/practiceExam.js` (history endpoint), `backend/models/AIGeneratedPracticeExam.js` (note linking)
+
 
 **Major Functions**:
 
