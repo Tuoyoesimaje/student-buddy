@@ -53,14 +53,20 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
     // Close the modal first
     onClose();
 
-    // Navigate to the specific result page using React Router
-    if (assessment.type === 'quiz') {
-      console.log('Navigating to quiz results:', `/app/quiz-results/${assessment.id}`);
-      navigate(`/app/quiz-results/${assessment.id}`);
-    } else if (assessment.type === 'practice-exam') {
-      console.log('Navigating to practice exam results:', `/app/practice-exam/results/${assessment.id}`);
-      navigate(`/app/practice-exam/results/${assessment.id}`);
-    }
+    // Small delay allows modal to unmount and page navigation to reliably scroll to top
+    setTimeout(() => {
+      // Navigate to the specific result page using React Router
+      if (assessment.type === 'quiz') {
+        console.log('Navigating to quiz results:', `/app/quiz-results/${assessment.id}`);
+        navigate(`/app/quiz-results/${assessment.id}`);
+      } else if (assessment.type === 'practice-exam') {
+        console.log('Navigating to practice exam results:', `/app/practice-exam/results/${assessment.id}`);
+        navigate(`/app/practice-exam/results/${assessment.id}`);
+      }
+
+      // Ensure the viewport is at the top after navigation
+      setTimeout(() => window.scrollTo(0, 0), 60);
+    }, 80);
   };
 
   const CircularProgressBar = ({ percentage, size = 120, strokeWidth = 8 }) => {

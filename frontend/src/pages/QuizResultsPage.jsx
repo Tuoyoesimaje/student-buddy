@@ -22,6 +22,8 @@ const QuizResultsPage = () => {
     if (quizId) {
       fetchQuizResult();
     }
+    // Ensure we land at the top when this page mounts (navigate from tracker)
+    window.scrollTo(0, 0);
   }, [quizId]);
 
   const fetchQuizResult = async () => {
