@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 200 * 1024 * 1024 // 50MB limit for large textbooks and documents
+    fileSize: 500 * 1024 * 1024 // 500MB limit for very large textbooks and documents
   },
   fileFilter: function (req, file, cb) {
     const allowedMimes = [
@@ -155,9 +155,9 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
         return res.status(400).json({ error: 'No readable text found in the uploaded file. This might be an image-only PDF.' });
       }
 
-      // Limit text length to prevent issues - increased for very large textbooks (2M characters)
-      if (extractedText.length > 2000000) { // 2M characters for very large textbooks
-        extractedText = extractedText.substring(0, 2000000) + '\n\n[Text truncated due to length - consider uploading in smaller chunks for extremely large documents...]';
+      // Limit text length to prevent issues - increased for very large textbooks (5M characters)
+      if (extractedText.length > 5000000) { // 5M characters for very large textbooks
+        extractedText = extractedText.substring(0, 5000000) + '\n\n[Text truncated due to length - consider uploading in smaller chunks for extremely large documents...]';
       }
 
       res.json({
@@ -251,32 +251,54 @@ async function extractTextFromImagePDF(filePath) {
       .filter(file => file.startsWith(opts.out_prefix))
       .sort();
 
+    if (imageFiles.length === 0) {
+      throw new Error('Failed to convert PDF to images. The PDF may be corrupted or password-protected.');
+    }
+
     let fullText = '';
 
     console.log(`Running OCR on ${imageFiles.length} pages...`);
 
+    // Limit OCR to first 50 pages for very large PDFs to prevent timeouts
+    const maxPages = Math.min(imageFiles.length, 50);
+    console.log(`Processing first ${maxPages} pages (limited for performance)`);
+
     // Run OCR on each image
-    for (let i = 0; i < imageFiles.length; i++) {
+    for (let i = 0; i < maxPages; i++) {
       const imagePath = path.join(tempDir, imageFiles[i]);
 
-      console.log(`OCR on page ${i + 1}/${imageFiles.length}...`);
+      console.log(`OCR on page ${i + 1}/${maxPages}...`);
 
-      const { data: { text } } = await Tesseract.recognize(
-        imagePath,
-        'eng',
-        {
-          logger: m => {
-            if (m.status === 'recognizing text') {
-              console.log(`Page ${i + 1} OCR: ${Math.round(m.progress * 100)}%`);
+      try {
+        const { data: { text } } = await Tesseract.recognize(
+          imagePath,
+          'eng',
+          {
+            logger: m => {
+              if (m.status === 'recognizing text') {
+                console.log(`Page ${i + 1} OCR: ${Math.round(m.progress * 100)}%`);
+              }
             }
           }
-        }
-      );
+        );
 
-      fullText += `\n--- Page ${i + 1} ---\n${text}\n`;
+        fullText += `\n--- Page ${i + 1} ---\n${text}\n`;
+      } catch (pageError) {
+        console.error(`OCR failed on page ${i + 1}:`, pageError);
+        fullText += `\n--- Page ${i + 1} (OCR failed) ---\n`;
+      }
 
       // Delete processed image
-      fs.unlinkSync(imagePath);
+      try {
+        fs.unlinkSync(imagePath);
+      } catch (deleteError) {
+        console.error(`Failed to delete temp image ${imagePath}:`, deleteError);
+      }
+    }
+
+    // If we limited pages, add a note
+    if (imageFiles.length > maxPages) {
+      fullText += `\n\n[OCR limited to first ${maxPages} pages for performance. Consider splitting large PDFs into smaller chunks.]`;
     }
 
     return fullText.trim();
