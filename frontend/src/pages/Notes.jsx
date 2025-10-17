@@ -1957,7 +1957,10 @@ const RetrievalPracticeModal = ({ onClose, onSelectQuiz, onSelectPracticeExam })
 
         <div className="space-y-4">
           <button
-            onClick={onSelectQuiz}
+            onClick={() => {
+              onSelectQuiz();
+              onClose();
+            }}
             className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 group"
           >
             <div className="flex items-center space-x-3">
