@@ -745,9 +745,9 @@ export default function Notes() {
           return;
         }
   
-        // Validate file size (max 10MB)
+        // Validate file size (max 20MB)
         if (file.size > 10 * 1024 * 1024) {
-          setError('File size must be less than 10MB.');
+          setError('File size must be less than 20MB.');
           return;
         }
   
@@ -876,7 +876,7 @@ export default function Notes() {
                   Upload your document
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Supports PDF, DOCX, TXT, and MD files (max 10MB)
+                  Supports PDF, DOCX, TXT, and MD files (max 20MB)
                 </p>
                 <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
                   Select File

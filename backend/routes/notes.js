@@ -152,7 +152,7 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
 
       // Validate extracted text
       if (!extractedText || extractedText.trim().length === 0) {
-        return res.status(400).json({ error: 'No readable text found in the uploaded file' });
+        return res.status(400).json({ error: 'No readable text found in the uploaded file. This might be an image-only PDF.' });
       }
 
       // Limit text length to prevent issues - increased for very large textbooks (2M characters)
@@ -164,7 +164,8 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
         success: true,
         text: extractedText.trim(),
         filename: req.file.originalname,
-        fileSize: req.file.size
+        fileSize: req.file.size,
+        extractedLength: extractedText.trim().length
       });
 
     } catch (error) {
@@ -183,16 +184,30 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
   }
 });
 
-// PDF text extraction using pdf-parse
+// PDF text extraction using pdf-parse with OCR fallback
 async function extractTextFromPDF(filePath) {
   try {
     const pdf = require('pdf-parse');
     const dataBuffer = fs.readFileSync(filePath);
     const data = await pdf(dataBuffer);
-    return data.text;
+
+    // If we got substantial text, return it
+    if (data.text && data.text.trim().length > 100) {
+      return data.text;
+    }
+
+    // If little/no text found, it's likely an image-based PDF - use OCR
+    console.log('PDF appears to be image-based, using OCR...');
+    return await extractTextFromImagePDF(filePath);
+
   } catch (error) {
     console.error('Error extracting PDF text:', error);
-    throw new Error('Failed to extract text from PDF file');
+    // If normal extraction fails, try OCR as fallback
+    try {
+      return await extractTextFromImagePDF(filePath);
+    } catch (ocrError) {
+      throw new Error('Failed to extract text from PDF file');
+    }
   }
 }
 
@@ -205,6 +220,86 @@ async function extractTextFromDOCX(filePath) {
   } catch (error) {
     console.error('Error extracting DOCX text:', error);
     throw new Error('Failed to extract text from DOCX file');
+  }
+}
+
+// OCR function for image-based PDFs
+async function extractTextFromImagePDF(filePath) {
+  const { convert } = require('pdf-poppler');
+  const Tesseract = require('tesseract.js');
+  const tempDir = path.join(__dirname, '../uploads/temp-images');
+
+  // Create temp directory if it doesn't exist
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  try {
+    // Convert PDF pages to PNG images
+    const opts = {
+      format: 'png',
+      out_dir: tempDir,
+      out_prefix: `pdf-${Date.now()}`,
+      page: null // Convert all pages
+    };
+
+    console.log('Converting PDF to images...');
+    await convert(filePath, opts);
+
+    // Get all generated image files
+    const imageFiles = fs.readdirSync(tempDir)
+      .filter(file => file.startsWith(opts.out_prefix))
+      .sort();
+
+    let fullText = '';
+
+    console.log(`Running OCR on ${imageFiles.length} pages...`);
+
+    // Run OCR on each image
+    for (let i = 0; i < imageFiles.length; i++) {
+      const imagePath = path.join(tempDir, imageFiles[i]);
+
+      console.log(`OCR on page ${i + 1}/${imageFiles.length}...`);
+
+      const { data: { text } } = await Tesseract.recognize(
+        imagePath,
+        'eng',
+        {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              console.log(`Page ${i + 1} OCR: ${Math.round(m.progress * 100)}%`);
+            }
+          }
+        }
+      );
+
+      fullText += `\n--- Page ${i + 1} ---\n${text}\n`;
+
+      // Delete processed image
+      fs.unlinkSync(imagePath);
+    }
+
+    return fullText.trim();
+
+  } catch (error) {
+    console.error('Error in OCR extraction:', error);
+    throw new Error('Failed to extract text using OCR. The PDF may be corrupted or contain unsupported image formats.');
+  } finally {
+    // Cleanup temp directory
+    try {
+      if (fs.existsSync(tempDir)) {
+        const files = fs.readdirSync(tempDir);
+        files.forEach(file => {
+          try {
+            fs.unlinkSync(path.join(tempDir, file));
+          } catch (fileError) {
+            console.error(`Error deleting temp file ${file}:`, fileError);
+          }
+        });
+      }
+    } catch (cleanupError) {
+      console.error('Error cleaning up temp files:', cleanupError);
+    }
   }
 }
 
