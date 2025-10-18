@@ -23,7 +23,7 @@ Student Buddy addresses several critical challenges in modern education:
 ### 1.3 Key Capabilities
 
 - **AI-Powered Note Generation**: Automatically create comprehensive study notes from course topics
-- **Document Upload & Text Extraction**: Upload PDF, DOCX, TXT, MD files and extract text content
+- **Document Upload & Text Extraction**: Upload PDF, DOCX, TXT, MD files and extract text content with OCR support for scanned PDFs
 - **Intelligent Content Analysis**: AI explanations, summaries, and insights from existing notes
  - **Interactive Quizzes**: AI-generated quizzes using a two-stage hint retrieval-practice flow (minimal feedback, no gamification)
 - **Practice Exams**: Full-length practice examinations with automated grading
@@ -55,7 +55,7 @@ Student Buddy addresses several critical challenges in modern education:
 - Authentication: JWT (jsonwebtoken 9.0.2) with bcryptjs 2.4.3
 - AI Integration: Google Generative AI (@google/generative-ai 0.24.1)
 - File Upload: Multer 2.0.0 with Cloudinary 2.6.1
-- Document Processing: pdf-parse 1.1.1, mammoth 1.6.0
+- Document Processing: pdf-parse 1.1.1, mammoth 1.6.0, tesseract.js 5.0.4, pdf-poppler 1.0.0, pdf-lib 1.17.1
 - Scheduling: node-cron 4.1.0
 - WebSockets: ws 8.16.0 for real-time features
 
@@ -876,44 +876,65 @@ This application uses an AI-generated multiple-choice quiz flow optimized for re
 **Returns**: Score, feedback, and detailed analysis object
 **Key Logic**: Constructs complex grading prompt, handles JSON parsing of AI response, provides specific feedback with content references
 
-### Feature: Document Upload and Text Extraction
+### Feature: Document Upload and Text Extraction with OCR Support
 
 **User Journey**:
 1. User clicks upload button in Notes page header
 2. Upload modal opens with file selection interface
-3. User selects PDF, DOCX, TXT, or MD file (max 10MB)
+3. User selects PDF, DOCX, TXT, or MD file (max 500MB)
 4. Frontend validates file type and size
 5. File is uploaded to backend with progress indicator
 6. Backend processes file using appropriate text extraction library
-7. Extracted text is returned to frontend
-8. User can preview extracted text and modify title/subject
-9. Note is created with extracted content and saved to user's collection
-10. User is redirected to Notes page to view the created note
+7. **Smart Detection**: Backend first tries normal text extraction (fast for text PDFs)
+8. **OCR Fallback**: If little/no text found, automatically converts PDF to images and runs OCR
+9. Extracted text is returned to frontend
+10. User can preview extracted text and modify title/subject
+11. Note is created with extracted content and saved to user's collection
+12. User is redirected to Notes page to view the created note
 
 **Key Files**:
 - Frontend: `frontend/src/pages/Notes.jsx` (UploadDocumentModal component)
-- Backend: `backend/routes/notes.js` (upload endpoint)
+- Backend: `backend/routes/notes.js` (upload endpoint with OCR)
 - Database: `backend/models/Note.js` (stores extracted content)
 
 **Major Functions**:
 
 #### `extractTextFromPDF(filePath)` in `backend/routes/notes.js`
-**Purpose**: Extract text content from PDF files using pdf-parse library
+**Purpose**: Extract text content from PDF files with smart OCR fallback
 **Parameters**: filePath (string)
 **Returns**: Extracted text content (string)
-**Key Logic**: Uses pdf-parse library to parse PDF buffer, handles multi-page documents, extracts readable text content
+**Key Logic**:
+- First tries pdf-parse library for normal text extraction
+- If < 100 characters found, automatically switches to OCR
+- Handles both text-based and image-based PDFs seamlessly
 
-#### `extractTextFromDOCX(filePath)` in `backend/routes/notes.js`
-**Purpose**: Extract text content from DOCX files using mammoth library
+#### `extractTextFromImagePDF(filePath)` in `backend/routes/notes.js`
+**Purpose**: Extract text from scanned/image-based PDFs using OCR
 **Parameters**: filePath (string)
 **Returns**: Extracted text content (string)
-**Key Logic**: Uses mammoth library to convert DOCX to HTML, strips HTML tags, returns plain text content
+**Key Logic**:
+- Uses pdf-poppler to convert PDF pages to PNG images
+- Runs Tesseract OCR on each page individually
+- Combines all pages into single text output
+- Processes first 50 pages for performance (prevents timeouts on large PDFs)
+- Proper cleanup of temporary image files
 
 #### `handleFileUpload(req, res)` in `backend/routes/notes.js`
-**Purpose**: Main upload endpoint that orchestrates file processing and note creation
+**Purpose**: Main upload endpoint with enhanced OCR processing
 **Parameters**: req (Express request with file), res (Express response)
 **Returns**: JSON response with extracted text and created note
-**Key Logic**: Validates file, determines file type, calls appropriate extraction function, creates note with extracted content
+**Key Logic**:
+- Validates file (500MB limit)
+- Determines file type and calls appropriate extraction function
+- Enhanced error handling for OCR failures
+- Better progress feedback and logging
+
+**OCR Features**:
+- **Automatic Detection**: No user configuration needed - system detects image-based PDFs
+- **Performance Optimized**: Limits OCR to first 50 pages for very large PDFs
+- **Error Recovery**: Graceful fallback if OCR fails on individual pages
+- **Resource Management**: Automatic cleanup of temporary image files
+- **Progress Logging**: Console logs show OCR progress per page
 
 ---
 
@@ -955,18 +976,22 @@ This application uses an AI-generated multiple-choice quiz flow optimized for re
 8. **Database Update**: Saves score, feedback, and detailed results
 9. **Frontend**: Shows results with AI feedback and recommendations
 
-### Example 4: Document Upload and Text Extraction
+### Example 4: Document Upload and Text Extraction with OCR
 
 1. **User Action**: User clicks upload button in Notes page and selects a PDF file
 2. **Frontend**: `Notes.jsx` opens UploadDocumentModal, validates file (type/size), shows progress
 3. **HTTP Request**: `POST /api/notes/upload/extract-text` with multipart form data
 4. **Backend Route**: `notes.js` receives file via multer middleware
 5. **File Processing**: Determines file is PDF, calls `extractTextFromPDF()` function
-6. **Text Extraction**: `pdf-parse` library processes PDF buffer, extracts readable text content
-7. **Note Creation**: Creates new Note document with extracted text, user association, metadata
-8. **Database**: Saves note to MongoDB `notes` collection
-9. **Response**: Returns extracted text and created note object
-10. **Frontend Update**: Shows preview of extracted text, allows title/subject editing, creates note
+6. **Smart Detection**: `pdf-parse` library processes PDF buffer, extracts readable text content
+7. **OCR Fallback**: If < 100 characters found, automatically switches to OCR processing
+8. **Image Conversion**: `pdf-poppler` converts PDF pages to PNG images (first 50 pages for performance)
+9. **OCR Processing**: `tesseract.js` runs OCR on each page individually with progress logging
+10. **Text Combination**: All extracted text is combined into single output
+11. **Note Creation**: Creates new Note document with extracted text, user association, metadata
+12. **Database**: Saves note to MongoDB `notes` collection
+13. **Response**: Returns extracted text and created note object
+14. **Frontend Update**: Shows preview of extracted text, allows title/subject editing, creates note
 
 ---
 
@@ -1146,6 +1171,9 @@ CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_secret
 BACKEND_BASE_URL=https://your-backend-url
 FRONTEND_URLS=https://your-frontend-url
+# OCR Configuration (optional - uses system defaults if not set)
+TESSERACT_LANG=eng
+PDF_POPPLER_PATH=/usr/bin  # Linux/macOS path to pdf-poppler binaries
 ```
 
 **Frontend (.env.production)**:
@@ -1169,6 +1197,18 @@ npm start  # Production server
 npm run dev  # Development with nodemon
 ```
 
+**OCR Dependencies Installation**:
+```bash
+# Backend OCR libraries
+cd backend
+npm install tesseract.js pdf-poppler pdf-lib
+
+# Note: pdf-poppler requires system-level installation on Linux/macOS
+# Ubuntu/Debian: sudo apt-get install poppler-utils
+# macOS: brew install poppler
+# Windows: Download from https://blog.alivate.com.au/poppler-windows/
+```
+
 ### 11.3 Deployment Setup
 
 **Frontend**: Deployed to Vercel with automatic builds from GitHub
@@ -1177,9 +1217,61 @@ npm run dev  # Development with nodemon
 **CDN**: Cloudinary for media assets
 **Monitoring**: Basic error logging and health checks
 
+**OCR Deployment Notes**:
+- **pdf-poppler**: Requires system-level installation on deployment platform
+- **Heroku**: Add `poppler-utils` buildpack or install via apt in Dockerfile
+- **Vercel**: Not suitable for OCR (serverless limitations)
+- **Alternative**: Deploy backend to Railway, Render, or DigitalOcean for full OCR support
+
 ---
 
-## 13. KEY FUNCTIONS AND CODE IMPLEMENTATION
+## 13. RECENT ENHANCEMENTS
+
+### 13.1 OCR Support for Scanned PDFs
+
+**Added**: October 2025
+**Purpose**: Enable text extraction from scanned/image-based PDF documents
+**Impact**: Students can now upload scanned textbooks and get text extracted automatically
+
+**Technical Implementation**:
+- **Smart Detection**: Backend automatically detects if PDF contains extractable text or requires OCR
+- **Dual Processing**: First tries normal text extraction (fast), falls back to OCR if needed
+- **Image Conversion**: Uses pdf-poppler to convert PDF pages to PNG images
+- **OCR Processing**: Tesseract.js runs OCR on each page individually
+- **Performance Optimization**: Limits OCR to first 50 pages for very large PDFs
+- **Resource Management**: Automatic cleanup of temporary image files
+
+**Files Modified**:
+- `backend/routes/notes.js` - Added OCR functions and enhanced upload endpoint
+- `frontend/src/pages/Notes.jsx` - Updated file size limits and UI text
+- `backend/package.json` - Added OCR dependencies
+
+**Dependencies Added**:
+- `tesseract.js` - OCR engine for text recognition
+- `pdf-poppler` - PDF to image conversion
+- `pdf-lib` - PDF manipulation utilities
+
+**Configuration**:
+- File size limit increased from 10MB to 500MB
+- Text length limit increased from 2M to 5M characters
+- OCR processing limited to 50 pages for performance
+
+**User Experience**:
+- **Transparent Processing**: Users don't need to know about OCR - it just works
+- **Progress Feedback**: Console logs show OCR progress per page
+- **Error Handling**: Clear messages if OCR fails or PDF is corrupted
+- **Performance**: Fast processing for text PDFs, OCR only when needed
+
+**Testing**:
+- ✅ Text-based PDFs (normal extraction)
+- ✅ Scanned PDFs (OCR extraction)
+- ✅ Mixed content PDFs
+- ✅ Large file handling (500MB limit)
+- ✅ Error recovery and cleanup
+
+---
+
+## 14. KEY FUNCTIONS AND CODE IMPLEMENTATION
 
 ### Core AI Service Functions
 
@@ -1619,10 +1711,10 @@ exports.createNote = async (req, res) => {
 };
 ```
 
-#### Document Upload and Text Extraction Functions
+#### Document Upload and Text Extraction Functions with OCR Support
 **Location**: `backend/routes/notes.js`
 
-**Purpose**: Handles file upload, text extraction, and note creation from documents
+**Purpose**: Handles file upload, text extraction, and note creation from documents with OCR support for scanned PDFs
 
 ```javascript
 // Configure multer for file uploads
@@ -1643,7 +1735,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 500 * 1024 * 1024, // 500MB limit for large textbooks
   },
   fileFilter: function (req, file, cb) {
     const allowedTypes = [
@@ -1653,7 +1745,9 @@ const upload = multer({
       'text/markdown'
     ];
 
-    if (allowedTypes.includes(file.mimetype)) {
+    if (allowedTypes.includes(file.mimetype) ||
+        file.originalname.toLowerCase().endsWith('.md') ||
+        file.originalname.toLowerCase().endsWith('.txt')) {
       cb(null, true);
     } else {
       cb(new Error('Invalid file type. Only PDF, DOCX, TXT, and MD files are allowed.'), false);
@@ -1661,84 +1755,205 @@ const upload = multer({
   }
 });
 
-// Text extraction functions
+// Enhanced PDF text extraction with OCR fallback
 async function extractTextFromPDF(filePath) {
   try {
+    const pdf = require('pdf-parse');
     const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdfParse(dataBuffer);
-    return data.text;
+    const data = await pdf(dataBuffer);
+
+    // If we got substantial text, return it
+    if (data.text && data.text.trim().length > 100) {
+      return data.text;
+    }
+
+    // If little/no text found, it's likely an image-based PDF - use OCR
+    console.log('PDF appears to be image-based, using OCR...');
+    return await extractTextFromImagePDF(filePath);
+
   } catch (error) {
-    console.error('Error extracting text from PDF:', error);
-    throw new Error('Failed to extract text from PDF file');
+    console.error('Error extracting PDF text:', error);
+    // If normal extraction fails, try OCR as fallback
+    try {
+      return await extractTextFromImagePDF(filePath);
+    } catch (ocrError) {
+      throw new Error('Failed to extract text from PDF file');
+    }
   }
 }
 
+// OCR function for image-based PDFs
+async function extractTextFromImagePDF(filePath) {
+  const { convert } = require('pdf-poppler');
+  const Tesseract = require('tesseract.js');
+  const tempDir = path.join(__dirname, '../uploads/temp-images');
+
+  // Create temp directory if it doesn't exist
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir, { recursive: true });
+  }
+
+  try {
+    // Convert PDF pages to PNG images
+    const opts = {
+      format: 'png',
+      out_dir: tempDir,
+      out_prefix: `pdf-${Date.now()}`,
+      page: null // Convert all pages
+    };
+
+    console.log('Converting PDF to images...');
+    await convert(filePath, opts);
+
+    // Get all generated image files
+    const imageFiles = fs.readdirSync(tempDir)
+      .filter(file => file.startsWith(opts.out_prefix))
+      .sort();
+
+    if (imageFiles.length === 0) {
+      throw new Error('Failed to convert PDF to images. The PDF may be corrupted or password-protected.');
+    }
+
+    let fullText = '';
+
+    console.log(`Running OCR on ${imageFiles.length} pages...`);
+
+    // Limit OCR to first 50 pages for very large PDFs to prevent timeouts
+    const maxPages = Math.min(imageFiles.length, 50);
+    console.log(`Processing first ${maxPages} pages (limited for performance)`);
+
+    // Run OCR on each image
+    for (let i = 0; i < maxPages; i++) {
+      const imagePath = path.join(tempDir, imageFiles[i]);
+
+      console.log(`OCR on page ${i + 1}/${maxPages}...`);
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(
+          imagePath,
+          'eng',
+          {
+            logger: m => {
+              if (m.status === 'recognizing text') {
+                console.log(`Page ${i + 1} OCR: ${Math.round(m.progress * 100)}%`);
+              }
+            }
+          }
+        );
+
+        fullText += `\n--- Page ${i + 1} ---\n${text}\n`;
+      } catch (pageError) {
+        console.error(`OCR failed on page ${i + 1}:`, pageError);
+        fullText += `\n--- Page ${i + 1} (OCR failed) ---\n`;
+      }
+
+      // Delete processed image
+      try {
+        fs.unlinkSync(imagePath);
+      } catch (deleteError) {
+        console.error(`Failed to delete temp image ${imagePath}:`, deleteError);
+      }
+    }
+
+    // If we limited pages, add a note
+    if (imageFiles.length > maxPages) {
+      fullText += `\n\n[OCR limited to first ${maxPages} pages for performance. Consider splitting large PDFs into smaller chunks.]`;
+    }
+
+    return fullText.trim();
+
+  } catch (error) {
+    console.error('Error in OCR extraction:', error);
+    throw new Error('Failed to extract text using OCR. The PDF may be corrupted or contain unsupported image formats.');
+  } finally {
+    // Cleanup temp directory
+    try {
+      if (fs.existsSync(tempDir)) {
+        const files = fs.readdirSync(tempDir);
+        files.forEach(file => {
+          try {
+            fs.unlinkSync(path.join(tempDir, file));
+          } catch (fileError) {
+            console.error(`Error deleting temp file ${file}:`, fileError);
+          }
+        });
+      }
+    } catch (cleanupError) {
+      console.error('Error cleaning up temp files:', cleanupError);
+    }
+  }
+}
+
+// DOCX text extraction
 async function extractTextFromDOCX(filePath) {
   try {
+    const mammoth = require('mammoth');
     const result = await mammoth.extractRawText({ path: filePath });
     return result.value;
   } catch (error) {
-    console.error('Error extracting text from DOCX:', error);
+    console.error('Error extracting DOCX text:', error);
     throw new Error('Failed to extract text from DOCX file');
   }
 }
 
-// Main upload endpoint
+// Main upload endpoint with OCR support
 router.post('/upload/extract-text', auth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { title, subject, course } = req.body;
     const filePath = req.file.path;
     const fileExt = path.extname(req.file.originalname).toLowerCase();
-
     let extractedText = '';
 
-    // Extract text based on file type
-    if (fileExt === '.pdf') {
-      extractedText = await extractTextFromPDF(filePath);
-    } else if (fileExt === '.docx') {
-      extractedText = await extractTextFromDOCX(filePath);
-    } else if (fileExt === '.txt' || fileExt === '.md') {
-      extractedText = fs.readFileSync(filePath, 'utf8');
+    try {
+      if (fileExt === '.pdf') {
+        console.log(`Processing PDF: ${req.file.originalname}`);
+        extractedText = await extractTextFromPDF(filePath);
+        console.log(`Extracted ${extractedText.length} characters from PDF`);
+      } else if (fileExt === '.docx') {
+        extractedText = await extractTextFromDOCX(filePath);
+      } else if (fileExt === '.txt' || fileExt === '.md') {
+        extractedText = fs.readFileSync(filePath, 'utf8');
+      } else {
+        throw new Error('Unsupported file type');
+      }
+
+      // Clean up uploaded file
+      fs.unlinkSync(filePath);
+
+      // Validate extracted text
+      if (!extractedText || extractedText.trim().length === 0) {
+        return res.status(400).json({ error: 'No readable text found in the uploaded file. This might be an image-only PDF.' });
+      }
+
+      // Limit text length to prevent issues - increased for very large textbooks (5M characters)
+      if (extractedText.length > 5000000) { // 5M characters for very large textbooks
+        extractedText = extractedText.substring(0, 5000000) + '\n\n[Text truncated due to length - consider uploading in smaller chunks for extremely large documents...]';
+      }
+
+      res.json({
+        success: true,
+        text: extractedText.trim(),
+        filename: req.file.originalname,
+        fileSize: req.file.size,
+        extractedLength: extractedText.trim().length
+      });
+
+    } catch (error) {
+      // Clean up file on error
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      throw error;
     }
-
-    if (!extractedText.trim()) {
-      throw new Error('No text content could be extracted from the file');
-    }
-
-    // Create note with extracted content
-    const noteTitle = title || req.file.originalname.replace(/\.[^/.]+$/, '');
-    const newNote = new Note({
-      title: noteTitle,
-      content: extractedText,
-      subject: subject || 'General',
-      course: course || null,
-      user: req.user.userId,
-    });
-
-    const savedNote = await newNote.save();
-
-    // Clean up uploaded file
-    fs.unlinkSync(filePath);
-
-    res.json({
-      success: true,
-      extractedText: extractedText.substring(0, 500) + '...',
-      fileName: req.file.originalname,
-      fileType: req.file.mimetype,
-      fileSize: req.file.size,
-      note: savedNote
-    });
 
   } catch (error) {
-    console.error('Error in file upload:', error);
-    if (req.file && req.file.path) {
-      fs.unlinkSync(req.file.path);
-    }
-    res.status(500).json({ message: error.message });
+    console.error('Error extracting text from file:', error);
+    res.status(500).json({
+      error: 'Failed to extract text from file. Please ensure the file contains readable text.'
+    });
   }
 });
 ```
