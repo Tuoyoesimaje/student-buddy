@@ -20,6 +20,14 @@ export default {
           DEFAULT: '#10B981',
           dark: '#059669',
         },
+        'background': {
+          light: '#f8fafc',
+          dark: '#0f172a',
+        },
+        'text': {
+          light: '#1e293b',
+          dark: '#f1f5f9',
+        },
       },
       animation: {
         'slide-in': 'slideIn 0.3s ease-out',

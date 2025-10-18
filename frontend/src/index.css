@@ -3,17 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --secondary: #64748b;
+  --primary: #4F46E5;
+  --primary-dark: #4338CA;
+  --secondary: #10B981;
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
   --info: #3b82f6;
-  --background: #f8fafc;
+  --background-light: #f8fafc;
+  --background-dark: #0f172a;
   --surface: #ffffff;
-  --text: #1e293b;
-  --text-light: #64748b;
+  --text-light: #1e293b;
+  --text-dark: #f1f5f9;
   --border: #e2e8f0;
   text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
@@ -25,17 +26,18 @@
 
 /* Dark mode variables */
 .dark {
-  --primary: #3b82f6;
-  --primary-dark: #2563eb;
-  --secondary: #94a3b8;
+  --primary: #4F46E5;
+  --primary-dark: #4338CA;
+  --secondary: #10B981;
   --success: #10b981;
   --danger: #f87171;
   --warning: #fbbf24;
   --info: #60a5fa;
-  --background: #0f172a;
+  --background-light: #f8fafc;
+  --background-dark: #0f172a;
   --surface: #1e293b;
-  --text: #f1f5f9;
-  --text-light: #94a3b8;
+  --text-light: #1e293b;
+  --text-dark: #f1f5f9;
   --border: #334155;
 
 
@@ -43,8 +45,8 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased font-montserrat transition-colors duration-200;
-  }
+     @apply bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark antialiased font-montserrat transition-colors duration-200;
+   }
 }
 
 @layer utilities {
@@ -141,11 +143,11 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #f3f4f6;
+  background-color: #f8fafc;
 }
 
 .dark body {
-  background-color: #111827;
+  background-color: #0f172a;
 }
 
 #root {

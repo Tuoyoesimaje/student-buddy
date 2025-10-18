@@ -1,81 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-
-// Small inline icon set (keeps landing self-contained and avoids font issues)
-const Icon = ({ name, className = '' }) => {
-  const common = { width: 24, height: 24, fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' };
-  switch (name) {
-    case 'school':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17a8 8 0 0 0 20 0" /></svg>
-      );
-    case 'description':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
-      );
-    case 'sparkles':
-    case 'auto_awesome':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M12 2l1.5 3L17 7l-3 1.5L12 12l-1.5-3L7 7l3.5-2L12 2z" /><path d="M4 14l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z" /></svg>
-      );
-    case 'style':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M3 21l3-3 11-11 3-3 4 4-3 3L6 21H3z" /></svg>
-      );
-    case 'donut':
-    case 'donut_large':
-      return (
-        <svg className={className} viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="14" stroke="currentColor" strokeWidth="3" opacity="0.15" /><circle cx="18" cy="18" r="14" stroke="currentColor" strokeWidth="3" strokeDasharray="85 100" strokeLinecap="round" /></svg>
-      );
-    case 'arrow_right':
-    case 'arrow_forward':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-      );
-    case 'bolt':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M13 2L3 14h7l-1 8L21 10h-7l-1-8z" /></svg>
-      );
-    case 'feed':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M4 7a13 13 0 0 1 13 13" /><path d="M4 12a8 8 0 0 1 8 8" /><circle cx="6" cy="18" r="1" fill="currentColor" /></svg>
-      );
-    case 'task_alt':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M20 6L9 17l-5-5" /></svg>
-      );
-    case 'trending_up':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M3 17l6-6 4 4 8-8" /><path d="M21 7v6h-6" /></svg>
-      );
-    case 'upload_file':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M12 3v12" /><path d="M8 7l4-4 4 4" /><path d="M4 21h16" /></svg>
-      );
-    case 'model_training':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><circle cx="12" cy="8" r="3" /><path d="M12 11v6" /><path d="M6 21v-4" /><path d="M18 21v-4" /></svg>
-      );
-    case 'monitoring':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8" /></svg>
-      );
-    case 'check_circle':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M9 12l2 2 4-4" /><circle cx="12" cy="12" r="9" /></svg>
-      );
-    case 'arrow_upward':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M12 19V6" /><path d="M5 12l7-7 7 7" /></svg>
-      );
-    case 'more_horiz':
-      return (
-        <svg className={className} viewBox="0 0 24 24" {...common}><path d="M6 12h.01M12 12h.01M18 12h.01" strokeLinecap="round" /></svg>
-      );
-    default:
-      return <svg className={className} viewBox="0 0 24 24" {...common}><circle cx="12" cy="12" r="10" /></svg>;
-  }
-};
+import { Link } from 'react-router-dom';
 
 const Landing = () => {
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -86,8 +10,6 @@ const Landing = () => {
     setReducedMotion(mq.matches);
     const onChange = () => setReducedMotion(mq.matches);
     try { mq.addEventListener('change', onChange); } catch (e) { mq.addListener(onChange); }
-
-    // NOTE: Theme is controlled by ThemeProvider. Landing will not mutate root theme class.
 
     // Simple reveal animation for sections (if not reduced motion)
     if (!mq.matches) {
@@ -101,206 +23,196 @@ const Landing = () => {
       });
     }
 
-  return () => { try { mq.removeEventListener('change', onChange); } catch (e) { mq.removeListener(onChange); } };
+    return () => { try { mq.removeEventListener('change', onChange); } catch (e) { mq.removeListener(onChange); } };
   }, []);
 
   return (
-    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 font-montserrat text-gray-900 dark:text-gray-100 ${reducedMotion ? 'reduced-motion' : ''}`}>
+    <div className={`min-h-screen bg-background-light dark:bg-background-dark font-montserrat text-text-light dark:text-text-dark ${reducedMotion ? 'reduced-motion' : ''}`}>
       <style>{`.reduced-motion * { animation: none !important; transition: none !important; }`}</style>
 
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Icon name="school" className="text-primary text-3xl w-8 h-8" />
-              <h2 className="text-gray-900 dark:text-gray-100 text-xl font-bold">Student Buddy</h2>
-            </div>
-            <nav className="hidden md:flex items-center gap-8">
-              <a className="text-sm font-medium hover:text-primary" href="#features">Features</a>
-              <a className="text-sm font-medium hover:text-primary" href="#how">How it works</a>
-              <a className="text-sm font-medium hover:text-primary" href="#research">Research</a>
-              <a className="text-sm font-medium hover:text-primary" href="#tracker">Tracker</a>
-              <a className="text-sm font-medium hover:text-primary" href="#demo">Demo</a>
-            </nav>
-            <div className="flex items-center gap-2">
-              <Link to="/login" className="text-sm font-medium hover:text-primary">Login</Link>
-              <Link to="/register" className="flex min-w-[84px] items-center justify-center rounded-full h-10 px-6 bg-primary text-white text-sm font-bold transition-transform duration-300 hover:scale-105 shadow-sm">
-                Sign Up
-              </Link>
-            </div>
+      <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-gray-200 dark:border-gray-700 px-4 sm:px-10 py-3 sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm z-50">
+        <div className="flex items-center gap-4 text-primary">
+          <div className="size-8">
+            <svg fill="currentColor" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <path clip-rule="evenodd" d="M12.0799 24L4 19.2479L9.95537 8.75216L18.04 13.4961L18.0446 4H29.9554L29.96 13.4961L38.0446 8.75216L44 19.2479L35.92 24L44 28.7521L38.0446 39.2479L29.96 34.5039L29.9554 44H18.0446L18.04 34.5039L9.95537 39.2479L4 28.7521L12.0799 24Z" fill-rule="evenodd"></path>
+            </svg>
           </div>
+          <h2 className="text-xl font-bold leading-tight tracking-[-0.015em]">Student Buddy</h2>
+        </div>
+        <div className="hidden md:flex flex-1 justify-center items-center gap-9">
+          <span className="bg-primary/20 text-primary text-xs font-bold px-3 py-1 rounded-full">BETA TESTING</span>
+        </div>
+        <div className="flex gap-2">
+          <Link to="/login" className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-transparent border border-primary text-primary text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/10 transition-colors">
+            <span className="truncate">Login</span>
+          </Link>
+          <Link to="/register" className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+            <span className="truncate">Sign Up</span>
+          </Link>
         </div>
       </header>
 
-      <main>
-        <section className="py-20 md:py-32" data-reveal>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl md:text-6xl font-extrabold leading-tight tracking-tight">
-              Make every study session count — <br className="hidden md:block"/> automatic quizzes from your own notes
+      <main className="flex flex-col gap-16 md:gap-24 py-16 md:py-24 px-4 sm:px-10">
+        <div className="@container">
+          <div className="@[480px]:p-4">
+            <div className="flex min-h-[480px] flex-col gap-6 bg-cover bg-center bg-no-repeat @[480px]:gap-8 @[480px]:rounded-xl items-center justify-center p-4" data-alt="Abstract gradient background" style={{backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.1) 0%, rgba(44, 82, 130, 0.5) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuAXIifyafe-94K-DRojvMFW9J3wnfrdVLO3xULLZOyC1cHnLCsQgd7aOMAJWSNnCOZcHIKdvRcGZDbjapgkJFiCEiVY8eA6DWuZZJsVxxG421bfrk8wXnXUgWMyypCjJbbn7IaH2M_SKX3WI2rX0gq0Ws0m5SfxlJFFygmfxWOoOqg8OUbxlnOQiHuVrdceYa8Km7C1DUO7FvIHZzGq08Spv95KwVxzz6yutJc-gxSBBCmt7K2HgM4PDB3PsxHTV6tFUQZN33RQ48E")'}}>
+              <div className="flex flex-col gap-4 text-center">
+                <h1 className="text-white text-4xl font-black leading-tight tracking-[-0.033em] @[480px]:text-5xl">
+                  Test Student Buddy - AI-Powered Study Assistant
+                </h1>
+                <h2 className="text-white/90 text-lg font-normal leading-normal @[480px]:text-xl max-w-3xl mx-auto">
+                  Experience our complete AI study system designed to help you learn smarter.
+                </h2>
+              </div>
+              <div className="flex-wrap gap-3 flex justify-center">
+                <Link to="/register" className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-secondary text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-secondary/90 transition-colors">
+                  <span className="truncate">Start Testing Now</span>
+                </Link>
+                <a href="#features" className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-5 bg-white/20 border border-white text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-white/30 transition-colors">
+                  <span className="truncate">View Features</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="features" className="flex flex-col gap-10 @container">
+          <div className="flex flex-col gap-4 text-center">
+            <h1 className="text-text-light dark:text-text-dark tracking-tight text-3xl font-bold leading-tight @[480px]:text-4xl @[480px]:font-black">
+              All the features you need to succeed
             </h1>
-            <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-gray-700 dark:text-gray-300">
-              Turn notes into targeted practice tests and track your improvement — backed by learning science.
+            <p className="text-gray-600 dark:text-gray-400 text-lg font-normal leading-normal max-w-3xl mx-auto">
+              Student Buddy is a comprehensive AI study system with a wide range of features to help you learn smarter.
             </p>
-
-            <div className="mt-10 flex justify-center gap-4">
-              <Link to="/register" className="flex min-w-[120px] items-center justify-center rounded-full h-12 px-8 bg-primary text-white text-base font-bold transition-transform duration-300 hover:scale-105">
-                Get Started
-              </Link>
-              <button className="flex min-w-[120px] items-center justify-center rounded-full h-12 px-8 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-base font-bold transition-transform duration-300 hover:scale-105">
-                Learn More
-              </button>
-            </div>
-
-            <div className="mt-16 flex justify-center items-center gap-4 md:gap-8 text-gray-700 dark:text-gray-300">
-              <div className="flex flex-col items-center gap-2">
-                <Icon name="description" className="w-10 h-10" />
-                <p className="text-sm font-medium">Notes</p>
-              </div>
-              <Icon name="arrow_forward" className="w-6 h-6 text-gray-400" />
-              <div className="flex flex-col items-center gap-2">
-                <Icon name="auto_awesome" className="w-10 h-10" />
-                <p className="text-sm font-medium">AI</p>
-              </div>
-              <Icon name="arrow_forward" className="w-6 h-6 text-gray-400" />
-              <div className="flex flex-col items-center gap-2">
-                <Icon name="style" className="w-10 h-10" />
-                <p className="text-sm font-medium">Quiz Cards</p>
-              </div>
-              <Icon name="arrow_forward" className="w-6 h-6 text-gray-400" />
-              <div className="flex flex-col items-center gap-2">
-                <Icon name="donut_large" className="w-10 h-10" />
-                <p className="text-sm font-medium">Score Ring</p>
-              </div>
-            </div>
           </div>
-        </section>
-
-        <section id="features" className="py-20 bg-white dark:bg-gray-800" data-reveal>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold">Unlock Your Potential</h2>
-              <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-700 dark:text-gray-300">Student Buddy offers a suite of features designed to enhance your learning experience.</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              <FeatureCard icon="bolt" title="Instant Quizzes" copy="Generate practice quizzes from your notes in seconds." />
-              <FeatureCard icon="feed" title="Grounded in Your Notes" copy="Questions are based entirely on your course material." />
-              <FeatureCard icon="task_alt" title="AI-Graded Feedback" copy="Get immediate feedback on your performance." />
-              <FeatureCard icon="trending_up" title="Track Progress" copy="Monitor your improvement over time with our tracker." />
-            </div>
-          </div>
-        </section>
-
-        <section id="how" className="py-20" data-reveal>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold">How It Works</h2>
-              <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-700 dark:text-gray-300">A simple, three-step process to supercharge your studies.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
-              <HowStep icon="upload_file" title="1. Import Notes" copy="Easily upload your class notes in various formats." />
-              <HowStep icon="model_training" title="2. Generate & Practice" copy="Our AI will create a customized quiz for you." />
-              <HowStep icon="monitoring" title="3. Track Improvement" copy="See your scores and track your learning progress." />
-            </div>
-          </div>
-        </section>
-
-        <section id="tracker" className="py-20 bg-white dark:bg-gray-800" data-reveal>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-bold">Your Personal Assessment Tracker</h2>
-                <p className="mt-4 text-lg text-gray-700 dark:text-gray-300">Visualize your learning journey. Our tracker provides detailed insights into your performance, helping you identify strengths and weaknesses to focus your efforts effectively.</p>
-                <button className="mt-8 flex min-w-[120px] items-center justify-center rounded-full h-12 px-8 bg-primary text-white text-base font-bold transition-transform duration-300 hover:scale-105">Explore the Tracker</button>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-6">
+            <div className="flex flex-col gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark p-6 transition-all hover:shadow-lg hover:-translate-y-1">
+              <span className="material-symbols-outlined text-secondary text-2xl">description</span>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-text-light dark:text-text-dark text-lg font-bold leading-tight">AI Note Processing</h2>
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">Upload your notes and let our AI create summaries and key takeaways.</p>
               </div>
-              <div className="p-8 bg-white dark:bg-gray-900 rounded-xl shadow-2xl shadow-primary/10">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100">Progress Overview</h3>
-                  <Icon name="more_horiz" className="w-6 h-6 text-gray-400" />
-                </div>
-                <div className="flex flex-col md:flex-row items-center gap-8">
-                  <div className="relative w-40 h-40">
-                    <Icon name="donut_large" className="w-full h-full text-gray-300" />
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-bold">85%</span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Average Score</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center gap-2">
-                      <Icon name="arrow_upward" className="w-5 h-5 text-green-500" />
-                      <span className="font-bold text-green-500">+5.2%</span>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">vs. last week</span>
-                    </div>
-                    <div>
-                      <h4 className="font-bold mb-2 text-gray-900 dark:text-gray-100">Recent Quizzes</h4>
-                      <ul className="space-y-2 text-sm">
-                        <li className="flex items-center justify-between"><span>Cell Biology</span> <span className="font-medium text-green-500">92%</span></li>
-                        <li className="flex items-center justify-between"><span>Organic Chemistry</span><span className="font-medium text-red-500">78%</span></li>
-                        <li className="flex items-center justify-between"><span>Literary Theory</span><span className="font-medium text-green-500">88%</span></li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+            </div>
+            <div className="flex flex-col gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark p-6 transition-all hover:shadow-lg hover:-translate-y-1">
+              <span className="material-symbols-outlined text-secondary text-2xl">quiz</span>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-text-light dark:text-text-dark text-lg font-bold leading-tight">Intelligent Quiz Generation</h2>
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">Generate personalized quizzes from your study materials.</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark p-6 transition-all hover:shadow-lg hover:-translate-y-1">
+              <span className="material-symbols-outlined text-secondary text-2xl">checklist</span>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-text-light dark:text-text-dark text-lg font-bold leading-tight">Practice Exams</h2>
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">Simulate real exam conditions to test your knowledge.</p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-background-dark p-6 transition-all hover:shadow-lg hover:-translate-y-1">
+              <span className="material-symbols-outlined text-secondary text-2xl">monitoring</span>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-text-light dark:text-text-dark text-lg font-bold leading-tight">Progress Tracking</h2>
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">Monitor your learning journey and identify areas for improvement.</p>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
-        <section id="research" className="py-20" data-reveal>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-3xl md:text-4xl font-bold">Research &amp; Validation</h2>
-              <p className="mt-4 text-lg text-gray-700 dark:text-gray-300">Our methods are grounded in proven learning science to ensure you're studying effectively.</p>
+        <div className="flex flex-col gap-10">
+          <div className="flex flex-col gap-4 text-center">
+            <h1 className="text-text-light dark:text-text-dark tracking-tight text-3xl font-bold leading-tight @[480px]:text-4xl @[480px]:font-black">
+              How It Works
+            </h1>
+          </div>
+          <div className="grid grid-cols-[auto_1fr] gap-x-4 md:gap-x-8">
+            <div className="flex flex-col items-center gap-2 pt-2">
+              <div className="flex items-center justify-center size-12 rounded-full bg-primary/20 text-primary">
+                <span className="material-symbols-outlined text-primary text-2xl">upload_file</span>
+              </div>
+              <div className="w-[2px] bg-gray-200 dark:bg-gray-700 grow"></div>
             </div>
-            <div className="mt-12 max-w-3xl mx-auto space-y-8">
-              <ResearchItem title="Active Recall" cite="Roediger & Karpicke (2006). Test-Enhanced Learning. Psychological Science.">Generating answers to questions, rather than passively reviewing notes, strengthens memory and understanding. Student Buddy is built on this principle.</ResearchItem>
-              <ResearchItem title="Spaced Repetition" cite="Cepeda et al. (2008). Spacing effects in learning: Psychological Science.">Reviewing information at increasing intervals over time is proven to improve long-term retention. Our tracker helps you schedule your practice sessions.</ResearchItem>
-              <ResearchItem title="Immediate Feedback" cite="Butler & Roediger (2008). Feedback-enhanced learning.">Corrective feedback right after a test is crucial for learning from mistakes and reinforcing correct knowledge.</ResearchItem>
+            <div className="flex flex-1 flex-col py-3 pb-8">
+              <p className="text-text-light dark:text-text-dark text-lg font-bold leading-normal">Upload/Create Notes</p>
+              <p className="text-gray-600 dark:text-gray-400 text-base font-normal leading-normal">Start by adding your study materials.</p>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-[2px] bg-gray-200 dark:bg-gray-700 h-2"></div>
+              <div className="flex items-center justify-center size-12 rounded-full bg-primary/20 text-primary">
+                <span className="material-symbols-outlined text-primary text-2xl">auto_awesome</span>
+              </div>
+              <div className="w-[2px] bg-gray-200 dark:bg-gray-700 grow"></div>
+            </div>
+            <div className="flex flex-1 flex-col py-3 pb-8">
+              <p className="text-text-light dark:text-text-dark text-lg font-bold leading-normal">AI Analysis</p>
+              <p className="text-gray-600 dark:text-gray-400 text-base font-normal leading-normal">Our AI processes your content to understand key concepts.</p>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-[2px] bg-gray-200 dark:bg-gray-700 h-2"></div>
+              <div className="flex items-center justify-center size-12 rounded-full bg-primary/20 text-primary">
+                <span className="material-symbols-outlined text-primary text-2xl">school</span>
+              </div>
+              <div className="w-[2px] bg-gray-200 dark:bg-gray-700 grow"></div>
+            </div>
+            <div className="flex flex-1 flex-col py-3 pb-8">
+              <p className="text-text-light dark:text-text-dark text-lg font-bold leading-normal">Practice & Learn</p>
+              <p className="text-gray-600 dark:text-gray-400 text-base font-normal leading-normal">Use our tools to test your knowledge and reinforce learning.</p>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-[2px] bg-gray-200 dark:bg-gray-700 h-2"></div>
+              <div className="flex items-center justify-center size-12 rounded-full bg-primary/20 text-primary">
+                <span className="material-symbols-outlined text-primary text-2xl">show_chart</span>
+              </div>
+            </div>
+            <div className="flex flex-1 flex-col py-3">
+              <p className="text-text-light dark:text-text-dark text-lg font-bold leading-normal">Track Progress</p>
+              <p className="text-gray-600 dark:text-gray-400 text-base font-normal leading-normal">See how you're improving over time.</p>
             </div>
           </div>
-        </section>
+        </div>
 
-        <footer className="bg-gray-900">
-          <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 text-center text-gray-400">
-            <div className="flex justify-center gap-6 mb-8">
-              <a className="text-sm hover:text-white" href="#">Privacy Policy</a>
-              <a className="text-sm hover:text-white" href="#">Terms of Service</a>
-              <a className="text-sm hover:text-white" href="#">Contact Us</a>
+        <div className="p-4 @container">
+          <div className="flex flex-1 flex-col items-start justify-between gap-4 rounded-xl border border-primary/30 bg-primary/10 dark:bg-primary/20 p-6 @[480px]:flex-row @[480px]:items-center">
+            <div className="flex items-center gap-4">
+              <span className="material-symbols-outlined text-primary text-3xl">info</span>
+              <div className="flex flex-col gap-1">
+                <p className="text-primary text-lg font-bold leading-tight">Beta Testing Notice</p>
+                <p className="text-primary/80 text-base font-normal leading-normal">
+                  Welcome to the Student Buddy beta! This is a fully functional version of our platform. We're looking for your feedback to help us improve.
+                </p>
+              </div>
             </div>
-            <p className="text-sm">© 2024 Student Buddy. All rights reserved.</p>
           </div>
-        </footer>
+        </div>
+
+        <div className="flex flex-col gap-6 text-center bg-white dark:bg-background-dark rounded-xl p-8 md:p-12 border border-gray-200 dark:border-gray-700">
+          <h2 className="text-3xl font-bold text-text-light dark:text-text-dark">Ready to revolutionize your studying?</h2>
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">Join our beta and be among the first to experience the future of learning.</p>
+          <div className="flex flex-wrap justify-center gap-4 mt-4">
+            <Link to="/register" className="flex min-w-[180px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+              <span className="truncate">Access Full System</span>
+            </Link>
+            <Link to="/app/active-learning" className="flex min-w-[180px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-secondary text-white text-base font-bold leading-normal tracking-[0.015em] hover:bg-secondary/90 transition-colors">
+              <span className="truncate">Try AI Quiz Generator</span>
+            </Link>
+            <Link to="/app/notes" className="flex min-w-[180px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-transparent border border-primary text-primary text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/10 transition-colors">
+              <span className="truncate">Explore OCR Support</span>
+            </Link>
+          </div>
+        </div>
       </main>
+
+      <footer className="border-t border-gray-200 dark:border-gray-700 py-8 px-4 sm:px-10">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-sm text-gray-600 dark:text-gray-400">© 2024 Student Buddy. All rights reserved.</p>
+          <div className="flex gap-4">
+            {/* Social Media Icons */}
+          </div>
+          <Link to="/register" className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+            <span className="truncate">Sign Up for Beta</span>
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 };
-
-const FeatureCard = ({ icon, title, copy }) => (
-  <div className="flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl">
-    <div className="text-primary text-3xl"><Icon name={icon} className="w-8 h-8" /></div>
-    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h3>
-    <p className="text-sm text-gray-700 dark:text-gray-300">{copy}</p>
-  </div>
-);
-
-const HowStep = ({ icon, title, copy }) => (
-  <div className="flex flex-col items-center gap-4">
-    <div className="w-48 h-48 bg-primary/10 rounded-full flex items-center justify-center">
-      <Icon name={icon} className="w-12 h-12 text-primary" />
-    </div>
-    <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{title}</p>
-    <p className="text-gray-700 dark:text-gray-300">{copy}</p>
-  </div>
-);
-
-const ResearchItem = ({ title, cite, children }) => (
-  <div className="flex items-start gap-4">
-    <Icon name="check_circle" className="w-6 h-6 text-primary mt-1" />
-    <div>
-      <p className="text-gray-900 dark:text-gray-100"><strong>{title}:</strong> {children}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{cite}</p>
-    </div>
-  </div>
-);
 
 export default Landing;
