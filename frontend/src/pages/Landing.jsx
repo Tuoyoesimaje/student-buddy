@@ -202,7 +202,7 @@ const Landing = () => {
 
       <footer className="border-t border-gray-200 dark:border-gray-700 py-8 px-4 sm:px-10">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-sm text-gray-600 dark:text-gray-400">© 2024 Student Buddy. All rights reserved.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">© 2025 Student Buddy. All rights reserved.</p>
           <div className="flex gap-4">
             {/* Social Media Icons */}
           </div>
