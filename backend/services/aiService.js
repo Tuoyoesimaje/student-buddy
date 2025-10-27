@@ -180,22 +180,58 @@ Format the notes in a clean, readable structure with headings and bullet points.
   async generatePracticeQuestions(topicOrNote, isNoteBased = true) {
     let prompt;
     if (isNoteBased) {
-      prompt = `You are an exam question generator. You will be given one or more study notes separated by clear separators. Generate 15 practice exam questions in total, distributing them across the provided notes so each note is represented (if possible). IMPORTANT: Generate questions based ONLY on the content provided in the notes. Do not include topics, concepts, or information not covered in the given notes. For each question, include in parentheses a short source tag indicating which NOTE it came from (for example: (NOTE 1)). Do NOT include answers. Format the output as a numbered list, one question per line.
+      prompt = `You are an experienced university lecturer creating practice exam questions. You will be given study notes content. Generate exactly 15 practice exam questions in total, distributing them across the provided notes fairly so each note is represented proportionally to its content length and importance.
 
-Important:
-- If multiple notes are provided, ensure questions cover each note fairly (aim for roughly equal coverage).
-- If a note is very short, allocate fewer questions to it.
-- If the AI cannot create 15 unique questions, create as many as you can and clearly state how many were generated at the top.
+CRITICAL: Generate questions based ONLY on the content provided in the notes. Do not include external topics, concepts, or information not explicitly covered in the given notes.
+
+Create a balanced mix of question types that mirrors real exam variety:
+
+• 3-4 basic knowledge questions (Define, List, Identify, State)
+• 3-4 understanding questions (Explain, Describe, Differentiate, Compare basic concepts)
+• 3-4 application/reasoning questions (Why, How, What happens if, Apply concepts to scenarios)
+• 2-3 higher-order/scenario questions (Compare/contrast in depth, Evaluate, Give examples that demonstrate, Analyze relationships)
+
+For each question, include in parentheses a short source tag indicating which NOTE it came from (for example: (NOTE 1)).
+
+Format the output as a numbered list, one question per line:
+
+1. [Basic knowledge question] (NOTE 1)
+2. [Understanding question] (NOTE 1)
+3. [Application question] (NOTE 2)
+etc.
+
+Ensure questions:
+- Progress from foundational concepts to more complex analysis
+- Test different aspects of the same concept across question types
+- Use clear, precise academic language
+- Focus strictly on note content - never add outside information
+- When multiple notes are given, distribute questions across notes fairly based on content depth
 
 Notes:
 ${topicOrNote}`;
     } else {
-      prompt = `You are an exam question generator. Generate 15 practice exam questions on the topic: "${topicOrNote}". Do NOT include answers. Format the output as a numbered list, one question per line.
+      prompt = `You are an experienced university lecturer creating practice exam questions for the topic: "${topicOrNote}". Generate exactly 15 practice exam questions that progress from basic to complex thinking.
 
-Important:
-- Generate questions based on general knowledge of the topic.
-- Ensure questions are varied and cover different aspects of the topic.
-- If the AI cannot create 15 unique questions, create as many as you can and clearly state how many were generated at the top.`;
+Create a balanced mix of question types that mirrors real exam variety:
+
+• 3-4 basic knowledge questions (Define, List, Identify, State)
+• 3-4 understanding questions (Explain, Describe, Differentiate, Compare basic concepts)
+• 3-4 application/reasoning questions (Why, How, What happens if, Apply concepts to scenarios)
+• 2-3 higher-order/scenario questions (Compare/contrast in depth, Evaluate, Give examples that demonstrate, Analyze relationships)
+
+Format the output as a numbered list, one question per line:
+
+1. [Basic knowledge question]
+2. [Understanding question]
+3. [Application question]
+etc.
+
+Ensure questions:
+- Progress from foundational concepts to more complex analysis
+- Test different aspects of the same concept across question types
+- Use clear, precise academic language appropriate for university-level assessment
+- Cover different aspects of the topic comprehensively
+- Build in complexity throughout the question set`;
     }
 
     const response = await this.generateResponse(prompt);
@@ -214,35 +250,36 @@ Important:
 
   async gradePracticeExam(questions, userAnswers, noteContent = null) {
     // Construct the prompt for grading based on note content
-    let prompt = `You are an expert exam grader evaluating student answers based on specific course content.
+    let prompt = `You are an experienced university lecturer providing detailed, constructive feedback on student exam answers.
 
-${noteContent ? `REFERENCE MATERIAL (grade answers based on this content, not general knowledge):\n${noteContent}\n\n` : ''}
+${noteContent ? `REFERENCE MATERIAL (grade answers based STRICTLY on this content, not general knowledge):\n${noteContent}\n\n` : ''}
 
-Grade each of the ${questions.length} questions using this scoring scale:
-- 9-10: Fully correct, complete understanding
-- 6-8: Partially correct, main idea present but missing details
-- 3-5: Weak understanding, missing context or has errors
-- 0-2: Off-topic, wrong, or no understanding shown
+Grade each of the ${questions.length} questions with intelligent assessment that recognizes partial understanding and gives proportional credit:
+
+SCORING SCALE (0-10):
+- 9-10: Complete understanding - captures all key elements accurately
+- 7-8: Strong understanding - main concepts correct with minor omissions
+- 5-6: Good understanding - correct core idea but missing important details
+- 3-4: Basic understanding - recognizes concept but with significant gaps/errors
+- 1-2: Limited understanding - vague or mostly incorrect
+- 0: No understanding shown or completely wrong
+
+COMMENTS should sound like real lecturer feedback:
+• "Good grasp of the definition, but you missed the practical application aspect."
+• "You identified the key term correctly, but your explanation lacks depth - try to elaborate on why this matters."
+• "Strong reasoning here - you explained the cause well, but didn't fully address the consequences."
+• "Correct concept but phrased vaguely; be more specific about the mechanisms involved."
+• "Nice attempt at application, but you mixed up the sequence of events."
+• "You captured the main idea, but missed some critical connections between concepts."
 
 Return a JSON array where each object has:
 {
   "question": "exact question text",
   "studentAnswer": "student's answer (or 'No answer provided')",
   "mark": number (0-10),
-  "comment": "specific feedback referencing the reference material",
-  "reference": "specific section/page from reference material that supports this answer"
+  "comment": "specific, encouraging feedback that sounds like a real lecturer",
+  "reference": "specific concept/section from reference material that supports this grading"
 }
-
-Example format:
-[
-  {
-    "question": "What is the main function of mitochondria?",
-    "studentAnswer": "They produce energy for the cell",
-    "mark": 8,
-    "comment": "Correct main function but didn't mention ATP production specifically",
-    "reference": "Section 3.2: Cellular Energy Production"
-  }
-]
 
 Questions to grade:\n`;
 
