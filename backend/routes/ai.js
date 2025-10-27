@@ -115,27 +115,33 @@ router.post('/generate-quiz', async (req, res) => {
   // Construct prompt for AI to generate quiz questions (include subtle hint per question)
   // The hint must guide recall without revealing the answer and must avoid keywords from the correct answer.
   // Output format: Q#: question text\nA) ...\nB) ...\nC) ...\nHint: ...\nAnswer: [A/B/C]
-  const prompt = `Generate 10 multiple-choice quiz questions about ${topic}. Each question should have exactly 3 multiple-choice options: A, B, and C. For each question also generate a single concise hint (one sentence, 8-20 words) that guides thinking without revealing the answer and that does NOT contain keywords from the correct answer.
+  const prompt = `Generate 15 multiple-choice quiz questions about ${topic}. Each question should have exactly 4 multiple-choice options: A, B, C, and D. For each question also generate:
+1. A single concise hint (one sentence, 8-20 words) that guides thinking without revealing the answer and that does NOT contain keywords from the correct answer.
+2. A detailed explanation (2-4 sentences) that explains why the correct answer is right, including examples or reasoning.
 
 Format the output exactly as follows for each question:
 Q1: [Question text]
 A) [option A]
 B) [option B]
 C) [option C]
+D) [option D]
 Hint: [a short subtle hint that encourages recall and avoids answer keywords]
-Answer: [A/B/C]
+Explanation: [detailed explanation of why the correct answer is right]
+Answer: [A/B/C/D]
 
 Example:
 Q1: What is the capital of France?
 A) London
 B) Berlin
 C) Paris
+D) Rome
 Hint: Think of the famous city with the Eiffel Tower and Seine river
+Explanation: Paris is the capital of France because it serves as the country's political, economic, and cultural center. The city is home to iconic landmarks like the Eiffel Tower and contains important government buildings such as the Élysée Palace.
 Answer: C
 
-Answers should not be always the same letter. They should be mixed evenly among A, B, and C. Randomly distributed.
+Answers should not be always the same letter. They should be mixed evenly among A, B, C, and D. Randomly distributed.
 
-Now generate 10 questions about ${topic} in this exact format, using only options A, B, and C. Keep hints brief and avoid giving away the answer.`;
+Now generate 15 questions about ${topic} in this exact format, using only options A, B, C, and D. Keep hints brief and avoid giving away the answer. Make explanations detailed but concise.`;
 
     console.log('Sending quiz generation prompt to AI service...');
     const rawQuizText = await aiService.generateResponse(prompt);
