@@ -36,9 +36,13 @@ const quizResultSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    hint: {
+      type: String,
+      default: ''
+    },
     explanation: {
       type: String,
-      required: true
+      default: ''
     }
   }],
   score: {
