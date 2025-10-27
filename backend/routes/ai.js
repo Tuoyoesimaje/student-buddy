@@ -90,8 +90,8 @@ ${text}`;
     console.error('Error in summarize endpoint:', error);
     // Check for specific error messages
     if (error.message.includes('All Gemini keys failed')) {
-      return res.status(503).json({ 
-        message: 'All Gemini keys failed or hit their limit. Try again later.' 
+      return res.status(503).json({
+        message: 'All Gemini keys failed or hit their limit. Try again later.'
       });
     }
     // Pass the specific error message from the AI service
@@ -328,9 +328,9 @@ router.post('/process-note', auth, async (req, res) => {
       processedContent = await aiService.explainNote(originalNote.content);
       titleSuffix = ' (AI Explanation)';
     } else {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid action. Use "summarize" or "explain"' 
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid action. Use "summarize" or "explain"'
       });
     }
 

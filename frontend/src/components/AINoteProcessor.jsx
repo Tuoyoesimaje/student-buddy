@@ -31,7 +31,7 @@ export default function AINoteProcessor({ noteId, onNoteProcessed, className = '
       );
 
       if (response.data.success) {
-        setSuccess(`Note ${action === 'summarize' ? 'summarized' : 'explained'} successfully!`);
+        setSuccess(`Note ${action === 'summarize' ? 'study notes created' : 'explained'} successfully!`);
         if (onNoteProcessed) {
           onNoteProcessed(response.data.note);
         }
@@ -94,8 +94,8 @@ export default function AINoteProcessor({ noteId, onNoteProcessed, className = '
                       <DocumentTextIcon className="h-5 w-5 text-white" />
                     </div>
                     <div className="text-left">
-                      <div className="font-semibold text-blue-800 dark:text-blue-300">Summarize</div>
-                      <p className="text-sm text-blue-600 dark:text-blue-400">Create a concise, easy-to-review summary</p>
+                      <div className="font-semibold text-blue-800 dark:text-blue-300">Create Study Notes</div>
+                      <p className="text-sm text-blue-600 dark:text-blue-400">Condense into focused, exam-ready notes</p>
                     </div>
                   </div>
                 </button>

@@ -129,9 +129,11 @@ class AIService {
   }
 
   async summarizeNote(noteContent) {
-    const prompt = `Please summarize the following notes in a concise, easy-to-remember format. 
-    Focus on key points and main ideas. Make it suitable for quick review before exams.\n\n${noteContent}`;
-    
+    const prompt = `Rewrite this note as if you're an A-grade student preparing for exams. Keep ALL important concepts and definitions, but make it concise and clear. Remove unnecessary details and repetition. Organize with clear headings. Use simple language. Focus on what I need to know for exams. Make it shorter but complete - like quality student study notes, not a summary.
+
+Note content:
+${noteContent}`;
+
     return await this.generateResponse(prompt);
   }
 
