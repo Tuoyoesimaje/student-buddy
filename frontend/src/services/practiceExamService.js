@@ -48,3 +48,13 @@ export const getPracticeExam = async (examId) => {
     throw error;
   }
 };
+
+/**
+ * Retake a practice exam by creating a new exam with the same questions
+ * @param {string} examId - The ID of the original practice exam to retake
+ * @returns {Promise} - The response containing the new exam details
+ */
+export const retakePracticeExam = async (examId) => {
+  const response = await api.post(`/practice-exam/${examId}/retake`);
+  return response.data;
+};

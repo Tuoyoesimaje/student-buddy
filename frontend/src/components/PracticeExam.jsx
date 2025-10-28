@@ -31,7 +31,7 @@ const PracticeExam = () => {
   // when the user later selects notes interactively on this page.
   useEffect(() => {
     const st = location.state || {};
-    const { selectedNotes, mode, autoStart: navAutoStart } = st;
+    const { selectedNotes, mode, autoStart: navAutoStart, retakeFrom, topicOrNote: retakeTopic } = st;
 
     if (selectedNotes && Array.isArray(selectedNotes)) {
       setSelectedExamNotes(selectedNotes);
@@ -39,6 +39,24 @@ const PracticeExam = () => {
     }
     if (mode) {
       setExamGenerationMode(mode);
+    }
+
+    // Handle retake functionality
+    if (retakeFrom) {
+      console.log('Retaking assessment:', retakeFrom);
+      if (retakeTopic) {
+        // Retaking a topic-based exam
+        setTopicOrNote(retakeTopic);
+        setExamGenerationMode('topic');
+      } else {
+        // Retaking a note-based exam - we need to fetch the original exam data
+        // For now, we'll just show a message that retake setup is needed
+        toast({
+          title: 'Retake Setup',
+          description: 'Please select the notes again to retake this practice exam.',
+          status: 'info',
+        });
+      }
     }
 
   // Only auto-start for the explicit 'notes-quick' token coming from Notes quick-action

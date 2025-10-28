@@ -173,7 +173,39 @@ const Study = () => {
 
   // Handle navigation from Notes page with selected notes
   useEffect(() => {
-    const { selectedNotes, mode } = location.state || {};
+    const { selectedNotes, mode, retakeFrom, noteId: retakeNoteId, noteTitle: retakeNoteTitle } = location.state || {};
+
+    // Handle retake functionality
+    if (retakeFrom) {
+      console.log('Retaking quiz:', retakeFrom);
+      // For quiz retakes, we need to regenerate the quiz from the same note
+      if (retakeNoteId) {
+        // We have the note ID, fetch the note and regenerate
+        (async () => {
+          try {
+            const allNotes = await api.get('/api/notes');
+            const found = allNotes.data ? allNotes.data.find(n => n._id === retakeNoteId) : allNotes.find(n => n._id === retakeNoteId);
+            if (found) {
+              setSelectedQuizNotes([found]);
+              setQuizGenerationMode('note-based');
+              setCurrentMode('quiz');
+              await generateQuizFromNotesFromArray([found]);
+            } else {
+              throw new Error('Note not found for retake');
+            }
+          } catch (err) {
+            console.error('Retake quiz failed:', err);
+            setQuizMode('prep');
+          }
+        })();
+      } else {
+        // Fallback: just show prep screen
+        setCurrentMode('quiz');
+        setQuizMode('prep');
+      }
+      return;
+    }
+
     if (selectedNotes && Array.isArray(selectedNotes)) {
       // Preselect notes and immediately generate a quiz from them so
       // navigation from Notes -> Study auto-opens the quiz for that note.

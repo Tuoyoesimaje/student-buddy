@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { XMarkIcon, AcademicCapIcon, DocumentTextIcon, ClockIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, AcademicCapIcon, DocumentTextIcon, ClockIcon, CheckCircleIcon, XCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
 import { apiRequest } from '../services/api';
 
@@ -113,6 +113,55 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
 
       // Ensure the viewport is at the top after navigation
       setTimeout(() => window.scrollTo(0, 0), 60);
+    }, 80);
+  };
+
+  const handleRetakeAssessment = async (assessment) => {
+    console.log('Retaking assessment:', assessment);
+
+    // Close the modal first
+    onClose();
+
+    // Small delay allows modal to unmount
+    setTimeout(async () => {
+      try {
+        if (assessment.type === 'practice-exam') {
+          // For practice exams, create a retake directly via API
+          const { retakePracticeExam } = await import('../services/practiceExamService');
+          const retakeResponse = await retakePracticeExam(assessment.id);
+
+          if (retakeResponse.success && retakeResponse.examId) {
+            // Navigate directly to the retake exam questions
+            navigate(`/app/practice-exam/questions/${retakeResponse.examId}`);
+          } else {
+            throw new Error('Failed to create retake exam');
+          }
+        } else if (assessment.type === 'quiz') {
+          // For quizzes, we need to regenerate the quiz from the same note
+          // Navigate to study page with retake context
+          navigate('/app/study', {
+            state: {
+              retakeFrom: assessment.id,
+              noteId: noteId,
+              noteTitle: noteTitle
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error setting up retake:', error);
+        // Fallback navigation
+        if (assessment.type === 'practice-exam') {
+          navigate('/app/practice-exam', {
+            state: {
+              retakeFrom: assessment.id,
+              topicOrNote: assessment.title,
+              noteId: noteId
+            }
+          });
+        } else {
+          navigate('/app/study');
+        }
+      }
     }, 80);
   };
 
@@ -393,13 +442,12 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
                         key={assessment.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors"
-                        onClick={() => handleAssessmentClick(assessment)}
+                        className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors group"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-3 flex-1" onClick={() => handleAssessmentClick(assessment)}>
                             <AcademicCapIcon className="w-5 h-5 text-blue-600" />
-                            <div>
+                            <div className="flex-1">
                               <div className="font-medium text-gray-900 dark:text-gray-100">
                                 {assessment.title}
                               </div>
@@ -408,22 +456,34 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            {assessment.score !== null ? (
-                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {assessment.percentage !== undefined
-                                  ? `${assessment.percentage.toFixed(1)}%`
-                                  : assessment.score
-                                }
-                              </div>
-                            ) : (
-                              <div className="text-sm text-gray-500">In Progress</div>
-                            )}
-                            {assessment.passed !== undefined && (
-                              <div className={`text-xs ${assessment.passed ? 'text-green-600' : 'text-red-600'}`}>
-                                {assessment.passed ? 'Passed' : 'Failed'}
-                              </div>
-                            )}
+                          <div className="flex items-center space-x-2">
+                            <div className="text-right" onClick={() => handleAssessmentClick(assessment)}>
+                              {assessment.score !== null ? (
+                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {assessment.percentage !== undefined
+                                    ? `${assessment.percentage.toFixed(1)}%`
+                                    : assessment.score
+                                  }
+                                </div>
+                              ) : (
+                                <div className="text-sm text-gray-500">In Progress</div>
+                              )}
+                              {assessment.passed !== undefined && (
+                                <div className={`text-xs ${assessment.passed ? 'text-green-600' : 'text-red-600'}`}>
+                                  {assessment.passed ? 'Passed' : 'Failed'}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRetakeAssessment(assessment);
+                              }}
+                              className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                              title="Retake this quiz"
+                            >
+                              <ArrowPathIcon className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       </motion.div>
@@ -441,13 +501,12 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
                         key={assessment.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors"
-                        onClick={() => handleAssessmentClick(assessment)}
+                        className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors group"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-3 flex-1" onClick={() => handleAssessmentClick(assessment)}>
                             <DocumentTextIcon className="w-5 h-5 text-purple-600" />
-                            <div>
+                            <div className="flex-1">
                               <div className="font-medium text-gray-900 dark:text-gray-100">
                                 {assessment.title}
                               </div>
@@ -456,22 +515,34 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            {assessment.score !== null ? (
-                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {assessment.percentage !== undefined
-                                  ? `${assessment.percentage.toFixed(1)}%`
-                                  : assessment.score
-                                }
-                              </div>
-                            ) : (
-                              <div className="text-sm text-gray-500">In Progress</div>
-                            )}
-                            {assessment.passed !== undefined && (
-                              <div className={`text-xs ${assessment.passed ? 'text-green-600' : 'text-red-600'}`}>
-                                {assessment.passed ? 'Passed' : 'Failed'}
-                              </div>
-                            )}
+                          <div className="flex items-center space-x-2">
+                            <div className="text-right" onClick={() => handleAssessmentClick(assessment)}>
+                              {assessment.score !== null ? (
+                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {assessment.percentage !== undefined
+                                    ? `${assessment.percentage.toFixed(1)}%`
+                                    : assessment.score
+                                  }
+                                </div>
+                              ) : (
+                                <div className="text-sm text-gray-500">In Progress</div>
+                              )}
+                              {assessment.passed !== undefined && (
+                                <div className={`text-xs ${assessment.passed ? 'text-green-600' : 'text-red-600'}`}>
+                                  {assessment.passed ? 'Passed' : 'Failed'}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRetakeAssessment(assessment);
+                              }}
+                              className="p-2 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                              title="Retake this practice exam"
+                            >
+                              <ArrowPathIcon className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       </motion.div>

@@ -392,6 +392,53 @@ router.get('/:examId', auth, async (req, res) => {
   }
 });
 
+// Retake a practice exam - create a new exam with the same questions
+router.post('/:examId/retake', auth, async (req, res) => {
+  try {
+    const { examId } = req.params;
+    const userId = req.user.userId;
+
+    // Find the original exam
+    const originalExam = await AIGeneratedPracticeExam.findOne({ _id: examId, userId });
+    if (!originalExam) {
+      return res.status(404).json({
+        success: false,
+        error: 'Original practice exam not found'
+      });
+    }
+
+    // Create a new practice exam with the same questions
+    const retakeExam = new AIGeneratedPracticeExam({
+      userId,
+      topicOrNote: originalExam.topicOrNote,
+      ...(Array.isArray(originalExam.noteIds) && originalExam.noteIds.length > 0 ? { noteIds: originalExam.noteIds } : {}),
+      questions: originalExam.questions, // Use the same questions
+      userAnswers: Array(originalExam.questions.length).fill(null), // Reset answers
+      submitted: false,
+      retakeOf: examId // Reference to original exam
+    });
+
+    const savedRetakeExam = await retakeExam.save();
+
+    console.log('Retake exam created successfully. Original exam ID:', examId, 'New exam ID:', savedRetakeExam._id);
+
+    res.status(201).json({
+      success: true,
+      examId: savedRetakeExam._id,
+      questions: originalExam.questions,
+      message: 'Retake exam created successfully'
+    });
+
+  } catch (error) {
+    console.error('Error creating retake exam:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error creating retake exam',
+      details: error.message
+    });
+  }
+});
+
 // Duplicate assessment-aggregation handler removed to avoid route conflicts.
 
 // Save quiz results (for tracking purposes - no formal submission needed)

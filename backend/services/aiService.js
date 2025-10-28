@@ -239,12 +239,14 @@ Ensure questions:
     const response = await this.generateResponse(prompt);
 
     // Parse the response to extract questions as an array
-    // Use regex to match lines starting with number followed by dot and space
-    const questionRegex = /^\d+\.\s*(.+)$/gm;
+    // Handle both formats: with source tags (NOTE 1) and without
+    const questionRegex = /^\d+\.\s*(.+?)(?:\s*\(NOTE\s*\d+\))?\s*$/gm;
     const questions = [];
     let match;
     while ((match = questionRegex.exec(response)) !== null) {
-      questions.push(match[1].trim());
+      // Extract just the question text, removing source tags if present
+      const questionText = match[1].trim();
+      questions.push(questionText);
     }
 
     return questions;
