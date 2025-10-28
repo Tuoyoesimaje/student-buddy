@@ -220,7 +220,7 @@ const Study = () => {
             setCurrentQuestion(0);
             setCurrentMode('quiz');
             setQuizMode('in_progress');
-            setTimeLeft(5 * 60); // Reset timer to 5 minutes
+            setTimeLeft(8 * 60); // Reset timer to 8 minutes
             setIsRunning(true); // Start the timer
             return;
           }
@@ -257,7 +257,7 @@ const Study = () => {
             setCurrentQuestion(0);
             setCurrentMode('quiz');
             setQuizMode('in_progress');
-            setTimeLeft(5 * 60); // Reset timer to 5 minutes
+            setTimeLeft(8 * 60); // Reset timer to 8 minutes
             setIsRunning(true); // Start the timer
           } else {
             console.error('Invalid response format for retake quiz (backend)');
@@ -452,7 +452,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-        setTimeLeft(5 * 60); // Ensure the new 5 minute timer
+  setTimeLeft(8 * 60); // Ensure the new 8 minute timer
         setIsRunning(true);
         setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       } else {
@@ -471,7 +471,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-        setTimeLeft(5 * 60);
+  setTimeLeft(8 * 60);
         setIsRunning(true);
         setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       }
@@ -538,7 +538,7 @@ const Study = () => {
       setIsRunning(false);
     } else if (!isBreak) {
       setCompletedPomodoros(prev => prev + 1);
-      setTimeLeft(5 * 60);
+  setTimeLeft(8 * 60);
       setIsBreak(true);
     } else {
       setTimeLeft(25 * 60);
@@ -557,7 +557,7 @@ const Study = () => {
 
   const resetTimer = () => {
     if (quizMode === 'in_progress') {
-      setTimeLeft(5 * 60); // 5 minutes for quiz
+  setTimeLeft(8 * 60); // 8 minutes for quiz
     } else {
       setTimeLeft(25 * 60);
     }
@@ -569,7 +569,7 @@ const Study = () => {
   // Update timer when quiz mode changes
   useEffect(() => {
     if (quizMode === 'in_progress') {
-      setTimeLeft(5 * 60); // Set 5-minute timer for quiz
+  setTimeLeft(8 * 60); // Set 8-minute timer for quiz
       setIsRunning(true); // Auto-start timer when quiz begins
     }
   }, [quizMode]);
@@ -640,7 +640,7 @@ const Study = () => {
     setCurrentQuestion(0);
     setCurrentMode('quiz');
       setQuizMode('in_progress');
-  setTimeLeft(5 * 60); // Reset timer to 5 minutes
+  setTimeLeft(8 * 60); // Reset timer to 8 minutes
       setIsRunning(true); // Start the timer
       
     } catch (error) {
@@ -689,7 +689,7 @@ const Study = () => {
         totalQuestions: quizQuestions.length,
         percentage: Math.round((score / quizQuestions.length) * 100),
         passed: score / quizQuestions.length >= 0.6, // 60% passing threshold
-        timeSpent: 5 * 60 - timeLeft, // Calculate time spent
+  timeSpent: 8 * 60 - timeLeft, // Calculate time spent
         aiRemarks: `Quiz completed with ${Math.round((score / quizQuestions.length) * 100)}% accuracy. ${score / quizQuestions.length >= 0.8 ? 'Excellent performance!' : score / quizQuestions.length >= 0.6 ? 'Good job!' : 'Keep practicing to improve.'}`
       };
 
