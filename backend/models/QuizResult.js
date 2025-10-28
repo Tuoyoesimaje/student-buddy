@@ -45,6 +45,13 @@ const quizResultSchema = new mongoose.Schema({
       default: ''
     }
   }],
+  // If this result is a retake of a previous quiz, store reference
+  retakeOf: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'QuizResult',
+    required: false,
+    default: null
+  },
   score: {
     type: Number,
     required: true

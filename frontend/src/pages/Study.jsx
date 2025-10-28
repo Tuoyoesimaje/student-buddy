@@ -57,6 +57,7 @@ const Study = () => {
   const [success, setSuccess] = useState(null);
   const [quizGenerationMode, setQuizGenerationMode] = useState('note-based'); // 'note-based' or 'topic'
   const [selectedQuizNotes, setSelectedQuizNotes] = useState([]);
+  const [navRetake, setNavRetake] = useState(null); // store retake payload/id when navigating to Study
 
   // Quiz interactivity states
   const [showFeedback, setShowFeedback] = useState(false);
@@ -204,6 +205,8 @@ const Study = () => {
         try {
           if (Array.isArray(effectiveRetake?.questions) && effectiveRetake.questions.length > 0) {
             const quizData = effectiveRetake;
+            // keep retake payload so we can mark saved results as a retake
+            setNavRetake(quizData);
             setQuizQuestions(quizData.questions);
             const initAnswers = new Array(quizData.questions.length).fill(null);
             const initAttempts = new Array(quizData.questions.length).fill(0);
@@ -239,6 +242,8 @@ const Study = () => {
           const payload = (response && response.data) || response;
           const quizData = payload && (payload.questions ? payload : (payload.quiz || null));
           if (quizData && quizData.questions) {
+            // keep retake payload so we can mark saved results as a retake
+            setNavRetake(quizData);
             setQuizQuestions(quizData.questions);
             const initAnswers = new Array(quizData.questions.length).fill(null);
             const initAttempts = new Array(quizData.questions.length).fill(0);
@@ -678,6 +683,8 @@ const Study = () => {
           isCorrect: firstAttemptAnswers[idx] === q.correctAnswer,
           explanation: q.hint || ''
         })),
+        // If this quiz was started as a retake, include reference to original
+        retakeOf: navRetake?.retakeOf || navRetake?._id || null,
         score: score,
         totalQuestions: quizQuestions.length,
         percentage: Math.round((score / quizQuestions.length) * 100),

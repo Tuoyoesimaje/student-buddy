@@ -483,6 +483,7 @@ router.post('/quiz-results', auth, async (req, res) => {
       noteId: noteId || resolvedNoteId, // Use provided noteId or resolved noteId
       noteTitle,
       questions,
+      retakeOf: req.body.retakeOf || null,
       score,
       totalQuestions,
       percentage,
