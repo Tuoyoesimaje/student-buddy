@@ -204,9 +204,9 @@ etc.
 
 Ensure questions:
 - Progress from foundational concepts to more complex analysis
-- Test different aspects of the same concept across question types
+- Test different aspects of the same concept across question types but always based strictly on the provided notes
 - Use clear, precise academic language
-- Focus strictly on note content - never add outside information
+- Focus strictly on note content - never add outside information or concepts not explicitly covered
 - When multiple notes are given, distribute questions across notes fairly based on content depth
 
 Notes:
@@ -296,12 +296,30 @@ Questions to grade:\n`;
 
     try {
       // Try to parse the response as JSON
-      const jsonMatch = response.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        throw new Error('Could not find JSON array in response');
+      // First, try to extract JSON from markdown code blocks
+      let jsonStr = response;
+
+      // Check if response contains markdown code blocks
+      const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (codeBlockMatch) {
+        jsonStr = codeBlockMatch[1].trim();
+      } else {
+        // Fallback to extracting just the JSON array
+        const jsonMatch = response.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          jsonStr = jsonMatch[0];
+        } else {
+          throw new Error('Could not find JSON array in response');
+        }
       }
 
-      const jsonStr = jsonMatch[0];
+      // Clean up the JSON string - remove any trailing commas or extra characters
+      jsonStr = jsonStr.trim();
+
+      // Try to fix common JSON issues
+      // Remove trailing commas before closing brackets/braces
+      jsonStr = jsonStr.replace(/,(\s*[}\]])/g, '$1');
+
       const detailedResults = JSON.parse(jsonStr);
 
       // Validate the result structure

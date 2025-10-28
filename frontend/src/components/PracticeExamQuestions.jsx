@@ -18,7 +18,6 @@ const PracticeExamQuestions = () => {
   const [currentAnswer, setCurrentAnswer] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [gradingProgress, setGradingProgress] = useState(0);
 
   useEffect(() => {
     const fetchExam = async () => {
@@ -90,28 +89,12 @@ const PracticeExamQuestions = () => {
     }
 
     setIsSubmitting(true);
-    setGradingProgress(0);
-
-    // Simulate progress during AI grading
-    const progressInterval = setInterval(() => {
-      setGradingProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + Math.random() * 15;
-      });
-    }, 500);
 
     try {
       const response = await submitPracticeExam(examId, userAnswers);
-      setGradingProgress(100);
-      setTimeout(() => {
-        navigate(`/app/practice-exam/results/${examId}`);
-      }, 1000);
+      navigate(`/app/practice-exam/results/${examId}`);
     } catch (error) {
       console.error('Error submitting practice exam:', error);
-      clearInterval(progressInterval);
       toast({
         title: 'Error',
         description: error.response?.data?.error || 'Failed to submit practice exam. Please try again.',
@@ -119,7 +102,6 @@ const PracticeExamQuestions = () => {
       });
     } finally {
       setIsSubmitting(false);
-      clearInterval(progressInterval);
     }
   };
 
@@ -326,30 +308,28 @@ const PracticeExamQuestions = () => {
         </CardContent>
       </Card>
 
-      {/* AI Grading Progress Card */}
+      {/* Submission Loading Modal */}
       {isSubmitting && (
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border-blue-200 dark:border-blue-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
-                <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300">AI Grading in Progress</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+                <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                  Submitting Your Exam
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Please wait while we process your answers and generate detailed feedback...
+                </p>
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="animate-pulse">●</div>
+                  <div className="animate-pulse" style={{ animationDelay: '0.2s' }}>●</div>
+                  <div className="animate-pulse" style={{ animationDelay: '0.4s' }}>●</div>
+                </div>
               </div>
-              <span className="text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded-full">
-                {Math.round(gradingProgress)}%
-              </span>
-            </div>
-            <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-3 mb-4">
-              <div
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 h-3 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${gradingProgress}%` }}
-              ></div>
-            </div>
-            <p className="text-sm text-blue-700 dark:text-blue-300">
-              Our AI is carefully evaluating your answers based on the course material. This may take a few moments...
-            </p>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
