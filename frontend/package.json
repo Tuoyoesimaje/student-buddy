@@ -26,6 +26,7 @@
     "@heroicons/react": "^2.2.0",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-popover": "^1.1.14",
+    "@radix-ui/react-progress": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-toast": "^1.2.14",
     "@tailwindcss/typography": "^0.5.16",
@@ -51,11 +52,12 @@
     "react-helmet-async": "^2.0.5",
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.6.2",
     "react-swipeable": "^7.0.2",
     "react-toastify": "^11.0.5",
     "react-type-animation": "^3.2.0",
-    "tailwind-merge": "^3.3.0",
+    "tailwind-merge": "^3.3.1",
     "tiptap-markdown": "^0.8.10"
   },
   "devDependencies": {

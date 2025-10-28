@@ -19,7 +19,7 @@ export default defineConfig({
     react()
   ],
   resolve: {
-    extensions: ['.js', '.jsx', '.json'],
+    extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
