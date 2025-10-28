@@ -439,7 +439,7 @@ const Study = () => {
         }
       }).filter(Boolean);
 
-      if (questionsArray.length > 0) {
+  if (questionsArray.length > 0) {
         setQuizQuestions(questionsArray);
         const initAnswers = new Array(questionsArray.length).fill(null);
         const initAttempts = new Array(questionsArray.length).fill(0);
@@ -1113,7 +1113,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-        setTimeLeft(5 * 60); // Reset timer to 5 minutes
+  setTimeLeft(8 * 60); // Reset timer to 8 minutes
         setIsRunning(true); // Start the timer
       } else {
         // Fallback: Generate sample quiz questions for testing when AI fails
@@ -1131,7 +1131,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-        setTimeLeft(5 * 60); // Reset timer to 5 minutes
+  setTimeLeft(8 * 60); // Reset timer to 8 minutes
         setIsRunning(true); // Start the timer
       }
 
@@ -1196,7 +1196,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-        setTimeLeft(5 * 60); // Reset timer to 5 minutes
+  setTimeLeft(8 * 60); // Reset timer to 8 minutes
         setIsRunning(true); // Start the timer
         setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       } else {
@@ -1215,7 +1215,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-        setTimeLeft(5 * 60); // Reset timer to 5 minutes
+  setTimeLeft(8 * 60); // Reset timer to 8 minutes
         setIsRunning(true); // Start the timer
         setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       }
@@ -1443,11 +1443,30 @@ const Study = () => {
               {formatTime(timeLeft)}
                 </div>
               </div>
-              {/* Hint Timer Display */}
+              {/* Hint Timer Display (minimal, no emoji) */}
               {quizMode === 'in_progress' && attemptCounts[currentQuestion] === 0 && !showFeedback && (
-                <div className={`text-sm font-medium ${hintTimerSeconds > 5 ? 'text-gray-600' : hintTimerSeconds > 3 ? 'text-yellow-600' : 'text-red-600 animate-pulse'}`}>
-                  ⏱️ Hint in {hintTimerSeconds}s
-                </div>
+                (() => {
+                  const HINT_TOTAL = 26;
+                  const percent = Math.max(0, Math.min(100, Math.round((hintTimerSeconds / HINT_TOTAL) * 100)));
+                  return (
+                    <div className="flex items-center space-x-3">
+                      <div className="relative w-8 h-8">
+                        <div className="absolute inset-0 rounded-full bg-gray-200 dark:bg-gray-700" />
+                        <div
+                          className="absolute inset-0 rounded-full"
+                          style={{ background: `conic-gradient(#4f46e5 ${percent}%, rgba(229,231,235,1) ${percent}%)` }}
+                          aria-hidden
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-200">
+                          {hintTimerSeconds}s
+                        </div>
+                      </div>
+                      <div className={`text-sm font-medium text-gray-600 ${hintTimerSeconds <= 3 ? 'text-red-600 animate-pulse' : ''}`} aria-hidden>
+                        Hint
+                      </div>
+                    </div>
+                  );
+                })()
               )}
             </div>
         </div>
