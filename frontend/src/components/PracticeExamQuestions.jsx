@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getPracticeExam, submitPracticeExam } from '../services/practiceExamService';
 import { useToast } from "@/components/ui/use-toast";
 import { extractNoteTitles } from '../lib/utils';
+import ReactMarkdown from 'react-markdown';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen, ChevronLeft, ChevronRight, Send, CheckCircle, Circle, Clock } from 'lucide-react';
 
 const PracticeExamQuestions = () => {
   const { examId } = useParams();
@@ -150,134 +153,203 @@ const PracticeExamQuestions = () => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-900/20 border border-gray-200 dark:border-gray-700">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Practice Exam</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Topic: {extractNoteTitles(exam.topicOrNote)}
-        </p>
-      </div>
-
-      {/* Progress bar */}
-      <div className="mb-6">
-        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
-          <span>Question {currentQuestionIndex + 1} of {exam.questions.length}</span>
-          <span>{Math.round(((currentQuestionIndex + 1) / exam.questions.length) * 100)}% Complete</span>
-        </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-          <div
-            className="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full transition-all duration-300"
-            style={{ width: `${((currentQuestionIndex + 1) / exam.questions.length) * 100}%` }}
-          ></div>
-        </div>
-      </div>
-
-      {/* Question */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-2">
-          Question {currentQuestionIndex + 1}:
-        </h3>
-        <p className="text-gray-700 dark:text-gray-300">{exam.questions[currentQuestionIndex]}</p>
-      </div>
-
-      {/* Answer textarea */}
-      <div className="mb-6">
-        <label htmlFor="answer" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Your Answer:
-        </label>
-        <textarea
-          id="answer"
-          rows="6"
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-          placeholder="Type your answer here..."
-          value={currentAnswer}
-          onChange={handleAnswerChange}
-          disabled={isSubmitting}
-        />
-      </div>
-
-      {/* Navigation buttons */}
-      <div className="flex justify-between">
-        <button
-          onClick={goToPreviousQuestion}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 transition-colors duration-200"
-          disabled={currentQuestionIndex === 0 || isSubmitting}
-        >
-          Previous
-        </button>
-
-        {currentQuestionIndex < exam.questions.length - 1 ? (
-          <button
-            onClick={goToNextQuestion}
-            className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 transition-colors duration-200"
-            disabled={isSubmitting}
-          >
-            Next
-          </button>
-        ) : (
-          <button
-            onClick={handleSubmit}
-            className="px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Submitting...
-              </>
-            ) : (
-              'Submit Exam'
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Question navigation dots */}
-      <div className="mt-8">
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Jump to question:</p>
-        <div className="flex flex-wrap gap-2">
-          {exam.questions.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                saveCurrentAnswer();
-                setCurrentQuestionIndex(index);
-                setCurrentAnswer(userAnswers[index]);
-              }}
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${index === currentQuestionIndex
-                ? 'bg-blue-600 dark:bg-blue-500 text-white'
-                : userAnswers[index]?.trim()
-                  ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-              }`}
-              disabled={isSubmitting}
-            >
-              {index + 1}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* AI Grading Progress Bar */}
-      {isSubmitting && (
-        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300">AI Grading in Progress</h3>
-            <span className="text-sm text-blue-600 dark:text-blue-400">{Math.round(gradingProgress)}%</span>
+    <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+      {/* Header Card */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border-blue-200 dark:border-blue-800">
+        <CardHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <BookOpen className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            <div>
+              <CardTitle className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                Practice Exam
+              </CardTitle>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                Topic: {extractNoteTitles(exam.topicOrNote)}
+              </p>
+            </div>
           </div>
-          <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-3">
+        </CardHeader>
+      </Card>
+
+      {/* Progress Card */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Question {currentQuestionIndex + 1} of {exam.questions.length}
+              </span>
+            </div>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {Math.round(((currentQuestionIndex + 1) / exam.questions.length) * 100)}% Complete
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
             <div
-              className="bg-blue-600 dark:bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${gradingProgress}%` }}
+              className="bg-gradient-to-r from-blue-500 to-indigo-500 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${((currentQuestionIndex + 1) / exam.questions.length) * 100}%` }}
             ></div>
           </div>
-          <p className="text-sm text-blue-700 dark:text-blue-300 mt-2">
-            Our AI is carefully evaluating your answers based on the course material...
-          </p>
-        </div>
+        </CardContent>
+      </Card>
+
+      {/* Question Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-gray-800 dark:text-gray-100">
+            <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm font-medium">
+              Q{currentQuestionIndex + 1}
+            </span>
+            Question {currentQuestionIndex + 1}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <ReactMarkdown>{exam.questions[currentQuestionIndex]}</ReactMarkdown>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Answer Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-gray-800 dark:text-gray-100">Your Answer</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <textarea
+            id="answer"
+            rows="8"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-500 dark:placeholder:text-gray-400 resize-none"
+            placeholder="Type your answer here... Markdown formatting is supported!"
+            value={currentAnswer}
+            onChange={handleAnswerChange}
+            disabled={isSubmitting}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Navigation Card */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+            <button
+              onClick={goToPreviousQuestion}
+              className="flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 transition-colors"
+              disabled={currentQuestionIndex === 0 || isSubmitting}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+
+            {currentQuestionIndex < exam.questions.length - 1 ? (
+              <button
+                onClick={goToNextQuestion}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 transition-colors"
+                disabled={isSubmitting}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Submit Exam
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Question Navigation Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-gray-800 dark:text-gray-100">Question Navigation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3">
+            {exam.questions.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  saveCurrentAnswer();
+                  setCurrentQuestionIndex(index);
+                  setCurrentAnswer(userAnswers[index]);
+                }}
+                className={`relative w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
+                  index === currentQuestionIndex
+                    ? 'bg-blue-600 dark:bg-blue-500 text-white shadow-lg scale-110'
+                    : userAnswers[index]?.trim()
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-2 border-green-300 dark:border-green-700 hover:bg-green-200 dark:hover:bg-green-800/40'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 border-2 border-transparent'
+                }`}
+                disabled={isSubmitting}
+                title={`Question ${index + 1}${userAnswers[index]?.trim() ? ' (Answered)' : ' (Not answered)'}`}
+              >
+                {index + 1}
+                {userAnswers[index]?.trim() && index !== currentQuestionIndex && (
+                  <CheckCircle className="absolute -top-1 -right-1 h-3 w-3 text-green-600 dark:text-green-400 bg-white dark:bg-gray-800 rounded-full" />
+                )}
+                {index === currentQuestionIndex && (
+                  <Circle className="absolute -top-1 -right-1 h-3 w-3 text-white bg-blue-600 dark:bg-blue-500 rounded-full" />
+                )}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-600 dark:text-gray-400">
+            <div className="flex items-center gap-1">
+              <Circle className="h-3 w-3 text-blue-600 dark:text-blue-500" />
+              <span>Current</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded"></div>
+              <span>Answered</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-gray-200 dark:bg-gray-700 border border-transparent rounded"></div>
+              <span>Not answered</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Grading Progress Card */}
+      {isSubmitting && (
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border-blue-200 dark:border-blue-800">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
+                <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-300">AI Grading in Progress</h3>
+              </div>
+              <span className="text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded-full">
+                {Math.round(gradingProgress)}%
+              </span>
+            </div>
+            <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-3 mb-4">
+              <div
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 h-3 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${gradingProgress}%` }}
+              ></div>
+            </div>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              Our AI is carefully evaluating your answers based on the course material. This may take a few moments...
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
