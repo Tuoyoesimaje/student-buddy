@@ -229,9 +229,9 @@ const PracticeExamResults = () => {
                     </div>
                     <div className="bg-white dark:bg-gray-800 p-3 rounded-md border border-gray-200 dark:border-gray-700">
                       {item.studentAnswer ? (
-                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                          {item.studentAnswer}
-                        </p>
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <ReactMarkdown>{item.studentAnswer}</ReactMarkdown>
+                        </div>
                       ) : (
                         <em className="text-gray-400 dark:text-gray-500 italic">No answer provided</em>
                       )}
