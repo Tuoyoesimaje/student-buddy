@@ -173,10 +173,106 @@ const Study = () => {
 
   // Handle navigation from Notes page with selected notes
   useEffect(() => {
-    const { selectedNotes, mode, retakeFrom, noteId: retakeNoteId, noteTitle: retakeNoteTitle } = location.state || {};
+  const { selectedNotes, mode, retakeFrom, noteId: retakeNoteId, noteTitle: retakeNoteTitle, retakeQuiz } = location.state || {};
+  const params = new URLSearchParams(location.search || '');
+  const retakeIdFromQuery = params.get('retakeId') || params.get('retake_of') || params.get('retakeOf') || params.get('retake');
 
-    // Handle retake functionality
-    if (retakeFrom) {
+  console.log('Study: navigation state', { pathname: location.pathname, search: location.search, state: location.state, retakeIdFromQuery });
+
+    // If navigation state didn't include retake info, try sessionStorage fallback
+    let sessionRetake = null;
+    try {
+      const s = sessionStorage.getItem('sb_retake');
+      if (s) {
+        sessionRetake = JSON.parse(s);
+        // Clear so it won't be reused accidentally
+        sessionStorage.removeItem('sb_retake');
+      }
+    } catch (e) {}
+
+    // Handle retake quiz with same questions (either provided in state, query param, or session fallback)
+    const effectiveRetake = retakeQuiz || (sessionRetake && sessionRetake.retakeQuiz) || null;
+    const effectiveMode = mode || (sessionRetake && sessionRetake.mode) || null;
+
+    if (effectiveRetake || retakeIdFromQuery || retakeFrom) {
+      console.log('Starting retake quiz with same questions (nav state):', effectiveRetake, { retakeIdFromQuery, retakeFrom });
+      toast.success('Starting retake...');
+
+      // If the navigation provided full questions, use them directly.
+      // Otherwise try to resolve a retake id from common property names and fetch from backend.
+      (async () => {
+        try {
+          if (Array.isArray(effectiveRetake?.questions) && effectiveRetake.questions.length > 0) {
+            const quizData = effectiveRetake;
+            setQuizQuestions(quizData.questions);
+            const initAnswers = new Array(quizData.questions.length).fill(null);
+            const initAttempts = new Array(quizData.questions.length).fill(0);
+            const initFirst = new Array(quizData.questions.length).fill(null);
+            const initHintShown = new Array(quizData.questions.length).fill(false);
+            setQuizAnswers(initAnswers);
+            setAttemptCounts(initAttempts);
+            setFirstAttemptAnswers(initFirst);
+            setHintShownAutomatically(initHintShown);
+            answersRef.current = initAnswers;
+            setCurrentQuestion(0);
+            setCurrentMode('quiz');
+            setQuizMode('in_progress');
+            setTimeLeft(5 * 60); // Reset timer to 5 minutes
+            setIsRunning(true); // Start the timer
+            return;
+          }
+
+          // Try common id fields if questions are not included. Prefer explicit query param when present.
+          const retakeId = (effectiveRetake && (effectiveRetake.retakeOf || effectiveRetake.id || effectiveRetake._id || effectiveRetake.retakeId)) || retakeIdFromQuery;
+          if (!retakeId) {
+            console.error('No retake id available on navigation state for retakeQuiz:', effectiveRetake);
+            // Keep the user in the quiz flow and show the prep screen so they can retry
+            setCurrentMode('quiz');
+            setQuizMode('prep');
+            toast.error('Could not determine retake id. Please try retaking from the tracker or results page again.');
+            return;
+          }
+
+          const response = await api.post(`/api/practice-exam/quiz-results/${retakeId}/retake`);
+          console.log('Retake API response (Study):', response);
+          // Support multiple response shapes: axios -> response.data.quiz, or direct data
+          const payload = (response && response.data) || response;
+          const quizData = payload && (payload.questions ? payload : (payload.quiz || null));
+          if (quizData && quizData.questions) {
+            setQuizQuestions(quizData.questions);
+            const initAnswers = new Array(quizData.questions.length).fill(null);
+            const initAttempts = new Array(quizData.questions.length).fill(0);
+            const initFirst = new Array(quizData.questions.length).fill(null);
+            const initHintShown = new Array(quizData.questions.length).fill(false);
+            setQuizAnswers(initAnswers);
+            setAttemptCounts(initAttempts);
+            setFirstAttemptAnswers(initFirst);
+            setHintShownAutomatically(initHintShown);
+            answersRef.current = initAnswers;
+            setCurrentQuestion(0);
+            setCurrentMode('quiz');
+            setQuizMode('in_progress');
+            setTimeLeft(5 * 60); // Reset timer to 5 minutes
+            setIsRunning(true); // Start the timer
+          } else {
+            console.error('Invalid response format for retake quiz (backend)');
+            // Fall back to quiz prep so user can still re-generate or retry
+            setCurrentMode('quiz');
+            setQuizMode('prep');
+            toast.error('Failed to load retake quiz. Please try again.');
+          }
+        } catch (error) {
+          console.error('Error fetching retake quiz:', error);
+          setCurrentMode('quiz');
+          setQuizMode('prep');
+          toast.error('Error starting retake quiz. Please try again.');
+        }
+      })();
+      return;
+    }
+
+    // Handle retake functionality (legacy - for regenerating quiz)
+    if (retakeFrom && mode === 'quiz') {
       console.log('Retaking quiz:', retakeFrom);
       // For quiz retakes, we need to regenerate the quiz from the same note
       if (retakeNoteId) {
@@ -189,12 +285,13 @@ const Study = () => {
               setSelectedQuizNotes([found]);
               setQuizGenerationMode('note-based');
               setCurrentMode('quiz');
-              await generateQuizFromNotesFromArray([found]);
+              setQuizMode('prep'); // Start with prep mode to show the setup screen
             } else {
               throw new Error('Note not found for retake');
             }
           } catch (err) {
             console.error('Retake quiz failed:', err);
+            setCurrentMode('quiz');
             setQuizMode('prep');
           }
         })();
@@ -261,7 +358,7 @@ const Study = () => {
     if (mode) {
       setQuizGenerationMode(mode);
     }
-  }, [location.state]);
+  }, [location]);
 
   // Helper: generate quiz from an explicit array of notes (used for nav auto-start)
   const generateQuizFromNotesFromArray = async (notesArray) => {
@@ -1370,18 +1467,9 @@ const Study = () => {
                   <code dangerouslySetInnerHTML={{ __html: escapeHtml(quizQuestions[currentQuestion].question) }} />
                 </pre>
               ) : (
-                <div
-                  className="text-xl font-medium text-gray-900 dark:text-white mb-8"
-                  dangerouslySetInnerHTML={{
-                    __html: quizQuestions[currentQuestion].question
-                      .replace(/<p>/g, '<p class="mb-4">')
-                      .replace(/<strong>/g, '<strong class="font-bold text-gray-900 dark:text-white">')
-                      .replace(/<em>/g, '<em class="italic text-gray-800 dark:text-gray-200">')
-                      .replace(/<ul>/g, '<ul class="list-disc ml-6 mb-4">')
-                      .replace(/<ol>/g, '<ol class="list-decimal ml-6 mb-4">')
-                      .replace(/<li>/g, '<li class="mb-2">')
-                  }}
-                />
+                <div className="text-xl font-medium text-gray-900 dark:text-white mb-8">
+                  {quizQuestions[currentQuestion].question}
+                </div>
               )}
             </div>
 
@@ -1469,17 +1557,9 @@ const Study = () => {
                               <code dangerouslySetInnerHTML={{ __html: escapeHtml(option) }} />
                             </pre>
                           ) : (
-                            <div
-                              dangerouslySetInnerHTML={{
-                                __html: option
-                                  .replace(/<p>/g, '<p class="mb-0 text-gray-900 dark:text-gray-100">')
-                                  .replace(/<strong>/g, '<strong class="font-bold text-gray-900 dark:text-white">')
-                                  .replace(/<em>/g, '<em class="italic text-gray-800 dark:text-gray-200">')
-                                  .replace(/<ul>/g, '<ul class="list-disc ml-6 mb-0">')
-                                  .replace(/<ol>/g, '<ol class="list-decimal ml-6 mb-0">')
-                                  .replace(/<li>/g, '<li class="mb-1 text-gray-900 dark:text-gray-100">')
-                              }}
-                            />
+                            <div className="text-sm text-gray-900 dark:text-gray-100">
+                              {option}
+                            </div>
                           )}
                         </div>
                         {showFeedback && revealCorrect && isCorrect && (

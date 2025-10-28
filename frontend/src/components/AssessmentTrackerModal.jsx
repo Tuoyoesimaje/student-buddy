@@ -137,13 +137,35 @@ const AssessmentTrackerModal = ({ isOpen, onClose, noteId, noteTitle }) => {
             throw new Error('Failed to create retake exam');
           }
         } else if (assessment.type === 'quiz') {
-          // For quizzes, we need to regenerate the quiz from the same note
-          // Navigate to study page with retake context
-          navigate('/app/study', {
+          // For quizzes, retake the same quiz with same questions
+          // Navigate directly to Study page with retake quiz data
+          // Add a timestamp query param to force a full location change so Study's
+          // effect picks up the retake state even when the user is already on /app/study.
+          // Persist retake payload to sessionStorage as a fallback in case location.state
+          // is not available when Study mounts (some routers drop state on cross-page nav).
+          try {
+            sessionStorage.setItem('sb_retake', JSON.stringify({
+              retakeQuiz: {
+                questions: [],
+                noteId: assessment.noteId,
+                noteTitle: assessment.title,
+                retakeOf: assessment.id
+              },
+              mode: 'quiz'
+            }));
+          } catch (e) {
+            // ignore storage errors
+          }
+
+          navigate(`/app/study?retake=${Date.now()}&retakeId=${assessment.id}`, {
             state: {
-              retakeFrom: assessment.id,
-              noteId: noteId,
-              noteTitle: noteTitle
+              retakeQuiz: {
+                questions: [], // Will be populated by the backend call
+                noteId: assessment.noteId,
+                noteTitle: assessment.title,
+                retakeOf: assessment.id
+              },
+              mode: 'quiz'
             }
           });
         }

@@ -550,6 +550,55 @@ router.get('/quiz-results/:quizId', auth, async (req, res) => {
   }
 });
 
+// Retake a quiz - create a new quiz session with the same questions
+router.post('/quiz-results/:quizId/retake', auth, async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const userId = req.user.userId;
+
+    // Find the original quiz result
+    const originalQuiz = await QuizResult.findOne({ _id: quizId, userId });
+    if (!originalQuiz) {
+      return res.status(404).json({
+        success: false,
+        error: 'Original quiz result not found'
+      });
+    }
+
+    // Create a new quiz session with the same questions but reset answers
+    const retakeQuiz = {
+      questions: originalQuiz.questions.map(q => ({
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        hint: q.hint,
+        explanation: q.explanation,
+        userAnswer: null, // Reset user answer
+        isCorrect: false // Reset correctness
+      })),
+      noteId: originalQuiz.noteId,
+      noteTitle: originalQuiz.noteTitle,
+      retakeOf: quizId // Reference to original quiz
+    };
+
+    console.log('Retake quiz created successfully. Original quiz ID:', quizId);
+
+    res.status(200).json({
+      success: true,
+      quiz: retakeQuiz,
+      message: 'Retake quiz created successfully'
+    });
+
+  } catch (error) {
+    console.error('Error creating retake quiz:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error creating retake quiz',
+      details: error.message
+    });
+  }
+});
+
 // Helper function to calculate average score
 function calculateAverageScore(assessments) {
   const completedAssessments = assessments.filter(a => a.status === 'completed' && a.score !== null);

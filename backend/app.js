@@ -47,3 +47,7 @@ notificationController.scheduleReminders();
 // Mount user routes - ensure this is after middleware
 const userRoutes = require('./routes/users'); // Assuming you mount users.js like this
 app.use('/api/users', userRoutes);
+
+// Mount practice exam routes
+const practiceExamRoutes = require('./routes/practiceExam');
+app.use('/api/practice-exam', practiceExamRoutes);

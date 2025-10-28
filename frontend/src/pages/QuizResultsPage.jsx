@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
   AcademicCapIcon,
-  LightBulbIcon
+  LightBulbIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
 import { apiRequest } from '../services/api';
@@ -14,17 +15,27 @@ import { apiRequest } from '../services/api';
 const QuizResultsPage = () => {
   const { quizId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [quizResult, setQuizResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [retakeQuiz, setRetakeQuiz] = useState(null);
+  const [isRetaking, setIsRetaking] = useState(false);
 
   useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const isRetake = urlParams.get('retake') === 'true';
+
     if (quizId) {
-      fetchQuizResult();
+      if (isRetake) {
+        handleRetakeQuiz();
+      } else {
+        fetchQuizResult();
+      }
     }
     // Ensure we land at the top when this page mounts (navigate from tracker)
     window.scrollTo(0, 0);
-  }, [quizId]);
+  }, [quizId, location.search]);
 
   const fetchQuizResult = async () => {
     setLoading(true);
@@ -60,6 +71,51 @@ const QuizResultsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRetakeQuiz = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('QuizResultsPage - Retaking quiz for quizId:', quizId);
+
+      // Call the retake endpoint to get the same questions with reset answers
+      const response = await apiRequest(`/practice-exam/quiz-results/${quizId}/retake`, {
+        method: 'POST'
+      });
+
+      if (response.success && response.quiz) {
+        console.log('QuizResultsPage - Retake quiz data:', response.quiz);
+        setRetakeQuiz(response.quiz);
+        setQuizResult(null); // Clear the results view
+      } else {
+        console.error('QuizResultsPage - Retake API response not successful:', response);
+        setError('Failed to load retake quiz');
+      }
+    } catch (err) {
+      console.error('QuizResultsPage - Error retaking quiz:', err);
+      setError('Failed to load retake quiz');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startRetakeQuiz = () => {
+    // Navigate to the Study page with the retake quiz data
+    // Include a timestamp query param to ensure the Study page treats this as
+    // a new navigation even if already active.
+    const retakeIdForQuery = retakeQuiz?.retakeOf || retakeQuiz?.id || retakeQuiz?._id || '';
+    try {
+      sessionStorage.setItem('sb_retake', JSON.stringify({ retakeQuiz, mode: 'quiz' }));
+    } catch (e) {}
+
+    navigate(`/app/study?retake=${Date.now()}&retakeId=${retakeIdForQuery}`, {
+      state: {
+        retakeQuiz: retakeQuiz,
+        mode: 'quiz'
+      }
+    });
   };
 
   const CircularProgressBar = ({ percentage, size = 150, strokeWidth = 10 }) => {
@@ -132,7 +188,7 @@ const QuizResultsPage = () => {
     );
   }
 
-  if (!quizResult) {
+  if (!quizResult && !retakeQuiz) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -141,6 +197,54 @@ const QuizResultsPage = () => {
             Quiz Results Not Found
           </h2>
           <p className="text-gray-600 dark:text-gray-400">The quiz results you're looking for don't exist.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show retake quiz interface
+  if (retakeQuiz) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+            <div className="text-center">
+              <ArrowPathIcon className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                Retake Quiz
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Ready to retake the quiz with the same questions? This will help you practice and improve your understanding.
+              </p>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">
+                  Quiz Details
+                </h3>
+                <div className="text-sm text-blue-800 dark:text-blue-200">
+                  <p><strong>Title:</strong> {retakeQuiz.noteTitle}</p>
+                  <p><strong>Questions:</strong> {retakeQuiz.questions?.length || 0}</p>
+                  <p><strong>Time Limit:</strong> 5 minutes</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={startRetakeQuiz}
+                  className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <ArrowPathIcon className="w-5 h-5" />
+                  Start Retake Quiz
+                </button>
+                <button
+                  onClick={() => navigate('/app/notes')}
+                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Back to Notes
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
