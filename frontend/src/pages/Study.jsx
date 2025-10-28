@@ -799,9 +799,9 @@ const Study = () => {
 
     // Check correctness of first attempt
     const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
-    setFeedbackType(isCorrect ? 'correct' : 'wrong');
-    // Only set a positive message for correct; don't show a disruptive 'Incorrect' popup
-    setFeedbackMessage(isCorrect ? 'Correct' : '');
+  setFeedbackType(isCorrect ? 'correct' : 'wrong');
+  // Keep feedbackMessage empty; UI uses option colors and inline hint/explanation boxes
+  setFeedbackMessage('');
 
       if (isCorrect) {
         // Auto-advance after 5 seconds (make scheduling idempotent)
@@ -847,7 +847,6 @@ const Study = () => {
             // Reveal the hint to the user
             setShowFeedback(true);
             setFeedbackType('hint');
-            setFeedbackMessage(quizQuestions[currentQuestion]?.hint || 'Here\'s a hint to help you think about this question:');
 
             // Auto-hint was shown, only 1 attempt allowed
             const newAttempts = [...attemptCounts];
@@ -892,9 +891,10 @@ const Study = () => {
       setQuizAnswers(newAnswers);
       answersRef.current = newAnswers;
 
-      const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
-      setFeedbackType(isCorrect ? 'correct' : 'wrong');
-      setFeedbackMessage(isCorrect ? 'Correct' : 'Incorrect');
+  const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
+  setFeedbackType(isCorrect ? 'correct' : 'wrong');
+  // Do not show 'Correct'/'Incorrect' as a top banner — rely on option coloring
+  setFeedbackMessage('');
 
       // Reveal correct answer in UI by leaving state; lock inputs
       setIsAnswerLocked(true);
@@ -1586,11 +1586,11 @@ const Study = () => {
                             next[currentQuestion] = false;
                             return next;
                           });
+                          // show the lower inline hint box only
                           setShowFeedback(true);
                           setFeedbackType('hint');
-                          setFeedbackMessage(quizQuestions[currentQuestion]?.hint || 'Here\'s a hint to help you think about this question:');
                         }}
-                        className="text-sm text-gray-500 bg-transparent px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50"
+                        className="relative inline-flex items-center text-sm text-indigo-700 bg-indigo-50 dark:bg-transparent px-3 py-1 rounded-md border border-indigo-200 hover:bg-indigo-100 focus:outline-none ring-2 ring-indigo-300 dark:ring-indigo-600 animate-pulse"
                       >
                         Hint
                       </button>
@@ -1633,30 +1633,13 @@ const Study = () => {
 
 
 
-                {/* Feedback Message */}
-                {showFeedback && feedbackType && (feedbackType === 'hint' || feedbackType === 'correct') && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -20, scale: 0.8 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.5, type: "spring", stiffness: 200 }}
-                    className="text-center mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700"
-                  >
-                        <motion.p
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: 1 }}
-                          transition={{ delay: 0.2, duration: 0.3 }}
-                          className="text-blue-800 dark:text-blue-300 font-medium"
-                        >
-                          {feedbackMessage}
-                        </motion.p>
-                  </motion.div>
-                )}
+                {/* Top feedback banner removed - prefer inline Hint/Explanation boxes only */}
 
-                {/* Hint box: show on first wrong attempt only OR when auto-shown */}
-                {((attemptCounts[currentQuestion] === 1 && firstAttemptAnswers[currentQuestion] && firstAttemptAnswers[currentQuestion] !== quizQuestions[currentQuestion].correctAnswer && (quizQuestions[currentQuestion].hint || feedbackMessage)) ||
-                 (showFeedback && feedbackType === 'hint' && (quizQuestions[currentQuestion].hint || feedbackMessage))) ? (
+                {/* Hint box: show on first wrong attempt only OR when auto-shown. Use only the stored question hint (not feedbackMessage). */}
+                {((attemptCounts[currentQuestion] === 1 && firstAttemptAnswers[currentQuestion] && firstAttemptAnswers[currentQuestion] !== quizQuestions[currentQuestion].correctAnswer && quizQuestions[currentQuestion].hint) ||
+                 (showFeedback && feedbackType === 'hint' && quizQuestions[currentQuestion].hint)) ? (
                   <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-sm text-gray-700 dark:text-blue-200">
-                    <strong>Hint:</strong> {quizQuestions[currentQuestion].hint || feedbackMessage}
+                    <strong>Hint:</strong> {quizQuestions[currentQuestion].hint}
                   </div>
                 ) : null}
 
