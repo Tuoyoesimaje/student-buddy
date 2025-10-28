@@ -68,7 +68,7 @@ const Study = () => {
   const [feedbackType, setFeedbackType] = useState(''); // 'correct' or 'wrong'
 
   // Hint timer states
-  const [hintTimerSeconds, setHintTimerSeconds] = useState(20);
+  const [hintTimerSeconds, setHintTimerSeconds] = useState(26);
   const [isHintTimerRunning, setIsHintTimerRunning] = useState(false);
   const [hintShownAutomatically, setHintShownAutomatically] = useState([]);
   const hintTimerRef = useRef(null);
@@ -77,7 +77,7 @@ const Study = () => {
   useEffect(() => {
     if (quizMode === 'in_progress' && !isAnswerLocked && attemptCounts[currentQuestion] === 0 && !hintShownAutomatically[currentQuestion]) {
   // Start hint timer when question loads and no answer has been submitted yet
-  setHintTimerSeconds(20);
+  setHintTimerSeconds(26);
       setIsHintTimerRunning(true);
 
       hintTimerRef.current = setInterval(() => {
@@ -881,7 +881,7 @@ const Study = () => {
         scheduledAdvanceRef.current = null;
       }
   // Reset hint timer for new question
-  setHintTimerSeconds(20);
+  setHintTimerSeconds(26);
       setIsHintTimerRunning(false);
     } else {
       // Finish quiz
