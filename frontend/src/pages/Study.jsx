@@ -68,29 +68,46 @@ const Study = () => {
   const [feedbackType, setFeedbackType] = useState(''); // 'correct' or 'wrong'
 
   // Hint timer states
-  const [hintTimerSeconds, setHintTimerSeconds] = useState(26);
+  const HINT_AUTO_SECONDS = 30; // auto-hint becomes available after 30s
+  const [hintTimerSeconds, setHintTimerSeconds] = useState(HINT_AUTO_SECONDS);
   const [isHintTimerRunning, setIsHintTimerRunning] = useState(false);
+  // Whether the hint has been auto-revealed by the system (e.g., due to wrong-answer auto-reveal)
   const [hintShownAutomatically, setHintShownAutomatically] = useState([]);
+  // Whether the hint is available (timer expired) but not yet revealed — shows a subtle button
+  const [hintAvailable, setHintAvailable] = useState([]);
+  // Whether the user manually clicked to reveal the hint after it became available
+  const [hintRevealedManually, setHintRevealedManually] = useState([]);
   const hintTimerRef = useRef(null);
 
   // Add useEffect for hint timer countdown logic
   useEffect(() => {
-    if (quizMode === 'in_progress' && !isAnswerLocked && attemptCounts[currentQuestion] === 0 && !hintShownAutomatically[currentQuestion]) {
-  // Start hint timer when question loads and no answer has been submitted yet
-  setHintTimerSeconds(26);
+    // Start a hint-availability timer when a new question is active and no attempts made yet
+    if (quizMode === 'in_progress' && !isAnswerLocked && attemptCounts[currentQuestion] === 0) {
+      // If a manual or automatic reveal already happened, nothing to do
+      if (hintShownAutomatically[currentQuestion] || hintRevealedManually[currentQuestion]) return;
+
+      // Reset timer for the current question
+      setHintTimerSeconds(HINT_AUTO_SECONDS);
       setIsHintTimerRunning(true);
+      // Ensure availability flag is cleared for this question
+      setHintAvailable(prev => {
+        const arr = Array(Math.max(prev.length, quizQuestions.length)).fill(false);
+        for (let i = 0; i < prev.length; i++) arr[i] = prev[i];
+        arr[currentQuestion] = false;
+        return arr;
+      });
 
       hintTimerRef.current = setInterval(() => {
         setHintTimerSeconds(prev => {
           if (prev <= 1) {
-            // Auto-show hint when timer reaches 0
+            // Instead of auto-showing the hint, make it available as a subtle control the user can click
             setIsHintTimerRunning(false);
-            const newHintShown = [...hintShownAutomatically];
-            newHintShown[currentQuestion] = true;
-            setHintShownAutomatically(newHintShown);
-            setShowFeedback(true);
-            setFeedbackType('hint');
-            setFeedbackMessage('Here\'s a hint to help you think about this question:');
+            // mark hint available
+            setHintAvailable(prevArr => {
+              const next = [...(prevArr || [])];
+              next[currentQuestion] = true;
+              return next;
+            });
             clearInterval(hintTimerRef.current);
             return 0;
           }
@@ -110,7 +127,7 @@ const Study = () => {
         clearInterval(hintTimerRef.current);
       }
     };
-  }, [quizMode, currentQuestion, isAnswerLocked, attemptCounts, hintShownAutomatically]);
+  }, [quizMode, currentQuestion, isAnswerLocked, attemptCounts, hintShownAutomatically, hintRevealedManually, quizQuestions.length]);
 
   // Practice Exam Mode States
   const [practiceExamMode, setPracticeExamMode] = useState('prep');
@@ -212,10 +229,14 @@ const Study = () => {
             const initAttempts = new Array(quizData.questions.length).fill(0);
             const initFirst = new Array(quizData.questions.length).fill(null);
             const initHintShown = new Array(quizData.questions.length).fill(false);
+            const initHintAvailable = new Array(quizData.questions.length).fill(false);
+            const initHintRevealedManually = new Array(quizData.questions.length).fill(false);
             setQuizAnswers(initAnswers);
             setAttemptCounts(initAttempts);
             setFirstAttemptAnswers(initFirst);
             setHintShownAutomatically(initHintShown);
+            setHintAvailable(initHintAvailable);
+            setHintRevealedManually(initHintRevealedManually);
             answersRef.current = initAnswers;
             setCurrentQuestion(0);
             setCurrentMode('quiz');
@@ -249,10 +270,14 @@ const Study = () => {
             const initAttempts = new Array(quizData.questions.length).fill(0);
             const initFirst = new Array(quizData.questions.length).fill(null);
             const initHintShown = new Array(quizData.questions.length).fill(false);
+            const initHintAvailable = new Array(quizData.questions.length).fill(false);
+            const initHintRevealedManually = new Array(quizData.questions.length).fill(false);
             setQuizAnswers(initAnswers);
             setAttemptCounts(initAttempts);
             setFirstAttemptAnswers(initFirst);
             setHintShownAutomatically(initHintShown);
+            setHintAvailable(initHintAvailable);
+            setHintRevealedManually(initHintRevealedManually);
             answersRef.current = initAnswers;
             setCurrentQuestion(0);
             setCurrentMode('quiz');
@@ -444,11 +469,15 @@ const Study = () => {
         const initAnswers = new Array(questionsArray.length).fill(null);
         const initAttempts = new Array(questionsArray.length).fill(0);
         const initFirst = new Array(questionsArray.length).fill(null);
-        const initHintShown = new Array(questionsArray.length).fill(false);
-        setQuizAnswers(initAnswers);
-        setAttemptCounts(initAttempts);
-        setFirstAttemptAnswers(initFirst);
-        setHintShownAutomatically(initHintShown);
+      const initHintShown = new Array(questionsArray.length).fill(false);
+    const initHintAvailable = new Array(questionsArray.length).fill(false);
+    const initHintRevealedManually = new Array(questionsArray.length).fill(false);
+    setQuizAnswers(initAnswers);
+    setAttemptCounts(initAttempts);
+    setFirstAttemptAnswers(initFirst);
+    setHintShownAutomatically(initHintShown);
+    setHintAvailable(initHintAvailable);
+    setHintRevealedManually(initHintRevealedManually);
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
@@ -462,12 +491,16 @@ const Study = () => {
         setQuizQuestions(fallbackQuestions);
         const initAnswers = new Array(fallbackQuestions.length).fill(null);
         const initAttempts = new Array(fallbackQuestions.length).fill(0);
-        const initFirst = new Array(fallbackQuestions.length).fill(null);
-        const initHintShown = new Array(fallbackQuestions.length).fill(false);
-        setQuizAnswers(initAnswers);
-        setAttemptCounts(initAttempts);
-        setFirstAttemptAnswers(initFirst);
-        setHintShownAutomatically(initHintShown);
+  const initFirst = new Array(fallbackQuestions.length).fill(null);
+  const initHintShown = new Array(fallbackQuestions.length).fill(false);
+  const initHintAvailable = new Array(fallbackQuestions.length).fill(false);
+  const initHintRevealedManually = new Array(fallbackQuestions.length).fill(false);
+  setQuizAnswers(initAnswers);
+  setAttemptCounts(initAttempts);
+  setFirstAttemptAnswers(initFirst);
+  setHintShownAutomatically(initHintShown);
+  setHintAvailable(initHintAvailable);
+  setHintRevealedManually(initHintRevealedManually);
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
@@ -748,10 +781,11 @@ const Study = () => {
       setQuizAnswers(newAnswers);
       answersRef.current = newAnswers;
 
-      // Check correctness of first attempt
-      const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
-      setFeedbackType(isCorrect ? 'correct' : 'wrong');
-      setFeedbackMessage(isCorrect ? 'Correct' : 'Incorrect');
+    // Check correctness of first attempt
+    const isCorrect = answerLetter === quizQuestions[currentQuestion].correctAnswer;
+    setFeedbackType(isCorrect ? 'correct' : 'wrong');
+    // Only set a positive message for correct; don't show a disruptive 'Incorrect' popup
+    setFeedbackMessage(isCorrect ? 'Correct' : '');
 
       if (isCorrect) {
         // Auto-advance after 5 seconds (make scheduling idempotent)
@@ -781,28 +815,45 @@ const Study = () => {
         }, 5000);
       } else {
         // Check if hint was shown automatically - if so, only 1 attempt allowed
-        if (hintShownAutomatically[currentQuestion]) {
-          // Auto-hint was shown, only 1 attempt allowed
-          const newAttempts = [...attemptCounts];
-          newAttempts[currentQuestion] = 2; // Mark as final attempt
-          setAttemptCounts(newAttempts);
-
-          // Reveal correct answer in UI by leaving state; lock inputs
-          setIsAnswerLocked(true);
-
-          // After 12 seconds, auto-advance (more time to read explanation)
-          answerTimeoutRef.current = setTimeout(() => {
-            answerTimeoutRef.current = null;
-            setIsAnswerLocked(false);
-            setShowFeedback(false);
-            setSelectedAnswerIndex(null);
-            if (currentQuestion < quizQuestions.length - 1) {
-              setCurrentQuestion(prev => prev + 1);
-            } else {
-              finalizeQuiz();
+        if (hintShownAutomatically[currentQuestion] || (hintAvailable[currentQuestion] && !hintRevealedManually[currentQuestion])) {
+            // If the hint was auto-revealed earlier OR the hint was available (timer expired)
+            // and the user submitted a wrong answer without manually revealing, then auto-reveal
+            // the hint now and treat this as the final/only attempt.
+            // If this branch is entered because hintAvailable was true and user didn't click, mark as auto-shown now.
+            if (!hintShownAutomatically[currentQuestion]) {
+              setHintShownAutomatically(prev => {
+                const next = [...(prev || [])];
+                next[currentQuestion] = true;
+                return next;
+              });
             }
-          }, 12000);
-        } else {
+
+            // Reveal the hint to the user
+            setShowFeedback(true);
+            setFeedbackType('hint');
+            setFeedbackMessage(quizQuestions[currentQuestion]?.hint || 'Here\'s a hint to help you think about this question:');
+
+            // Auto-hint was shown, only 1 attempt allowed
+            const newAttempts = [...attemptCounts];
+            newAttempts[currentQuestion] = 2; // Mark as final attempt
+            setAttemptCounts(newAttempts);
+
+            // Reveal correct answer in UI by leaving state; lock inputs
+            setIsAnswerLocked(true);
+
+            // After 12 seconds, auto-advance (more time to read explanation)
+            answerTimeoutRef.current = setTimeout(() => {
+              answerTimeoutRef.current = null;
+              setIsAnswerLocked(false);
+              setShowFeedback(false);
+              setSelectedAnswerIndex(null);
+              if (currentQuestion < quizQuestions.length - 1) {
+                setCurrentQuestion(prev => prev + 1);
+              } else {
+                finalizeQuiz();
+              }
+            }, 12000);
+          } else {
           // Normal two-stage logic - show hint and allow second attempt
           // Add a very short temporary lock to prevent rapid double-clicking which
           // can cause multiple state transitions and skip questions.
@@ -882,7 +933,7 @@ const Study = () => {
         scheduledAdvanceRef.current = null;
       }
   // Reset hint timer for new question
-  setHintTimerSeconds(26);
+  setHintTimerSeconds(HINT_AUTO_SECONDS);
       setIsHintTimerRunning(false);
     } else {
       // Finish quiz
@@ -1106,11 +1157,15 @@ const Study = () => {
         const initAnswers = new Array(questionsArray.length).fill(null);
         const initAttempts = new Array(questionsArray.length).fill(0);
         const initFirst = new Array(questionsArray.length).fill(null);
-        const initHintShown = new Array(questionsArray.length).fill(false);
-        setQuizAnswers(initAnswers);
-        setAttemptCounts(initAttempts);
-        setFirstAttemptAnswers(initFirst);
-        setHintShownAutomatically(initHintShown);
+  const initHintShown = new Array(questionsArray.length).fill(false);
+  const initHintAvailable = new Array(questionsArray.length).fill(false);
+  const initHintRevealedManually = new Array(questionsArray.length).fill(false);
+  setQuizAnswers(initAnswers);
+  setAttemptCounts(initAttempts);
+  setFirstAttemptAnswers(initFirst);
+  setHintShownAutomatically(initHintShown);
+  setHintAvailable(initHintAvailable);
+  setHintRevealedManually(initHintRevealedManually);
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
@@ -1123,12 +1178,16 @@ const Study = () => {
         setQuizQuestions(fallbackQuestions);
         const initAnswers = new Array(fallbackQuestions.length).fill(null);
         const initAttempts = new Array(fallbackQuestions.length).fill(0);
-        const initFirst = new Array(fallbackQuestions.length).fill(null);
-        const initHintShown = new Array(fallbackQuestions.length).fill(false);
-        setQuizAnswers(initAnswers);
-        setAttemptCounts(initAttempts);
-        setFirstAttemptAnswers(initFirst);
-        setHintShownAutomatically(initHintShown);
+  const initFirst = new Array(fallbackQuestions.length).fill(null);
+  const initHintShown = new Array(fallbackQuestions.length).fill(false);
+  const initHintAvailable = new Array(fallbackQuestions.length).fill(false);
+  const initHintRevealedManually = new Array(fallbackQuestions.length).fill(false);
+  setQuizAnswers(initAnswers);
+  setAttemptCounts(initAttempts);
+  setFirstAttemptAnswers(initFirst);
+  setHintShownAutomatically(initHintShown);
+  setHintAvailable(initHintAvailable);
+  setHintRevealedManually(initHintRevealedManually);
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
@@ -1444,29 +1503,59 @@ const Study = () => {
               {formatTime(timeLeft)}
                 </div>
               </div>
-              {/* Hint Timer Display (minimal, no emoji) */}
+              {/* Hint Timer Display (minimal, manual reveal) */}
               {quizMode === 'in_progress' && attemptCounts[currentQuestion] === 0 && !showFeedback && (
                 (() => {
-                  const HINT_TOTAL = 26;
+                  const HINT_TOTAL = HINT_AUTO_SECONDS;
                   const percent = Math.max(0, Math.min(100, Math.round((hintTimerSeconds / HINT_TOTAL) * 100)));
-                  return (
-                    <div className="flex items-center space-x-3">
-                      <div className="relative w-8 h-8">
-                        <div className="absolute inset-0 rounded-full bg-gray-200 dark:bg-gray-700" />
-                        <div
-                          className="absolute inset-0 rounded-full"
-                          style={{ background: `conic-gradient(#4f46e5 ${percent}%, rgba(229,231,235,1) ${percent}%)` }}
-                          aria-hidden
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-gray-700 dark:text-gray-200">
-                          {hintTimerSeconds}s
+                  // Show a subtle progress ring while timer running; when available show a muted button
+                  if (isHintTimerRunning) {
+                    return (
+                      <div className="flex items-center space-x-3">
+                        <div className="relative w-8 h-8 opacity-60">
+                          <div className="absolute inset-0 rounded-full bg-gray-200 dark:bg-gray-700" />
+                          <div
+                            className="absolute inset-0 rounded-full"
+                            style={{ background: `conic-gradient(#c7c7c7 ${percent}%, rgba(229,231,235,1) ${percent}%)` }}
+                            aria-hidden
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300">
+                            {hintTimerSeconds}s
+                          </div>
                         </div>
+                        <div className="text-sm font-medium text-gray-500">Hint</div>
                       </div>
-                      <div className={`text-sm font-medium text-gray-600 ${hintTimerSeconds <= 3 ? 'text-red-600 animate-pulse' : ''}`} aria-hidden>
+                    );
+                  }
+
+                  // If timer expired and hint is available but not yet revealed, show a subtle button
+                  if (hintAvailable[currentQuestion] && !hintRevealedManually[currentQuestion]) {
+                    return (
+                      <button
+                        onClick={() => {
+                          // user explicitly requests the hint
+                          setHintRevealedManually(prev => {
+                            const next = [...(prev || [])];
+                            next[currentQuestion] = true;
+                            return next;
+                          });
+                          setHintAvailable(prev => {
+                            const next = [...(prev || [])];
+                            next[currentQuestion] = false;
+                            return next;
+                          });
+                          setShowFeedback(true);
+                          setFeedbackType('hint');
+                          setFeedbackMessage(quizQuestions[currentQuestion]?.hint || 'Here\'s a hint to help you think about this question:');
+                        }}
+                        className="text-sm text-gray-500 bg-transparent px-2 py-1 rounded-md border border-gray-200 hover:bg-gray-50"
+                      >
                         Hint
-                      </div>
-                    </div>
-                  );
+                      </button>
+                    );
+                  }
+
+                  return null;
                 })()
               )}
             </div>
@@ -1503,7 +1592,7 @@ const Study = () => {
 
 
                 {/* Feedback Message */}
-                {showFeedback && feedbackType && (
+                {showFeedback && feedbackType && (feedbackType === 'hint' || feedbackType === 'correct') && (
                   <motion.div
                     initial={{ opacity: 0, y: -20, scale: 0.8 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
