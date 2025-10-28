@@ -477,12 +477,33 @@ router.post('/quiz-results', auth, async (req, res) => {
     }
 
 
-    // Create quiz result record
+    // Normalize questions to ensure 'hint' is saved (some clients mistakenly wrote hints into explanation)
+    const incomingQuestions = Array.isArray(questions) ? questions : [];
+    const normalizedQuestions = incomingQuestions.map(q => {
+      // ensure object shape
+      const questionObj = Object.assign({}, q || {});
+      // Prefer an explicit hint field; fall back to explanation if hint missing
+      questionObj.hint = (questionObj.hint && String(questionObj.hint).trim().length > 0)
+        ? questionObj.hint
+        : (questionObj.explanation && String(questionObj.explanation).trim().length > 0)
+          ? questionObj.explanation
+          : '';
+      // Ensure explanation field exists as well
+      questionObj.explanation = questionObj.explanation || '';
+      return questionObj;
+    });
+
+    if (normalizedQuestions.length > 0) {
+      const missingHints = normalizedQuestions.filter(q => !q.hint || q.hint.trim().length === 0).length;
+      console.log(`Saving quiz results: normalized ${normalizedQuestions.length} questions, ${missingHints} had no hint`);
+    }
+
+    // Create quiz result record (use normalized questions)
     const quizResult = new QuizResult({
       userId,
       noteId: noteId || resolvedNoteId, // Use provided noteId or resolved noteId
       noteTitle,
-      questions,
+      questions: normalizedQuestions,
       retakeOf: req.body.retakeOf || null,
       score,
       totalQuestions,
@@ -572,8 +593,9 @@ router.post('/quiz-results/:quizId/retake', auth, async (req, res) => {
         question: q.question,
         options: q.options,
         correctAnswer: q.correctAnswer,
-        hint: q.hint,
-        explanation: q.explanation,
+        // Ensure hint is available for retakes: prefer stored hint, fallback to explanation
+        hint: (q && q.hint) ? q.hint : (q && q.explanation) ? q.explanation : '',
+        explanation: q && q.explanation ? q.explanation : '',
         userAnswer: null, // Reset user answer
         isCorrect: false // Reset correctness
       })),

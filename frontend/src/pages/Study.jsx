@@ -681,7 +681,8 @@ const Study = () => {
           correctAnswer: q.correctAnswer,
           userAnswer: firstAttemptAnswers[idx] || null,
           isCorrect: firstAttemptAnswers[idx] === q.correctAnswer,
-          explanation: q.hint || ''
+          hint: q.hint || '',
+          explanation: q.explanation || ''
         })),
         // If this quiz was started as a retake, include reference to original
         retakeOf: navRetake?.retakeOf || navRetake?._id || null,
@@ -1521,10 +1522,10 @@ const Study = () => {
                 )}
 
                 {/* Hint box: show on first wrong attempt only OR when auto-shown */}
-                {(attemptCounts[currentQuestion] === 1 && firstAttemptAnswers[currentQuestion] && firstAttemptAnswers[currentQuestion] !== quizQuestions[currentQuestion].correctAnswer && quizQuestions[currentQuestion].hint) ||
-                 (showFeedback && feedbackType === 'hint' && quizQuestions[currentQuestion].hint) ? (
+                {((attemptCounts[currentQuestion] === 1 && firstAttemptAnswers[currentQuestion] && firstAttemptAnswers[currentQuestion] !== quizQuestions[currentQuestion].correctAnswer && (quizQuestions[currentQuestion].hint || feedbackMessage)) ||
+                 (showFeedback && feedbackType === 'hint' && (quizQuestions[currentQuestion].hint || feedbackMessage))) ? (
                   <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-sm text-gray-700 dark:text-blue-200">
-                    <strong>Hint:</strong> {quizQuestions[currentQuestion].hint}
+                    <strong>Hint:</strong> {quizQuestions[currentQuestion].hint || feedbackMessage}
                   </div>
                 ) : null}
 
