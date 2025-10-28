@@ -409,10 +409,16 @@ const Study = () => {
       return;
     }
 
-    setIsLoadingAI(true);
-    setError(null);
-    setQuizQuestions([]); // Clear previous questions
-    setQuizAnswers([]); // Clear previous answers
+  setIsLoadingAI(true);
+  setError(null);
+  setQuizQuestions([]); // Clear previous questions
+  setQuizAnswers([]); // Clear previous answers
+  // Reset per-question state so stale hint flags don't persist
+  setAttemptCounts([]);
+  setFirstAttemptAnswers([]);
+  setHintShownAutomatically([]);
+  setHintAvailable([]);
+  setHintRevealedManually([]);
 
     try {
       const selectedNote = notesArray[0];
@@ -668,7 +674,17 @@ const Study = () => {
     
     setQuizQuestions(questions);
       const initAnswers = new Array(questions.length).fill(null);
+      const initAttempts = new Array(questions.length).fill(0);
+      const initFirst = new Array(questions.length).fill(null);
+      const initHintShown = new Array(questions.length).fill(false);
+      const initHintAvailable = new Array(questions.length).fill(false);
+      const initHintRevealedManually = new Array(questions.length).fill(false);
       setQuizAnswers(initAnswers);
+      setAttemptCounts(initAttempts);
+      setFirstAttemptAnswers(initFirst);
+      setHintShownAutomatically(initHintShown);
+      setHintAvailable(initHintAvailable);
+      setHintRevealedManually(initHintRevealedManually);
       answersRef.current = initAnswers;
     setCurrentQuestion(0);
     setCurrentMode('quiz');
@@ -1134,11 +1150,17 @@ const Study = () => {
       return;
     }
 
-    setIsLoadingAI(true);
-    setError(null);
-    setQuizQuestions([]); // Clear previous questions
-    setQuizAnswers([]); // Clear previous answers
-    setTimeLeft(3 * 60); // Reset timer to 3 minutes
+  setIsLoadingAI(true);
+  setError(null);
+  setQuizQuestions([]); // Clear previous questions
+  setQuizAnswers([]); // Clear previous answers
+  // Reset per-question state so stale hint flags don't persist
+  setAttemptCounts([]);
+  setFirstAttemptAnswers([]);
+  setHintShownAutomatically([]);
+  setHintAvailable([]);
+  setHintRevealedManually([]);
+  setTimeLeft(3 * 60); // Reset timer to 3 minutes
 
     try {
       // Call backend endpoint to generate quiz
@@ -1243,41 +1265,49 @@ const Study = () => {
       const rawQuestions = response.data.response;
       const questionsArray = parseQuizText(rawQuestions); // Use centralized parser
 
-      if (questionsArray.length > 0) {
-        setQuizQuestions(questionsArray);
-        const initAnswers = new Array(questionsArray.length).fill(null);
-        const initAttempts = new Array(questionsArray.length).fill(0);
-        const initFirst = new Array(questionsArray.length).fill(null);
-        const initHintShown = new Array(questionsArray.length).fill(false);
-        setQuizAnswers(initAnswers);
-        setAttemptCounts(initAttempts);
-        setFirstAttemptAnswers(initFirst);
-        setHintShownAutomatically(initHintShown);
-        answersRef.current = initAnswers;
-        setCurrentQuestion(0);
-        setQuizMode('in_progress');
+  if (questionsArray.length > 0) {
+    setQuizQuestions(questionsArray);
+    const initAnswers = new Array(questionsArray.length).fill(null);
+    const initAttempts = new Array(questionsArray.length).fill(0);
+    const initFirst = new Array(questionsArray.length).fill(null);
+    const initHintShown = new Array(questionsArray.length).fill(false);
+    const initHintAvailable = new Array(questionsArray.length).fill(false);
+    const initHintRevealedManually = new Array(questionsArray.length).fill(false);
+    setQuizAnswers(initAnswers);
+    setAttemptCounts(initAttempts);
+    setFirstAttemptAnswers(initFirst);
+    setHintShownAutomatically(initHintShown);
+    setHintAvailable(initHintAvailable);
+    setHintRevealedManually(initHintRevealedManually);
+    answersRef.current = initAnswers;
+    setCurrentQuestion(0);
+    setQuizMode('in_progress');
   setTimeLeft(8 * 60); // Reset timer to 8 minutes
-        setIsRunning(true); // Start the timer
-        setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
-      } else {
+    setIsRunning(true); // Start the timer
+    setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
+  } else {
         // Fallback: Generate sample quiz questions for testing when AI fails
         console.log('AI quiz generation failed, using fallback sample questions');
-        const fallbackQuestions = generateFallbackQuizQuestions(selectedNote);
-        setQuizQuestions(fallbackQuestions);
-        const initAnswers = new Array(fallbackQuestions.length).fill(null);
-        const initAttempts = new Array(fallbackQuestions.length).fill(0);
-        const initFirst = new Array(fallbackQuestions.length).fill(null);
-        const initHintShown = new Array(fallbackQuestions.length).fill(false);
-        setQuizAnswers(initAnswers);
-        setAttemptCounts(initAttempts);
-        setFirstAttemptAnswers(initFirst);
-        setHintShownAutomatically(initHintShown);
-        answersRef.current = initAnswers;
-        setCurrentQuestion(0);
-        setQuizMode('in_progress');
+    const fallbackQuestions = generateFallbackQuizQuestions(selectedNote);
+    setQuizQuestions(fallbackQuestions);
+    const initAnswers = new Array(fallbackQuestions.length).fill(null);
+    const initAttempts = new Array(fallbackQuestions.length).fill(0);
+    const initFirst = new Array(fallbackQuestions.length).fill(null);
+    const initHintShown = new Array(fallbackQuestions.length).fill(false);
+    const initHintAvailable = new Array(fallbackQuestions.length).fill(false);
+    const initHintRevealedManually = new Array(fallbackQuestions.length).fill(false);
+    setQuizAnswers(initAnswers);
+    setAttemptCounts(initAttempts);
+    setFirstAttemptAnswers(initFirst);
+    setHintShownAutomatically(initHintShown);
+    setHintAvailable(initHintAvailable);
+    setHintRevealedManually(initHintRevealedManually);
+    answersRef.current = initAnswers;
+    setCurrentQuestion(0);
+    setQuizMode('in_progress');
   setTimeLeft(8 * 60); // Reset timer to 8 minutes
-        setIsRunning(true); // Start the timer
-        setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
+    setIsRunning(true); // Start the timer
+    setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       }
 
     } catch (err) {
@@ -1398,6 +1428,12 @@ const Study = () => {
               <button
                 onClick={() => {
                   setQuizQuestions([]);
+                  setQuizAnswers([]);
+                  setAttemptCounts([]);
+                  setFirstAttemptAnswers([]);
+                  setHintShownAutomatically([]);
+                  setHintAvailable([]);
+                  setHintRevealedManually([]);
                   setQuizResults(null);
                   setCurrentMode('quiz');
                   setQuizMode('prep');
@@ -1482,6 +1518,12 @@ const Study = () => {
               onClick={() => {
                 setQuizQuestions([]);
                   setQuizResults(null);
+                setQuizAnswers([]);
+                setAttemptCounts([]);
+                setFirstAttemptAnswers([]);
+                setHintShownAutomatically([]);
+                setHintAvailable([]);
+                setHintRevealedManually([]);
                 setCurrentMode('quiz');
                   setQuizMode('prep');
               }}
