@@ -22,13 +22,16 @@ Functional requirements define what the system must do:
 - System shall extract text from PDF, DOCX, TXT, MD files
 - System shall perform OCR on scanned PDFs
 - System shall organize notes by course and subject
-- System shall provide rich-text editing
+- System shall allow editing and deletion of existing notes
 
 **FR3: Quiz Generation**
-- System shall generate 15 MCQ questions from note content
-- System shall generate hints without revealing answers
-- System shall generate detailed explanations
+- System shall generate 15 multiple-choice questions from note content
+- System shall generate questions with 4 options (A, B, C, D) each
+- System shall create hints that don't contain keywords from correct answers
+- System shall generate detailed explanations for each question
 - System shall complete generation within 15 seconds
+- System shall validate question structure before delivery
+
 
 **FR4: Quiz Interaction**
 - System shall present questions one at a time

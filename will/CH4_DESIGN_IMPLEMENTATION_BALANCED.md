@@ -1,6 +1,6 @@
 # CHAPTER FOUR: SYSTEM DESIGN AND IMPLEMENTATION
 
-## 4.1 Introduction
+4.1 Introduction
 
 This chapter describes the design and implementation of Student Buddy, translating the methodology and specifications from Chapter 3 into a functional web application.
 
@@ -8,28 +8,26 @@ Section 4.2 covers design considerations including functional and non-functional
 
 ---
 
-## 4.2 Design Consideration
+4.2 Design Consideration
 
-### 4.2.1 Functional Requirements
+4.2.1 Functional Requirements
 
 Functional requirements define what the system must do - the specific behaviors and functions it must provide.
 
-**FR1: User Management**
+FR1: User Management
 - System shall allow user registration with email, username, and password
-- System shall authenticate users via JWT tokens with 24-hour expiration
-- System shall allow users to update profile information (school, level, courses)
-- System shall maintain user session across page refreshes
+- System shall authenticate users via JWT tokens
+- System shall allow profile updates
 
-**FR2: Note Management**
-- System shall support note creation via manual typing in rich-text editor
-- System shall support note creation via document upload (PDF, DOCX, TXT, MD)
-- System shall extract text from uploaded documents automatically
-- System shall perform OCR on scanned/image-based PDFs
-- System shall allow users to organize notes by course and subject (folders)
-- System shall provide search functionality across all notes
+FR2: Note Management
+- System shall support note creation via manual typing or file upload
+- System shall extract text from PDF, DOCX, TXT, MD files
+- System shall perform OCR on scanned PDFs
+- System shall organize notes by course and subject
 - System shall allow editing and deletion of existing notes
 
-**FR3: Quiz Generation**
+
+FR3: Quiz Generation
 - System shall generate 15 multiple-choice questions from note content
 - System shall generate questions with 4 options (A, B, C, D) each
 - System shall create hints that don't contain keywords from correct answers
@@ -37,101 +35,87 @@ Functional requirements define what the system must do - the specific behaviors 
 - System shall complete generation within 15 seconds
 - System shall validate question structure before delivery
 
-**FR4: Quiz Interaction**
+FR4: Quiz Interaction
 - System shall present questions one at a time to minimize cognitive load
 - System shall implement two-stage hint system:
   - First incorrect attempt: Show hint, allow second attempt
   - Second incorrect attempt: Show correct answer + explanation
 - System shall provide immediate feedback after each answer submission
-- System shall include 8-minute countdown timer for focused practice
 - System shall calculate and display final score (only first attempts count)
 - System shall save quiz results linked to source note
 
-**FR5: Practice Exam**
+FR5: Practice Exam
 - System shall generate 15 open-ended questions from note content
 - System shall allow selection of multiple notes for exam generation
 - System shall provide large textarea for essay-style answers
-- System shall support Markdown formatting in answers
 - System shall grade responses using AI (0-10 scale per question)
 - System shall provide detailed per-question feedback (strengths, weaknesses, suggestions)
 - System shall calculate overall percentage score
 
-**FR6: Progress Tracking**
+FR6: Progress Tracking
 - System shall display per-note performance history
 - System shall calculate improvement metrics (comparing recent to previous attempts)
-- System shall identify weak topics (notes with <60% average score)
 - System shall show attempt counts, average scores, and trends
-- System shall support quiz retakes with performance comparison
+- System shall support quiz retakes
 
-### 4.2.2 Non-Functional Requirements
+4.2.2 Non-Functional Requirements
 
-Non-functional requirements define how the system should behave - addressing quality and performance characteristics.
+Non-functional requirements define how the system should behave:
 
-**NFR1: Performance**
-- Quiz generation shall complete within 15 seconds for 15 questions
-- Practice exam grading shall complete within 30 seconds for 15 questions
-- Note upload and text extraction shall complete within 60 seconds for documents up to 10MB
-- Page load time shall not exceed 3 seconds on standard broadband connection
-- System shall handle concurrent requests from multiple users without degradation
+NFR1: Performance
+- Quiz generation: ≤15 seconds for 15 questions
+- Practice exam grading: ≤30 seconds for 15 questions
+- Note upload: ≤60 seconds for documents up to 10MB
+- Page load time: ≤3 seconds
 
-**NFR2: Usability**
-- Interface shall be intuitive, requiring minimal learning curve
-- System shall be responsive, adapting to desktop, tablet, and mobile screens
-- Error messages shall be clear and actionable (not technical jargon)
-- Quiz interface shall minimize cognitive load (one question per screen)
-- Navigation shall be consistent across all pages
-- Visual feedback shall confirm user actions (loading states, success messages)
+NFR2: Usability
+- Interface shall be intuitive (minimal learning curve)
+- System shall be responsive (desktop, tablet, mobile)
+- Error messages shall be clear and actionable
+- Quiz interface shall minimize cognitive load
 
-**NFR3: Reliability**
-- System uptime shall be ≥99% (excluding scheduled maintenance)
-- Failed AI requests shall retry automatically (maximum 3 attempts with exponential backoff)
-- System shall implement API key rotation when rate limits are hit
-- Database operations shall use transactions where data consistency is critical
-- System shall gracefully handle network failures
+NFR3: Reliability
+- System uptime: ≥99% (excluding maintenance)
+- Failed AI requests shall retry automatically (max 3 attempts)
+- System shall implement API key rotation on rate limits
 
-**NFR4: Scalability**
-- System shall support up to 1000 concurrent users without performance degradation
-- Database shall efficiently handle up to 100,000 notes
-- API shall respect Gemini free tier limit (60 requests/minute)
-- System architecture shall allow horizontal scaling if needed
+NFR4: Scalability
+- System shall support up to 1000 concurrent users
+- Database shall handle up to 100,000 notes
+- API shall handle 60 requests/minute (Gemini free tier limit)
 
-**NFR5: Security**
-- Passwords shall be hashed using bcrypt with minimum 10 salt rounds
+NFR5: Security
+- Passwords shall be hashed (bcrypt, 10 salt rounds)
 - JWT tokens shall expire after 24 hours
-- API endpoints shall validate user authorization before data access
-- File uploads shall be type-validated (whitelist approach)
-- File uploads shall be size-limited (500MB maximum)
-- CORS shall be restricted to trusted origins only
-- User data shall be isolated (no cross-user data access)
+- API endpoints shall validate user authorization
+- File uploads shall be type-validated and size-limited
 
-**NFR6: Efficiency**
+NFR6: Efficiency
 - System shall minimize API calls to reduce costs
-- Frontend shall implement code splitting to reduce initial load time
+- Frontend shall implement code splitting
 - Database queries shall use indexes for optimization
-- Unused dependencies shall be removed to reduce bundle size
-- Images and assets shall be optimized for web delivery
 
----
 
-## 4.3 System Architecture
 
-### 4.3.1 Architectural Pattern
+4.3 System Architecture
+
+4.3.1 Architectural Pattern
 
 Student Buddy employs a **three-tier client-server architecture** with clear separation of concerns:
 
-**Tier 1: Presentation Layer (Frontend)**
-- **Technology**: React 18.2.0 with Vite 7.1.7 build tool
-- **Styling**: TailwindCSS 3.3.3 for utility-first styling
-- **UI Components**: Radix UI for accessible primitives
-- **Rich Text Editor**: TipTap 2.12.0 for note editing
-- **Routing**: React Router 7.6.2 for client-side navigation
-- **State Management**: React Context API for global state
-- **HTTP Client**: Axios with interceptors for API communication
+Tier 1: Presentation Layer (Frontend)
+- Technology: React 18.2.0 with Vite 7.1.7 build tool
+- Styling: TailwindCSS 3.3.3 for utility-first styling
+- UI Components: Radix UI for accessible primitives
+- Rich Text Editor: TipTap 2.12.0 for note editing
+- Routing: React Router 7.6.2 for client-side navigation
+- State Management: React Context API for global state
+- HTTP Client: Axios with interceptors for API communication
 
-**Tier 2: Application Layer (Backend)**
-- **Runtime**: Node.js 18+
-- **Framework**: Express.js 4.18.2 for API routing and middleware
-- **Authentication**: JWT (jsonwebtoken 9.0.2) with bcrypt password hashing
+Tier 2: Application Layer (Backend)
+- Runtime: Node.js 18+
+- Framework: Express.js 4.18.2 for API routing and middleware
+- Authentication: JWT (jsonwebtoken 9.0.2) with bcrypt password hashing
 - **File Processing**: 
   - pdf-parse for PDF text extraction
   - pdf-poppler for PDF-to-image conversion
