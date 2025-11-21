@@ -67,6 +67,10 @@ const Study = () => {
   const [progressWidth, setProgressWidth] = useState(0);
   const [feedbackType, setFeedbackType] = useState(''); // 'correct' or 'wrong'
 
+  // Navigation mode states for previous question review
+  const [navigationMode, setNavigationMode] = useState('current'); // 'current' | 'previous'
+  const [viewingQuestionIndex, setViewingQuestionIndex] = useState(0); // For previous navigation
+
   // Hint timer states
   const HINT_AUTO_SECONDS = 30; // auto-hint becomes available after 30s
   const [hintTimerSeconds, setHintTimerSeconds] = useState(HINT_AUTO_SECONDS);
@@ -967,6 +971,58 @@ const Study = () => {
     }
   };
 
+  // Navigate to previous question (read-only mode)
+  const handlePreviousQuestion = () => {
+    if (currentQuestion > 0) {
+      // Clear any pending auto-advance timers when manually navigating
+      if (answerTimeoutRef.current) {
+        clearTimeout(answerTimeoutRef.current);
+        answerTimeoutRef.current = null;
+        scheduledAdvanceRef.current = null;
+      }
+      
+      // Enter previous mode and view the previous question
+      setNavigationMode('previous');
+      setViewingQuestionIndex(currentQuestion - 1);
+      
+      // Reset UI state for clean viewing
+      setShowFeedback(false);
+      setSelectedAnswerIndex(null);
+      setIsAnswerLocked(false);
+      setFeedbackType('');
+      setFeedbackMessage('');
+    }
+  };
+
+  // Navigate forward from previous question view
+  const handleNextFromPrevious = () => {
+    if (viewingQuestionIndex < currentQuestion - 1) {
+      // Move forward one question in review mode (still not at current)
+      setViewingQuestionIndex(viewingQuestionIndex + 1);
+      setShowFeedback(false);
+      setSelectedAnswerIndex(null);
+    } else if (viewingQuestionIndex === currentQuestion - 1) {
+      // Moving from the question just before current to current question
+      // Exit read-only mode completely
+      setNavigationMode('current');
+      setViewingQuestionIndex(currentQuestion);
+      setShowFeedback(false);
+      setSelectedAnswerIndex(null);
+      setIsAnswerLocked(false);
+      setFeedbackType('');
+      setFeedbackMessage('');
+    } else {
+      // Already at current question in previous mode, just exit read-only
+      setNavigationMode('current');
+      setViewingQuestionIndex(currentQuestion);
+      setShowFeedback(false);
+      setSelectedAnswerIndex(null);
+      setIsAnswerLocked(false);
+      setFeedbackType('');
+      setFeedbackMessage('');
+    }
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -1528,6 +1584,8 @@ const Study = () => {
                 setHintShownAutomatically([]);
                 setHintAvailable([]);
                 setHintRevealedManually([]);
+                setNavigationMode('current');
+                setViewingQuestionIndex(0);
                 setCurrentMode('quiz');
                   setQuizMode('prep');
               }}
@@ -1537,11 +1595,15 @@ const Study = () => {
               Back to Quiz Setup
             </button>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                Question {currentQuestion + 1} of {quizQuestions.length}
+                Question {(navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion) + 1} of {quizQuestions.length}
+                {navigationMode === 'previous' && (
+                  <span className="ml-2 text-sm font-normal text-indigo-600 dark:text-indigo-400">(Reviewed)</span>
+                )}
             </h1>
           </div>
 
-            {/* Timer Display */}
+            {/* Timer Display - hide in read-only mode */}
+            {navigationMode === 'current' && (
             <div className="flex items-center space-x-4 bg-white dark:bg-gray-700 rounded-lg shadow-md p-3 border border-gray-200 dark:border-gray-600">
               <div className="flex items-center text-gray-700 dark:text-gray-300 space-x-1">
                 <ClockIcon className="w-5 h-5" />
@@ -1620,6 +1682,7 @@ const Study = () => {
                 })()
               )}
             </div>
+            )}
         </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 sm:p-8">
@@ -1627,25 +1690,25 @@ const Study = () => {
               {/* Progress Bar */}
               <div className="mb-6">
                 <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  <span>Question {currentQuestion + 1} of {quizQuestions.length}</span>
-                  <span>{Math.round(((currentQuestion + 1) / quizQuestions.length) * 100)}%</span>
+                  <span>Question {(navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion) + 1} of {quizQuestions.length}</span>
+                  <span>{Math.round(((navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion) + 1) / quizQuestions.length * 100)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div
                     className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${((currentQuestion + 1) / quizQuestions.length) * 100}%` }}
+                    style={{ width: `${((navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion) + 1) / quizQuestions.length * 100}%` }}
                   ></div>
                 </div>
               </div>
 
             <div className="prose max-w-none">
-              {looksLikeHtml(quizQuestions[currentQuestion].question) ? (
+              {looksLikeHtml(quizQuestions[navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion].question) ? (
                 <pre className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg overflow-auto text-sm text-gray-900 dark:text-gray-100 mb-6">
-                  <code dangerouslySetInnerHTML={{ __html: escapeHtml(quizQuestions[currentQuestion].question) }} />
+                  <code dangerouslySetInnerHTML={{ __html: escapeHtml(quizQuestions[navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion].question) }} />
                 </pre>
               ) : (
                 <div className="text-xl font-medium text-gray-900 dark:text-white mb-8">
-                  {quizQuestions[currentQuestion].question}
+                  {quizQuestions[navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion].question}
                 </div>
               )}
             </div>
@@ -1654,35 +1717,78 @@ const Study = () => {
 
                 {/* Top feedback banner removed - prefer inline Hint/Explanation boxes only */}
 
-                {/* Hint box: show on first wrong attempt only OR when auto-shown. Use only the stored question hint (not feedbackMessage). */}
-                {((attemptCounts[currentQuestion] === 1 && firstAttemptAnswers[currentQuestion] && firstAttemptAnswers[currentQuestion] !== quizQuestions[currentQuestion].correctAnswer && quizQuestions[currentQuestion].hint) ||
-                 (showFeedback && feedbackType === 'hint' && quizQuestions[currentQuestion].hint)) ? (
-                  <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-sm text-gray-700 dark:text-blue-200">
-                    <strong>Hint:</strong> {quizQuestions[currentQuestion].hint}
-                  </div>
-                ) : null}
+                {/* Hint box: show on first wrong attempt only OR when auto-shown OR in read-only mode */}
+                {(() => {
+                  const qIndex = navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion;
+                  
+                  // In read-only mode, show hint if student got it wrong on first attempt
+                  if (navigationMode === 'previous') {
+                    const showHint = attemptCounts[qIndex] >= 1 && firstAttemptAnswers[qIndex] !== quizQuestions[qIndex].correctAnswer;
+                    return showHint && quizQuestions[qIndex].hint ? (
+                      <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-sm text-gray-700 dark:text-blue-200">
+                        <strong>Hint:</strong> {quizQuestions[qIndex].hint}
+                      </div>
+                    ) : null;
+                  }
+                  
+                  // In current mode, only show hint in specific feedback scenarios
+                  const showHint = (attemptCounts[qIndex] === 1 && firstAttemptAnswers[qIndex] && firstAttemptAnswers[qIndex] !== quizQuestions[qIndex].correctAnswer && quizQuestions[qIndex].hint) ||
+                                   (showFeedback && feedbackType === 'hint' && quizQuestions[qIndex].hint);
+                  
+                  return showHint ? (
+                    <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-sm text-gray-700 dark:text-blue-200">
+                      <strong>Hint:</strong> {quizQuestions[qIndex].hint}
+                    </div>
+                  ) : null;
+                })()}
 
-                {/* Explanation box: show after final wrong answer or final second attempt */}
-                {attemptCounts[currentQuestion] >= 2 && quizQuestions[currentQuestion].explanation && (
-                  <div className="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 text-sm text-gray-700 dark:text-green-200">
-                    <strong>Explanation:</strong> {quizQuestions[currentQuestion].explanation}
-                  </div>
-                )}
+                {/* Explanation box: show after final wrong answer or final second attempt OR in read-only mode */}
+                {(() => {
+                  const qIndex = navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion;
+                  const showExplanation = attemptCounts[qIndex] >= 2;
+                  
+                  return showExplanation && quizQuestions[qIndex].explanation ? (
+                    <div className="mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 text-sm text-gray-700 dark:text-green-200">
+                      <strong>Explanation:</strong> {quizQuestions[qIndex].explanation}
+                    </div>
+                  ) : null;
+                })()}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {quizQuestions[currentQuestion].options.map((option, index) => {
+                {quizQuestions[navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion].options.map((option, index) => {
+                  const qIndex = navigationMode === 'previous' ? viewingQuestionIndex : currentQuestion;
                   const letter = String.fromCharCode(65 + index);
                   const isSelected = selectedAnswerIndex === index;
-                  const isCorrect = letter === quizQuestions[currentQuestion].correctAnswer;
+                  const isCorrect = letter === quizQuestions[qIndex].correctAnswer;
 
-                  // Reveal correct answer only when user has had a second attempt OR their first attempt was correct
-                  const revealCorrect = (attemptCounts[currentQuestion] >= 2) || (firstAttemptAnswers[currentQuestion] === quizQuestions[currentQuestion].correctAnswer);
+                  // In read-only mode, always reveal correct answer and show user's answer
+                  const inReadOnlyMode = navigationMode === 'previous';
+                  const userAnswer = firstAttemptAnswers[qIndex];
+                  const isUserAnswer = letter === userAnswer;
+
+                  // Reveal correct answer only when:
+                  // 1. In read-only mode (viewing previous questions)
+                  // 2. User has completed second attempt (attemptCounts >= 2)
+                  // 3. User got first attempt correct AND we're showing feedback
+                  const revealCorrect = inReadOnlyMode || 
+                                       (attemptCounts[qIndex] >= 2) || 
+                                       (showFeedback && firstAttemptAnswers[qIndex] === quizQuestions[qIndex].correctAnswer);
 
                   const isWrongSelection = isSelected && !isCorrect;
 
-                  let buttonClass = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600';
+                  let buttonClass = '';
+                  let hoverClass = '';
 
-                  if (showFeedback) {
+                  if (inReadOnlyMode) {
+                    // Read-only mode styling
+                    if (isCorrect) {
+                      buttonClass = 'bg-green-100 dark:bg-green-900/30 border-green-500 dark:border-green-400 shadow-md cursor-default';
+                    } else if (isUserAnswer) {
+                      buttonClass = 'bg-red-100 dark:bg-red-900/30 border-red-500 dark:border-red-400 shadow-md cursor-default';
+                    } else {
+                      buttonClass = 'bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500 opacity-50 cursor-default';
+                    }
+                  } else if (showFeedback) {
                     if (revealCorrect && isCorrect) {
                       // Reveal correct answer (green) only when allowed
                       buttonClass = 'bg-green-100 dark:bg-green-900/30 border-green-500 dark:border-green-400 shadow-md';
@@ -1696,17 +1802,25 @@ const Study = () => {
                   } else if (isAnswerLocked) {
                     buttonClass = 'bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500 cursor-not-allowed opacity-50';
                   } else {
-                    buttonClass = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600';
+                    buttonClass = 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600';
+                    hoverClass = 'hover:bg-gray-50 dark:hover:bg-gray-600';
                   }
 
                   return (
                     <motion.button
                       key={index}
-                      onClick={() => !isAnswerLocked && handleQuizAnswer(index)}
-                      disabled={isAnswerLocked}
-                      className={`p-4 text-left rounded-xl border transition-all ${!isAnswerLocked ? 'hover:scale-[1.02]' : ''} ${buttonClass} ${isAnswerLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                      animate={showFeedback && revealCorrect && isCorrect ? { scale: [1, 1.05, 1] } : {}}
-                      transition={{ duration: 0.5, repeat: (showFeedback && revealCorrect && isCorrect) ? 1 : 0 }}
+                      onClick={() => !isAnswerLocked && !inReadOnlyMode && handleQuizAnswer(index)}
+                      disabled={isAnswerLocked || inReadOnlyMode}
+                      className={`p-4 text-left rounded-xl border ${buttonClass} ${hoverClass} ${isAnswerLocked || inReadOnlyMode ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                      initial={{ y: 0 }}
+                      whileHover={!isAnswerLocked && !inReadOnlyMode ? { y: -2 } : {}}
+                      whileTap={!isAnswerLocked && !inReadOnlyMode ? { scale: 0.99 } : {}}
+                      animate={showFeedback && revealCorrect && !inReadOnlyMode ? { scale: [1, 1.05, 1] } : {}}
+                      transition={{ 
+                        y: { duration: 0.2, ease: "easeInOut" },
+                        scale: { duration: 0.5 },
+                        repeat: (showFeedback && revealCorrect && !inReadOnlyMode) ? 1 : 0 
+                      }}
                     >
                       <div className="flex items-center justify-between">
                         <div
@@ -1749,10 +1863,34 @@ const Study = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row justify-between items-center pt-6 space-y-4 sm:space-y-0">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {quizAnswers.filter(a => a !== null).length} of {quizQuestions.length} answered
+              <div className="flex items-center gap-4">
+                {/* Previous button - show when not on first question */}
+                {currentQuestion > 0 && navigationMode === 'current' && (
+                  <button
+                    onClick={handlePreviousQuestion}
+                    className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                  >
+                    Previous
+                  </button>
+                )}
+                
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {quizAnswers.filter(a => a !== null).length} of {quizQuestions.length} answered
+                </div>
               </div>
-              {showFeedback && (
+              
+              {/* Next button in read-only mode */}
+              {navigationMode === 'previous' && (
+                <button
+                  onClick={handleNextFromPrevious}
+                  className="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  {viewingQuestionIndex < currentQuestion ? 'Next' : 'Return to Current'}
+                </button>
+              )}
+              
+              {/* Next button in current mode (after answering) */}
+              {navigationMode === 'current' && showFeedback && (
                 <button
                   onClick={handleNextQuestion}
                   className="w-full sm:w-auto px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
