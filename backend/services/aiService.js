@@ -268,20 +268,25 @@ SCORING SCALE (0-10):
 - 1-2: Limited understanding - vague or mostly incorrect
 - 0: No understanding shown or completely wrong
 
-COMMENTS should sound like real lecturer feedback:
-• "Good grasp of the definition, but you missed the practical application aspect."
-• "You identified the key term correctly, but your explanation lacks depth - try to elaborate on why this matters."
-• "Strong reasoning here - you explained the cause well, but didn't fully address the consequences."
-• "Correct concept but phrased vaguely; be more specific about the mechanisms involved."
-• "Nice attempt at application, but you mixed up the sequence of events."
-• "You captured the main idea, but missed some critical connections between concepts."
+COMMENTS must be detailed and structured like a real lecturer's feedback. Each comment MUST include THREE parts:
+
+1. **What they did well**: Start with positive recognition of correct elements, good reasoning, or strong understanding shown
+2. **What they did wrong**: Clearly identify specific errors, omissions, misconceptions, or gaps in their answer
+3. **How to improve**: Provide actionable next steps - what to review, what to focus on, or how to strengthen their understanding
+
+COMMENT EXAMPLES:
+• "✓ Well done: You correctly identified the main concept and provided a clear definition. ✗ However: You missed the practical application aspect and didn't explain how this concept connects to real-world scenarios. → Next steps: Review the examples in the reference material and practice explaining how theory applies to practice."
+
+• "✓ Strong points: Your reasoning about the cause was well-explained and showed good logical thinking. ✗ Gap identified: You didn't address the consequences or downstream effects of this process. → To improve: Study the complete cause-and-effect chain and practice tracing through all stages of the process."
+
+• "✓ Good start: You recognized the key term and attempted to explain it. ✗ Needs work: Your explanation lacks depth and specificity - it's too vague to demonstrate real understanding. → Action items: Review the detailed definition in your notes, focus on the 'why' and 'how' aspects, and try to elaborate with specific mechanisms or examples."
 
 Return a JSON array where each object has:
 {
   "question": "exact question text",
   "studentAnswer": "student's answer (or 'No answer provided')",
   "mark": number (0-10),
-  "comment": "specific, encouraging feedback that sounds like a real lecturer",
+  "comment": "detailed 3-part feedback (what they did well, what they did wrong, how to improve) that sounds like a real lecturer",
   "reference": "specific concept/section from reference material that supports this grading"
 }
 
