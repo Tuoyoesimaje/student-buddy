@@ -15,15 +15,33 @@ const stripHtml = (html) => {
 export default function NoteCard({ note, index, onView, onEdit, onDelete, onShare, courses }) {
   const { _id, title, content, createdAt, subject, course, attachments } = note;
 
-  // Define a set of background colors to cycle through
-  const colors = [
-    'bg-yellow-100 dark:bg-yellow-900/20',
-    'bg-pink-100 dark:bg-pink-900/20',
-    'bg-green-100 dark:bg-green-900/20',
-    'bg-blue-100 dark:bg-blue-900/20',
-    'bg-purple-100 dark:bg-purple-900/20',
+  // Define subtle monochromatic gradients for light, cosmic for dark
+  const gradients = [
+    // Warm Orange tones (light) / Electric Purple-Blue (dark)
+    'bg-gradient-to-br from-orange-100 via-orange-150 to-orange-200 dark:from-purple-900/60 dark:via-blue-800/60 dark:to-indigo-900/60',
+    
+    // Cool Blue tones (light) / Deep Ocean Glow (dark)
+    'bg-gradient-to-br from-blue-100 via-blue-150 to-blue-200 dark:from-cyan-800/60 dark:via-blue-700/60 dark:to-purple-800/60',
+    
+    // Fresh Green tones (light) / Emerald Night (dark)
+    'bg-gradient-to-br from-green-100 via-green-150 to-green-200 dark:from-emerald-800/60 dark:via-teal-700/60 dark:to-cyan-800/60',
+    
+    // Soft Purple tones (light) / Magenta Galaxy (dark)
+    'bg-gradient-to-br from-purple-100 via-purple-150 to-purple-200 dark:from-violet-800/60 dark:via-purple-700/60 dark:to-fuchsia-800/60',
+    
+    // Sunny Yellow tones (light) / Amber Cosmos (dark)
+    'bg-gradient-to-br from-yellow-100 via-yellow-150 to-yellow-200 dark:from-amber-800/60 dark:via-orange-700/60 dark:to-rose-800/60',
+    
+    // Rosy Pink tones (light) / Ruby Nebula (dark)
+    'bg-gradient-to-br from-pink-100 via-pink-150 to-pink-200 dark:from-pink-800/60 dark:via-rose-700/60 dark:to-red-800/60',
+    
+    // Teal tones (light) / Forest Aurora (dark)
+    'bg-gradient-to-br from-teal-100 via-teal-150 to-teal-200 dark:from-lime-800/60 dark:via-green-700/60 dark:to-emerald-800/60',
+    
+    // Amber tones (light) / Sunset Horizon (dark)
+    'bg-gradient-to-br from-amber-100 via-amber-150 to-amber-200 dark:from-amber-800/60 dark:via-orange-700/60 dark:to-pink-800/60',
   ];
-  const bgColor = colors[index % colors.length];
+  const bgColor = gradients[index % gradients.length];
 
   // Get course color if note is associated with a course
   const getCourseColor = () => {
