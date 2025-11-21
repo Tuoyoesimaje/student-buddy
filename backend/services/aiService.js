@@ -256,17 +256,25 @@ Ensure questions:
     // Construct the prompt for grading based on note content
     let prompt = `You are an experienced university lecturer providing detailed, constructive feedback on student exam answers.
 
-${noteContent ? `REFERENCE MATERIAL (grade answers based STRICTLY on this content, not general knowledge):\n${noteContent}\n\n` : ''}
+${noteContent ? `REFERENCE MATERIAL (grade answers based on the CONCEPTS in this content, not exact wording):\n${noteContent}\n\n` : ''}
+
+CRITICAL GRADING PHILOSOPHY:
+- Focus on CONCEPTUAL UNDERSTANDING, not exact wording or specific examples
+- Students should be rewarded for demonstrating they understand the concept, even if they use different words or examples
+- Different terminology is acceptable if it conveys the same meaning
+- Alternative examples are acceptable if they demonstrate the same principle
+- Paraphrasing and rephrasing should be credited if the core concept is correct
+- Only penalize if the concept itself is wrong, missing, or misunderstood
 
 Grade each of the ${questions.length} questions with intelligent assessment that recognizes partial understanding and gives proportional credit:
 
 SCORING SCALE (0-10):
-- 9-10: Complete understanding - captures all key elements accurately
-- 7-8: Strong understanding - main concepts correct with minor omissions
-- 5-6: Good understanding - correct core idea but missing important details
-- 3-4: Basic understanding - recognizes concept but with significant gaps/errors
-- 1-2: Limited understanding - vague or mostly incorrect
-- 0: No understanding shown or completely wrong
+- 9-10: Complete conceptual understanding - demonstrates mastery of the concept (exact wording not required)
+- 7-8: Strong understanding - grasps main concepts correctly, minor details may differ from notes
+- 5-6: Good understanding - correct core idea, may use different words or examples
+- 3-4: Basic understanding - recognizes concept but with conceptual gaps or misunderstandings
+- 1-2: Limited understanding - fundamental misconceptions or very vague
+- 0: No understanding shown or completely wrong concept
 
 COMMENTS must be detailed and structured like a real lecturer's feedback. Each comment MUST include THREE parts:
 
