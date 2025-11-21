@@ -71,6 +71,10 @@ const Study = () => {
   const HINT_AUTO_SECONDS = 30; // auto-hint becomes available after 30s
   const [hintTimerSeconds, setHintTimerSeconds] = useState(HINT_AUTO_SECONDS);
   const [isHintTimerRunning, setIsHintTimerRunning] = useState(false);
+  
+  // Auto-advance delay constants
+  const CORRECT_FIRST_DELAY = 7000; // 7 seconds for correct first attempt
+  const EXPLANATION_DELAY = 20000; // 20 seconds when explanation is shown
   // Whether the hint has been auto-revealed by the system (e.g., due to wrong-answer auto-reveal)
   const [hintShownAutomatically, setHintShownAutomatically] = useState([]);
   // Whether the hint is available (timer expired) but not yet revealed — shows a subtle button
@@ -241,7 +245,7 @@ const Study = () => {
             setCurrentQuestion(0);
             setCurrentMode('quiz');
             setQuizMode('in_progress');
-            setTimeLeft(8 * 60); // Reset timer to 8 minutes
+            setTimeLeft(12 * 60); // Reset timer to 12 minutes
             setIsRunning(true); // Start the timer
             return;
           }
@@ -282,7 +286,7 @@ const Study = () => {
             setCurrentQuestion(0);
             setCurrentMode('quiz');
             setQuizMode('in_progress');
-            setTimeLeft(8 * 60); // Reset timer to 8 minutes
+            setTimeLeft(12 * 60); // Reset timer to 12 minutes
             setIsRunning(true); // Start the timer
           } else {
             console.error('Invalid response format for retake quiz (backend)');
@@ -487,7 +491,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-  setTimeLeft(8 * 60); // Ensure the new 8 minute timer
+  setTimeLeft(12 * 60); // Set 12 minute timer
         setIsRunning(true);
         setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       } else {
@@ -510,7 +514,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-  setTimeLeft(8 * 60);
+  setTimeLeft(12 * 60);
         setIsRunning(true);
         setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       }
@@ -577,7 +581,7 @@ const Study = () => {
       setIsRunning(false);
     } else if (!isBreak) {
       setCompletedPomodoros(prev => prev + 1);
-  setTimeLeft(8 * 60);
+  setTimeLeft(12 * 60);
       setIsBreak(true);
     } else {
       setTimeLeft(25 * 60);
@@ -596,7 +600,7 @@ const Study = () => {
 
   const resetTimer = () => {
     if (quizMode === 'in_progress') {
-  setTimeLeft(8 * 60); // 8 minutes for quiz
+  setTimeLeft(12 * 60); // 12 minutes for quiz
     } else {
       setTimeLeft(25 * 60);
     }
@@ -608,7 +612,7 @@ const Study = () => {
   // Update timer when quiz mode changes
   useEffect(() => {
     if (quizMode === 'in_progress') {
-  setTimeLeft(8 * 60); // Set 8-minute timer for quiz
+  setTimeLeft(12 * 60); // Set 12-minute timer for quiz
       setIsRunning(true); // Auto-start timer when quiz begins
     }
   }, [quizMode]);
@@ -689,7 +693,7 @@ const Study = () => {
     setCurrentQuestion(0);
     setCurrentMode('quiz');
       setQuizMode('in_progress');
-  setTimeLeft(8 * 60); // Reset timer to 8 minutes
+  setTimeLeft(12 * 60); // Reset timer to 12 minutes
       setIsRunning(true); // Start the timer
       
     } catch (error) {
@@ -739,7 +743,7 @@ const Study = () => {
         totalQuestions: quizQuestions.length,
         percentage: Math.round((score / quizQuestions.length) * 100),
         passed: score / quizQuestions.length >= 0.6, // 60% passing threshold
-  timeSpent: 8 * 60 - timeLeft, // Calculate time spent
+  timeSpent: 12 * 60 - timeLeft, // Calculate time spent
         aiRemarks: `Quiz completed with ${Math.round((score / quizQuestions.length) * 100)}% accuracy. ${score / quizQuestions.length >= 0.8 ? 'Excellent performance!' : score / quizQuestions.length >= 0.6 ? 'Good job!' : 'Keep practicing to improve.'}`
       };
 
@@ -804,7 +808,7 @@ const Study = () => {
   setFeedbackMessage('');
 
       if (isCorrect) {
-        // Auto-advance after 5 seconds (make scheduling idempotent)
+        // Auto-advance after 7 seconds for correct first attempt
         setIsAnswerLocked(true);
         // Mark which question the scheduled advance applies to
         scheduledAdvanceRef.current = currentQuestion;
@@ -828,7 +832,7 @@ const Study = () => {
           } else {
             finalizeQuiz();
           }
-        }, 5000);
+        }, CORRECT_FIRST_DELAY);
       } else {
         // Check if hint was shown automatically - if so, only 1 attempt allowed
         if (hintShownAutomatically[currentQuestion] || (hintAvailable[currentQuestion] && !hintRevealedManually[currentQuestion])) {
@@ -856,7 +860,7 @@ const Study = () => {
             // Reveal correct answer in UI by leaving state; lock inputs
             setIsAnswerLocked(true);
 
-            // After 12 seconds, auto-advance (more time to read explanation)
+            // After 20 seconds, auto-advance (more time to read explanation)
             answerTimeoutRef.current = setTimeout(() => {
               answerTimeoutRef.current = null;
               setIsAnswerLocked(false);
@@ -867,7 +871,7 @@ const Study = () => {
               } else {
                 finalizeQuiz();
               }
-            }, 12000);
+            }, EXPLANATION_DELAY);
           } else {
           // Normal two-stage logic - show hint and allow second attempt
           // Add a very short temporary lock to prevent rapid double-clicking which
@@ -899,7 +903,7 @@ const Study = () => {
       // Reveal correct answer in UI by leaving state; lock inputs
       setIsAnswerLocked(true);
 
-      // After 12 seconds, auto-advance (more time to read explanation)
+      // After 20 seconds, auto-advance (more time to read explanation)
       answerTimeoutRef.current = setTimeout(() => {
         answerTimeoutRef.current = null;
         setIsAnswerLocked(false);
@@ -910,7 +914,7 @@ const Study = () => {
         } else {
           finalizeQuiz();
         }
-      }, 12000);
+      }, EXPLANATION_DELAY);
     }
   };
 
@@ -932,9 +936,15 @@ const Study = () => {
       clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = null;
     }
+    
+    // Clear any pending answer timeouts FIRST before changing question
+    if (answerTimeoutRef.current) {
+      clearTimeout(answerTimeoutRef.current);
+      answerTimeoutRef.current = null;
+      scheduledAdvanceRef.current = null;
+    }
 
     if (currentQuestion < quizQuestions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
       // Reset feedback state for new question
       setShowFeedback(false);
       setSelectedAnswerIndex(null);
@@ -942,15 +952,11 @@ const Study = () => {
       setFeedbackType('');
       setFeedbackMessage('');
       setProgressWidth(0);
-      // Clear any pending answer timeouts when manually moving to next question
-      if (answerTimeoutRef.current) {
-        clearTimeout(answerTimeoutRef.current);
-        answerTimeoutRef.current = null;
-        scheduledAdvanceRef.current = null;
-      }
-  // Reset hint timer for new question
-  setHintTimerSeconds(HINT_AUTO_SECONDS);
+      // Reset hint timer for new question
+      setHintTimerSeconds(HINT_AUTO_SECONDS);
       setIsHintTimerRunning(false);
+      // Change question AFTER clearing all timers and resetting state
+      setCurrentQuestion(prev => prev + 1);
     } else {
       // Finish quiz
       finalizeQuiz();
@@ -1160,7 +1166,6 @@ const Study = () => {
   setHintShownAutomatically([]);
   setHintAvailable([]);
   setHintRevealedManually([]);
-  setTimeLeft(3 * 60); // Reset timer to 3 minutes
 
     try {
       // Call backend endpoint to generate quiz
@@ -1191,7 +1196,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-  setTimeLeft(8 * 60); // Reset timer to 8 minutes
+  setTimeLeft(12 * 60); // Reset timer to 12 minutes
         setIsRunning(true); // Start the timer
       } else {
         // Fallback: Generate sample quiz questions for testing when AI fails
@@ -1213,7 +1218,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-  setTimeLeft(8 * 60); // Reset timer to 8 minutes
+  setTimeLeft(12 * 60); // Reset timer to 12 minutes
         setIsRunning(true); // Start the timer
       }
 
@@ -1248,7 +1253,6 @@ const Study = () => {
     setError(null);
     setQuizQuestions([]); // Clear previous questions
     setQuizAnswers([]); // Clear previous answers
-    setTimeLeft(3 * 60); // Reset timer to 3 minutes
 
     try {
       const selectedNote = selectedQuizNotes[0];
@@ -1282,7 +1286,7 @@ const Study = () => {
     answersRef.current = initAnswers;
     setCurrentQuestion(0);
     setQuizMode('in_progress');
-  setTimeLeft(8 * 60); // Reset timer to 8 minutes
+  setTimeLeft(12 * 60); // Reset timer to 12 minutes
     setIsRunning(true); // Start the timer
     setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
   } else {
@@ -1305,7 +1309,7 @@ const Study = () => {
     answersRef.current = initAnswers;
     setCurrentQuestion(0);
     setQuizMode('in_progress');
-  setTimeLeft(8 * 60); // Reset timer to 8 minutes
+  setTimeLeft(12 * 60); // Reset timer to 12 minutes
     setIsRunning(true); // Start the timer
     setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       }
@@ -1545,6 +1549,21 @@ const Study = () => {
               {formatTime(timeLeft)}
                 </div>
               </div>
+              
+              {/* Retry indicator: show when hint is displayed and student can try again (first attempt only) */}
+              {attemptCounts[currentQuestion] === 1 && 
+               firstAttemptAnswers[currentQuestion] && 
+               firstAttemptAnswers[currentQuestion] !== quizQuestions[currentQuestion].correctAnswer && 
+               !isAnswerLocked && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-200 dark:border-orange-700/50 shadow-sm">
+                  <svg className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span className="text-xs font-semibold text-orange-700 dark:text-orange-300">
+                    Try Again
+                  </span>
+                </div>
+              )}
               {/* Hint Timer Display (minimal, manual reveal) */}
               {quizMode === 'in_progress' && attemptCounts[currentQuestion] === 0 && !showFeedback && (
                 (() => {
