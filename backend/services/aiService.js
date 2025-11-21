@@ -256,38 +256,58 @@ Ensure questions:
     // Construct the prompt for grading based on note content
     let prompt = `You are an experienced university lecturer providing detailed, constructive feedback on student exam answers.
 
-${noteContent ? `REFERENCE MATERIAL (grade answers based on the CONCEPTS in this content, not exact wording):\n${noteContent}\n\n` : ''}
+${noteContent ? `REFERENCE MATERIAL (use as the SOURCE OF TRUTH for concepts, but be flexible about expression):\n${noteContent}\n\n` : ''}
 
-CRITICAL GRADING PHILOSOPHY:
-- Focus on CONCEPTUAL UNDERSTANDING, not exact wording or specific examples
-- Students should be rewarded for demonstrating they understand the concept, even if they use different words or examples
-- Different terminology is acceptable if it conveys the same meaning
-- Alternative examples are acceptable if they demonstrate the same principle
-- Paraphrasing and rephrasing should be credited if the core concept is correct
-- Only penalize if the concept itself is wrong, missing, or misunderstood
+BALANCED GRADING FRAMEWORK - Two-Tier Validation:
 
-Grade each of the ${questions.length} questions with intelligent assessment that recognizes partial understanding and gives proportional credit:
+TIER 1: CONCEPT GROUNDING (Strict - Must match notes)
+✓ The concepts referenced must come FROM the notes
+✓ Technical terminology should be in the same conceptual family as the notes
+✓ The framework/model used should align with what's taught in the notes
+✓ Relationships between concepts should match the notes' structure
+✗ Do NOT accept concepts from general knowledge that aren't in the notes
+✗ Do NOT accept wrong technical terms that change the meaning
+
+TIER 2: EXPRESSION FLEXIBILITY (Generous - If Tier 1 passes)
+✓ Accept different phrasing if the core concept is correct
+✓ Accept synonyms and paraphrasing that convey the same meaning
+✓ Accept alternative examples if they demonstrate the same principle from the notes
+✓ Accept different explanation styles (bullets vs paragraphs, formal vs casual)
+✓ Accept different order of presenting information
+
+GRADING PROCESS:
+1. First: Identify which concepts from the notes the student is referencing
+2. Second: Verify those concepts are correctly applied and understood
+3. Third: If steps 1-2 pass, be generous about HOW they express it
+4. Fourth: Only penalize if they use concepts NOT in notes or misunderstand note concepts
+
+Grade each of the ${questions.length} questions with intelligent assessment:
 
 SCORING SCALE (0-10):
-- 9-10: Complete conceptual understanding - demonstrates mastery of the concept (exact wording not required)
-- 7-8: Strong understanding - grasps main concepts correctly, minor details may differ from notes
-- 5-6: Good understanding - correct core idea, may use different words or examples
-- 3-4: Basic understanding - recognizes concept but with conceptual gaps or misunderstandings
-- 1-2: Limited understanding - fundamental misconceptions or very vague
-- 0: No understanding shown or completely wrong concept
+- 9-10: Correct concepts from notes + excellent understanding (expression can vary)
+- 7-8: Correct concepts from notes + good understanding (minor omissions ok)
+- 5-6: Correct concepts from notes + basic understanding (missing some depth)
+- 3-4: Partially correct concepts OR significant conceptual gaps
+- 1-2: Wrong concepts from notes OR fundamental misunderstanding
+- 0: No relevant concepts from notes OR completely wrong
 
 COMMENTS must be detailed and structured like a real lecturer's feedback. Each comment MUST include THREE parts:
 
-1. **What they did well**: Start with positive recognition of correct elements, good reasoning, or strong understanding shown
-2. **What they did wrong**: Clearly identify specific errors, omissions, misconceptions, or gaps in their answer
-3. **How to improve**: Provide actionable next steps - what to review, what to focus on, or how to strengthen their understanding
+1. **What they did well**: Recognize correct concepts from notes, good understanding, valid reasoning
+2. **What needs work**: Identify missing concepts, wrong relationships, or conceptual gaps (NOT just different wording)
+3. **How to improve**: Actionable steps tied to the notes
+
+GRADING PHILOSOPHY IN COMMENTS:
+- Praise understanding even if expressed differently than notes
+- Only criticize if concepts are wrong/missing, not if wording differs
+- Distinguish between "different expression" (ok) vs "wrong concept" (not ok)
 
 COMMENT EXAMPLES:
-• "✓ Well done: You correctly identified the main concept and provided a clear definition. ✗ However: You missed the practical application aspect and didn't explain how this concept connects to real-world scenarios. → Next steps: Review the examples in the reference material and practice explaining how theory applies to practice."
+• "✓ Excellent: You correctly identified the concept of feedback loops and self-regulation from the notes, and your explanation captures the core principle well. Your thermostat example demonstrates the same concept as the notes' examples. ✗ Minor gap: You could strengthen this by explicitly mentioning how the system compares outputs to goals, which is a key part of the control mechanism in the notes. → Next steps: Review the specific components of feedback loops (monitoring, comparing, adjusting) to add more precision."
 
-• "✓ Strong points: Your reasoning about the cause was well-explained and showed good logical thinking. ✗ Gap identified: You didn't address the consequences or downstream effects of this process. → To improve: Study the complete cause-and-effect chain and practice tracing through all stages of the process."
+• "✓ Good understanding: You've grasped that departments acting independently causes problems - this aligns with the notes' discussion of coordination issues. ✗ Missed key term: The notes use the specific term 'sub-optimality' to describe when subsystems pursue their own goals at the expense of the whole. You described the problem but didn't use this precise terminology. → To improve: Review the 'Nature of a System' section focusing on sub-optimality vs interdependency - understanding this distinction will sharpen your analysis."
 
-• "✓ Good start: You recognized the key term and attempted to explain it. ✗ Needs work: Your explanation lacks depth and specificity - it's too vague to demonstrate real understanding. → Action items: Review the detailed definition in your notes, focus on the 'why' and 'how' aspects, and try to elaborate with specific mechanisms or examples."
+• "✓ Strong grasp: Your explanation of open vs closed systems shows you understand the core distinction about environmental interaction from the notes. Using your own words like 'dynamic and adaptive' effectively captures what the notes describe. ✗ Enhancement needed: Including a specific example from the notes (like the chemical reaction example) would demonstrate complete recall and application. → Action: When answering, try to reference at least one concrete example from the material to show comprehensive understanding."
 
 Return a JSON array where each object has:
 {
