@@ -69,37 +69,36 @@ export default function NoteCard({ note, index, onView, onEdit, onDelete, onShar
 
   return (
     <div
-      className={`rounded-2xl shadow-md dark:shadow-gray-900/20 p-4 ${bgColor} flex flex-col justify-between transition hover:shadow-lg dark:hover:shadow-gray-900/30 relative border border-gray-200 dark:border-gray-700 cursor-pointer`}
+      className={`rounded-xl shadow-sm dark:shadow-gray-900/20 p-5 ${bgColor} flex flex-col transition hover:shadow-md dark:hover:shadow-gray-900/30 border border-gray-200 dark:border-gray-700 cursor-pointer h-full`}
       onClick={handleCardClick}
     >
-      {/* Top section: Title and Options Icon */}
-      <div className="flex justify-between items-start">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">{title || 'Untitled Note'}</h3>
-          <p className="mt-1 text-xs text-gray-600 dark:text-gray-400 line-clamp-3">{content ? stripHtml(marked(content)).substring(0, 150) + (stripHtml(marked(content)).length > 150 ? '...' : '') : ''}</p>
-        </div>
-        <div className="ml-2 flex-shrink-0 flex items-center space-x-1">
+      {/* Header: Title and Action Buttons */}
+      <div className="flex justify-between items-start gap-3 mb-3">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 flex-1">
+          {title || 'Untitled Note'}
+        </h3>
+        <div className="flex-shrink-0 flex items-center gap-1">
           <button
             onClick={handleEditClick}
-            className="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none transition-colors duration-200"
+            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-200"
             aria-label="Edit note"
           >
-            <PencilIcon className="h-5 w-5" />
+            <PencilIcon className="h-4 w-4" />
           </button>
           <button
             onClick={handleDeleteClick}
-            className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 focus:outline-none ml-1 transition-colors duration-200"
+            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-200"
             aria-label="Delete note"
           >
-            <TrashIcon className="h-5 w-5" />
+            <TrashIcon className="h-4 w-4" />
           </button>
           {typeof onShare === 'function' && (
             <button
               onClick={handleShareClick}
-              className="p-1 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 focus:outline-none ml-1 transition-colors duration-200"
+              className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-200"
               aria-label="Share note"
             >
-              <ShareIcon className="h-5 w-5" />
+              <ShareIcon className="h-4 w-4" />
             </button>
           )}
           <button
@@ -107,61 +106,65 @@ export default function NoteCard({ note, index, onView, onEdit, onDelete, onShar
               e.stopPropagation();
               handleCopy();
             }}
-            className="ml-1 p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none transition-colors duration-200"
+            className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-white/50 dark:hover:bg-gray-800/50 rounded-lg transition-all duration-200"
             aria-label="Copy to clipboard"
           >
-            <ClipboardIcon className="h-5 w-5" />
+            <ClipboardIcon className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {/* Content Preview Div restored */}
+      {/* Content Preview */}
       {content && (
-        <div className="text-sm text-gray-700 line-clamp-3 my-4 prose dark:prose-invert max-w-none">
-          <div dangerouslySetInnerHTML={{ __html: marked(content) }} />
-        </div>
+        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3 mb-4 leading-relaxed">
+          {stripHtml(marked(content)).substring(0, 250) + (stripHtml(marked(content)).length > 250 ? '...' : '')}
+        </p>
       )}
       
+      {/* Attachments */}
       {attachments && attachments.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
-          {attachments.map((attachment, index) => (
+          {attachments.map((attachment, idx) => (
             <div
-              key={index}
-              className="flex items-center bg-white bg-opacity-50 rounded-lg px-2 py-1 text-xs"
+              key={idx}
+              className="flex items-center bg-white/60 dark:bg-gray-800/60 rounded-md px-2 py-1 text-xs"
             >
               {attachment.type?.startsWith('image/') ? (
-                <PhotoIcon className="w-3 h-3 text-blue-500 mr-1" />
+                <PhotoIcon className="w-3 h-3 text-blue-500 mr-1 flex-shrink-0" />
               ) : (
-                <DocumentIcon className="w-3 h-3 text-gray-500 mr-1" />
+                <DocumentIcon className="w-3 h-3 text-gray-500 mr-1 flex-shrink-0" />
               )}
-              <span className="truncate max-w-[100px]">{attachment.name}</span>
+              <span className="truncate max-w-[80px]">{attachment.name}</span>
             </div>
           ))}
         </div>
       )}
       
-      {/* Bottom section: Date and Subject (optional) */}
-      <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
-        <div className="flex items-center space-x-4">
-          {createdAt && (
-             <div className="flex items-center">
-               <ClockIcon className="w-3 h-3 mr-1"/>
-               <span>{new Date(createdAt).toLocaleDateString()}</span>
-             </div>
-          )}
-          {subject && (
-             <div className="flex items-center">
-               <FolderIcon className="w-3 h-3 mr-1"/>
-               <span>{subject}</span>
-             </div>
-          )}
-          {course && (
-             <div className="flex items-center">
-               <AcademicCapIcon className={`w-3 h-3 mr-1 ${getCourseColor()}`} />
-               <span>{typeof course === 'object' && course !== null ? course.name : courses.find(c => c._id === course)?.name}</span>
-             </div>
-          )}
-        </div>
+      {/* Spacer to push metadata to bottom */}
+      <div className="flex-grow"></div>
+      
+      {/* Metadata Footer - Responsive wrapping */}
+      <div className="flex flex-wrap gap-x-3 gap-y-2 text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
+        {createdAt && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <ClockIcon className="w-3.5 h-3.5" />
+            <span className="whitespace-nowrap">{new Date(createdAt).toLocaleDateString()}</span>
+          </div>
+        )}
+        {subject && (
+          <div className="flex items-center gap-1 min-w-0">
+            <FolderIcon className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate max-w-[120px]">{subject}</span>
+          </div>
+        )}
+        {course && (
+          <div className="flex items-center gap-1 min-w-0">
+            <AcademicCapIcon className={`w-3.5 h-3.5 flex-shrink-0 ${getCourseColor()}`} />
+            <span className="truncate max-w-[120px]">
+              {typeof course === 'object' && course !== null ? course.name : courses.find(c => c._id === course)?.name}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
