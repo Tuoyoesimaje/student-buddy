@@ -838,25 +838,15 @@ const Study = () => {
           }
         }, CORRECT_FIRST_DELAY);
       } else {
-        // Check if hint was shown automatically - if so, only 1 attempt allowed
-        if (hintShownAutomatically[currentQuestion] || (hintAvailable[currentQuestion] && !hintRevealedManually[currentQuestion])) {
-            // If the hint was auto-revealed earlier OR the hint was available (timer expired)
-            // and the user submitted a wrong answer without manually revealing, then auto-reveal
-            // the hint now and treat this as the final/only attempt.
-            // If this branch is entered because hintAvailable was true and user didn't click, mark as auto-shown now.
-            if (!hintShownAutomatically[currentQuestion]) {
-              setHintShownAutomatically(prev => {
-                const next = [...(prev || [])];
-                next[currentQuestion] = true;
-                return next;
-              });
-            }
-
+        // Check if hint was manually revealed by user clicking the hint button
+        // Only if they clicked the hint button should we treat it as final attempt
+        if (hintRevealedManually[currentQuestion]) {
+            // User clicked the hint button, so only 1 attempt allowed
             // Reveal the hint to the user
             setShowFeedback(true);
             setFeedbackType('hint');
 
-            // Auto-hint was shown, only 1 attempt allowed
+            // Mark as final attempt since they used the hint
             const newAttempts = [...attemptCounts];
             newAttempts[currentQuestion] = 2; // Mark as final attempt
             setAttemptCounts(newAttempts);
