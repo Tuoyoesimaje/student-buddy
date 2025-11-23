@@ -115,9 +115,9 @@ router.post('/generate-quiz', async (req, res) => {
   // Construct prompt for AI to generate quiz questions (include subtle hint per question)
   // The hint must guide recall without revealing the answer and must avoid keywords from the correct answer.
   // Output format: Q#: question text\nA) ...\nB) ...\nC) ...\nHint: ...\nAnswer: [A/B/C]
-  const prompt = `Generate 15 multiple-choice quiz questions about ${topic}. Each question should have exactly 4 multiple-choice options: A, B, C, and D. For each question also generate:
+  const prompt = `Generate 10 multiple-choice quiz questions about ${topic}. Each question should have exactly 4 multiple-choice options: A, B, C, and D. For each question also generate:
 1. A single concise hint (one sentence, 8-20 words) that guides thinking without revealing the answer and that does NOT contain keywords from the correct answer.
-2. A detailed explanation (2-4 sentences) that explains why the correct answer is right, including examples or reasoning.
+2. A detailed explanation (3-5 sentences) that explains why the correct answer is right, including examples or reasoning.
 
 Format the output exactly as follows for each question:
 Q1: [Question text]
@@ -141,7 +141,7 @@ Answer: C
 
 Answers should not be always the same letter. They should be mixed evenly among A, B, C, and D. Randomly distributed.
 
-Now generate 15 questions about ${topic} in this exact format, using only options A, B, C, and D. Keep hints brief and avoid giving away the answer. Make explanations detailed but concise.`;
+Now generate 10 questions about ${topic} in this exact format, using only options A, B, C, and D. Keep hints brief and avoid giving away the answer. Make explanations detailed but concise.`;
 
     console.log('Sending quiz generation prompt to AI service...');
     const rawQuizText = await aiService.generateResponse(prompt);

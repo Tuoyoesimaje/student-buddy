@@ -249,7 +249,7 @@ const Study = () => {
             setCurrentQuestion(0);
             setCurrentMode('quiz');
             setQuizMode('in_progress');
-            setTimeLeft(12 * 60); // Reset timer to 12 minutes
+            setTimeLeft(10 * 60); // Reset timer to 12 minutes
             setIsRunning(true); // Start the timer
             return;
           }
@@ -290,7 +290,7 @@ const Study = () => {
             setCurrentQuestion(0);
             setCurrentMode('quiz');
             setQuizMode('in_progress');
-            setTimeLeft(12 * 60); // Reset timer to 12 minutes
+            setTimeLeft(10 * 60); // Reset timer to 12 minutes
             setIsRunning(true); // Start the timer
           } else {
             console.error('Invalid response format for retake quiz (backend)');
@@ -495,7 +495,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-  setTimeLeft(12 * 60); // Set 12 minute timer
+  setTimeLeft(10 * 60); // Set 12 minute timer
         setIsRunning(true);
         setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       } else {
@@ -518,7 +518,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-  setTimeLeft(12 * 60);
+  setTimeLeft(10 * 60);
         setIsRunning(true);
         setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       }
@@ -585,7 +585,7 @@ const Study = () => {
       setIsRunning(false);
     } else if (!isBreak) {
       setCompletedPomodoros(prev => prev + 1);
-  setTimeLeft(12 * 60);
+  setTimeLeft(10 * 60);
       setIsBreak(true);
     } else {
       setTimeLeft(25 * 60);
@@ -604,7 +604,7 @@ const Study = () => {
 
   const resetTimer = () => {
     if (quizMode === 'in_progress') {
-  setTimeLeft(12 * 60); // 12 minutes for quiz
+  setTimeLeft(10 * 60); // 12 minutes for quiz
     } else {
       setTimeLeft(25 * 60);
     }
@@ -616,7 +616,7 @@ const Study = () => {
   // Update timer when quiz mode changes
   useEffect(() => {
     if (quizMode === 'in_progress') {
-  setTimeLeft(12 * 60); // Set 12-minute timer for quiz
+  setTimeLeft(10 * 60); // Set 12-minute timer for quiz
       setIsRunning(true); // Auto-start timer when quiz begins
     }
   }, [quizMode]);
@@ -697,7 +697,7 @@ const Study = () => {
     setCurrentQuestion(0);
     setCurrentMode('quiz');
       setQuizMode('in_progress');
-  setTimeLeft(12 * 60); // Reset timer to 12 minutes
+  setTimeLeft(10 * 60); // Reset timer to 12 minutes
       setIsRunning(true); // Start the timer
       
     } catch (error) {
@@ -747,7 +747,7 @@ const Study = () => {
         totalQuestions: quizQuestions.length,
         percentage: Math.round((score / quizQuestions.length) * 100),
         passed: score / quizQuestions.length >= 0.6, // 60% passing threshold
-  timeSpent: 12 * 60 - timeLeft, // Calculate time spent
+  timeSpent: 10 * 60 - timeLeft, // Calculate time spent
         aiRemarks: `Quiz completed with ${Math.round((score / quizQuestions.length) * 100)}% accuracy. ${score / quizQuestions.length >= 0.8 ? 'Excellent performance!' : score / quizQuestions.length >= 0.6 ? 'Good job!' : 'Keep practicing to improve.'}`
       };
 
@@ -1242,7 +1242,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-  setTimeLeft(12 * 60); // Reset timer to 12 minutes
+  setTimeLeft(10 * 60); // Reset timer to 12 minutes
         setIsRunning(true); // Start the timer
       } else {
         // Fallback: Generate sample quiz questions for testing when AI fails
@@ -1264,7 +1264,7 @@ const Study = () => {
         answersRef.current = initAnswers;
         setCurrentQuestion(0);
         setQuizMode('in_progress');
-  setTimeLeft(12 * 60); // Reset timer to 12 minutes
+  setTimeLeft(10 * 60); // Reset timer to 12 minutes
         setIsRunning(true); // Start the timer
       }
 
@@ -1332,7 +1332,7 @@ const Study = () => {
     answersRef.current = initAnswers;
     setCurrentQuestion(0);
     setQuizMode('in_progress');
-  setTimeLeft(12 * 60); // Reset timer to 12 minutes
+  setTimeLeft(10 * 60); // Reset timer to 12 minutes
     setIsRunning(true); // Start the timer
     setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
   } else {
@@ -1355,7 +1355,7 @@ const Study = () => {
     answersRef.current = initAnswers;
     setCurrentQuestion(0);
     setQuizMode('in_progress');
-  setTimeLeft(12 * 60); // Reset timer to 12 minutes
+  setTimeLeft(10 * 60); // Reset timer to 12 minutes
     setIsRunning(true); // Start the timer
     setSuccess(`Quiz generated successfully from "${selectedNote.title}"`);
       }
@@ -1940,3 +1940,4 @@ return (
 };
 
 export default Study;
+

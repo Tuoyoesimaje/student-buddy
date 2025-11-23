@@ -71,7 +71,7 @@ const [showRetryIndicator, setShowRetryIndicator] = useState(false);
 
 **Modified Constants:**
 ```javascript
-const QUIZ_TIMER_MINUTES = 12; // Changed from 8
+const QUIZ_TIMER_MINUTES = 10; // Changed from 8
 const CORRECT_FIRST_DELAY = 5000; // 5 seconds
 const EXPLANATION_DELAY = 20000; // 20 seconds
 ```
@@ -142,6 +142,33 @@ const [improvementGuidance, setImprovementGuidance] = useState('');
 ```
 
 ### Backend Services
+
+#### ai.js Route Modifications
+
+**Quiz Generation Endpoint Update:**
+
+The `/api/ai/generate-quiz` endpoint needs to be updated to generate 10 questions instead of 15:
+
+```javascript
+// Update the prompt to request 10 questions
+const prompt = `Generate 10 multiple-choice quiz questions about ${topic}. Each question should have exactly 4 multiple-choice options: A, B, C, and D. For each question also generate:
+1. A single concise hint (one sentence, 8-20 words) that guides thinking without revealing the answer and that does NOT contain keywords from the correct answer.
+2. A detailed explanation (2-4 sentences) that explains why the correct answer is right, including examples or reasoning.
+
+Format the output exactly as follows for each question:
+Q1: [Question text]
+A) [option A]
+B) [option B]
+C) [option C]
+D) [option D]
+Hint: [a short subtle hint that encourages recall and avoids answer keywords]
+Explanation: [detailed explanation of why the correct answer is right]
+Answer: [A/B/C/D]
+
+...
+
+Now generate 10 questions about ${topic} in this exact format...`;
+```
 
 #### aiService.js Modifications
 
@@ -361,9 +388,13 @@ interface DetailedFeedback {
 *For any* AI response format (with or without JSON markers), the parsing function should extract feedback sections without throwing errors
 **Validates: Requirements 6.6**
 
+**Property 6: Quiz length consistency**
+*For any* quiz generation request, the system should generate exactly 10 questions
+**Validates: Requirements 9.1, 9.2, 9.3**
+
 ### Practice Exam Properties
 
-**Property 6: Feedback section separation**
+**Property 7: Feedback section separation**
 *For any* practice exam result, the response should contain distinct performanceFeedback and improvementGuidance fields
 **Validates: Requirements 5.1, 5.2, 5.3**
 

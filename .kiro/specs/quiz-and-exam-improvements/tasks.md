@@ -4,8 +4,8 @@
 
 
 
-  - Change QUIZ_TIMER_MINUTES constant from 8 to 12 in Study.jsx
-  - Update all timer initialization calls to use 12 * 60 seconds
+  - Change QUIZ_TIMER_MINUTES constant from 8 to 10 in Study.jsx
+  - Update all timer initialization calls to use 10 * 60 seconds
   - Verify timer display shows correct initial value
   - _Requirements: 1.1, 1.2, 1.4_
 
@@ -144,7 +144,20 @@
   - Test UI rendering of separated sections
   - _Requirements: All practice exam requirements_
 
-- [ ] 14. Manual testing and refinement
+- [x] 14. Reduce quiz question count to 10
+
+
+
+  - Update the quiz generation prompt in backend/routes/ai.js to request 10 questions instead of 15
+  - Change all instances of "15" to "10" in the prompt text
+  - Verify the prompt instructions are consistent with the new count
+  - _Requirements: 9.1, 9.2, 9.3, 9.4_
+
+- [ ]* 14.1 Write property test for quiz length consistency
+  - **Property 6: Quiz length consistency**
+  - **Validates: Requirements 9.1, 9.2, 9.3**
+
+- [ ] 15. Manual testing and refinement
   - Test quiz with 12-minute timer in real-time
   - Verify 5-second delay feels appropriate for correct answers
   - Verify 20-second delay provides enough reading time for explanations
@@ -152,7 +165,8 @@
   - Test practice exam with various answer qualities
   - Verify feedback sections are clearly separated and readable
   - Gather user feedback on retry indicator clarity
+  - Verify quiz generates exactly 10 questions
   - _Requirements: All requirements_
 
-- [ ] 15. Final checkpoint - Ensure all tests pass
+- [ ] 16. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.

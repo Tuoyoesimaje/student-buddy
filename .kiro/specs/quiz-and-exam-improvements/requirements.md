@@ -23,14 +23,14 @@ This specification addresses improvements to two core learning features in the S
 
 ### Requirement 1: Quiz Timer Duration
 
-**User Story:** As a student taking a quiz, I want more time to complete all questions, so that I can thoughtfully answer without feeling rushed.
+**User Story:** As a student taking a quiz, I want sufficient time to complete all questions, so that I can thoughtfully answer without feeling rushed.
 
 #### Acceptance Criteria
 
-1. WHEN a quiz session starts THEN the system SHALL initialize the timer to 12 minutes (720 seconds)
+1. WHEN a quiz session starts THEN the system SHALL initialize the timer to 10 minutes (600 seconds)
 2. WHEN the timer is displayed THEN the system SHALL show the time in MM:SS format
 3. WHEN the timer reaches zero THEN the system SHALL auto-submit the quiz with current answers
-4. WHEN a student resets the quiz THEN the system SHALL restore the timer to 12 minutes
+4. WHEN a student resets the quiz THEN the system SHALL restore the timer to 10 minutes
 
 ### Requirement 2: Post-Answer Delay Timing
 
@@ -125,3 +125,14 @@ This specification addresses improvements to two core learning features in the S
 3. WHEN the retry indicator is shown THEN the system SHALL use a distinct color or icon to draw attention
 4. WHEN auto-advance is pending THEN the system SHALL optionally display a countdown or progress indicator
 5. WHEN displaying the "Previous" button THEN the system SHALL use consistent styling with other navigation controls
+
+### Requirement 9: Quiz Length Optimization
+
+**User Story:** As a student taking a quiz, I want a shorter quiz with 10 questions instead of 15, so that I can complete it more quickly while still testing my knowledge effectively.
+
+#### Acceptance Criteria
+
+1. WHEN the system generates a quiz THEN the system SHALL create exactly 10 multiple-choice questions
+2. WHEN the AI prompt is constructed THEN the system SHALL request 10 questions from the AI service
+3. WHEN the quiz is displayed THEN the system SHALL show a total of 10 questions to the student
+4. WHEN calculating quiz results THEN the system SHALL base the score on 10 questions total
