@@ -31,9 +31,11 @@ exports.getNotes = async (req, res) => {
 // @route   POST /api/notes
 // @access  Private
 exports.createNote = async (req, res) => {
-  const { title, content, subject, course, tags, attachments } = req.body;
+  const { title, content, subject, course, tags, attachments, isOCRExtracted, formattingOffered } = req.body;
 
   try {
+    console.log('Creating note with OCR flags:', { isOCRExtracted, formattingOffered });
+    
     const newNote = new Note({
       title,
       content,
@@ -42,9 +44,16 @@ exports.createNote = async (req, res) => {
       tags,
       attachments,
       user: req.user.userId,
+      isOCRExtracted: isOCRExtracted || false,
+      formattingOffered: formattingOffered || false,
     });
 
     const note = await newNote.save();
+    console.log('Note saved with flags:', { 
+      id: note._id, 
+      isOCRExtracted: note.isOCRExtracted, 
+      formattingOffered: note.formattingOffered 
+    });
     res.json(note);
   } catch (err) {
     console.error(err.message);

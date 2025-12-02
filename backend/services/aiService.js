@@ -179,6 +179,26 @@ Format the notes in a clean, readable structure with headings and bullet points.
     return result;
   }
 
+  async improveOCRFormatting(ocrText) {
+    const prompt = `You are an expert text formatter. The following text was extracted using OCR (Optical Character Recognition) and may contain errors. Your task is to:
+
+1. Fix spelling errors and typos
+2. Correct misinterpreted words based on context
+3. Fill in missed words where context makes it clear what was intended
+4. Improve paragraph structure and formatting for better readability
+5. Preserve ALL original content - do not remove or summarize anything
+6. Maintain the original meaning and intent of the text
+
+IMPORTANT: This is a formatting improvement, NOT a summary. Keep all the original information intact.
+
+OCR-extracted text:
+${ocrText}
+
+Please return the improved, properly formatted text:`;
+
+    return await this.generateResponse(prompt);
+  }
+
   async generatePracticeQuestions(topicOrNote, isNoteBased = true) {
     let prompt;
     if (isNoteBased) {

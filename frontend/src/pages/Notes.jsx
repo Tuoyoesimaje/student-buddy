@@ -827,7 +827,9 @@ export default function Notes() {
             title: noteTitle.trim(),
             content: extractedText.trim(),
             subject: selectedFolder || '',
-            course: selectedCourse || null
+            course: selectedCourse || null,
+            isOCRExtracted: true,
+            formattingOffered: false
           })
         });
   
@@ -1655,6 +1657,30 @@ export default function Notes() {
              ) : null}
           </div>
 
+          {/* OCR Formatting Banner */}
+          {(() => {
+            console.log('Banner Check:', {
+              isOCRExtracted: selectedNote.isOCRExtracted,
+              formattingOffered: selectedNote.formattingOffered,
+              isEditingNote: isEditingNote,
+              shouldShow: selectedNote.isOCRExtracted && !selectedNote.formattingOffered && !isEditingNote
+            });
+            return null;
+          })()}
+          {selectedNote.isOCRExtracted && !selectedNote.formattingOffered && !isEditingNote && (
+            <OCRFormattingBanner
+              noteId={selectedNote._id}
+              onFormatComplete={(updatedNote) => {
+                setSelectedNote(updatedNote);
+                setNotes(prevNotes => prevNotes.map(note => note._id === updatedNote._id ? updatedNote : note));
+              }}
+              onDismiss={(updatedNote) => {
+                setSelectedNote(updatedNote);
+                setNotes(prevNotes => prevNotes.map(note => note._id === updatedNote._id ? updatedNote : note));
+              }}
+            />
+          )}
+
           {!isEditingNote ? (
             <div
               className="note-content prose dark:prose-invert prose-sm max-w-none px-2 py-3 md:px-4 md:py-6 md:prose-lg mb-6 bg-white dark:bg-gray-700 rounded-lg shadow-sm text-gray-800 dark:text-gray-200 relative"
@@ -2025,6 +2051,114 @@ const AIExplainModalPopup = ({ aiHint, aiExplanation, showFullExplanation, setSh
         )}
       </div>
     </div>
+  );
+};
+
+// OCR Formatting Banner Component
+const OCRFormattingBanner = ({ noteId, onFormatComplete, onDismiss }) => {
+  const [isFormatting, setIsFormatting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleFormatWithAI = async () => {
+    setIsFormatting(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notes/${noteId}/improve-formatting`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to improve formatting');
+      }
+
+      const updatedNote = await response.json();
+      toast.success('Note formatting improved successfully!');
+      onFormatComplete(updatedNote);
+    } catch (err) {
+      console.error('Error improving formatting:', err);
+      setError('Failed to improve formatting. Please try again.');
+      toast.error('Failed to improve formatting');
+    } finally {
+      setIsFormatting(false);
+    }
+  };
+
+  const handleDismiss = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notes/${noteId}/dismiss-formatting`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to dismiss banner');
+      }
+
+      const updatedNote = await response.json();
+      onDismiss(updatedNote);
+    } catch (err) {
+      console.error('Error dismissing banner:', err);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 20 }}
+      className="mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-lg p-4 shadow-md"
+    >
+      <div className="flex items-start space-x-3">
+        <div className="flex-shrink-0">
+          <SparklesIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-1">
+            OCR-Extracted Note
+          </h3>
+          <p className="text-sm text-blue-800 dark:text-blue-400 mb-3">
+            This note was extracted using OCR. Formatting may not be perfect. Let AI improve formatting and fix spelling errors to match your original content.
+          </p>
+          {error && (
+            <p className="text-sm text-red-600 dark:text-red-400 mb-2">{error}</p>
+          )}
+          <div className="flex space-x-2">
+            <button
+              onClick={handleFormatWithAI}
+              disabled={isFormatting}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2 text-sm font-medium shadow-sm"
+            >
+              {isFormatting ? (
+                <>
+                  <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                  <span>Formatting...</span>
+                </>
+              ) : (
+                <>
+                  <SparklesIcon className="w-4 h-4" />
+                  <span>Format with AI</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleDismiss}
+              disabled={isFormatting}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors duration-200 text-sm font-medium"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 };
 

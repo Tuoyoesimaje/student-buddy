@@ -29,6 +29,14 @@ const noteSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  isOCRExtracted: {
+    type: Boolean,
+    default: false,
+  },
+  formattingOffered: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -121,6 +121,58 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// @route   POST api/notes/:id/improve-formatting
+// @desc    Improve OCR formatting using AI
+// @access  Private
+router.post('/:id/improve-formatting', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const aiService = require('../services/aiService');
+
+    const note = await require('../models/Note').findOne({ _id: id, user: req.user.userId });
+
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+
+    // Improve the formatting using AI
+    const improvedContent = await aiService.improveOCRFormatting(note.content);
+
+    // Update the note with improved content and mark formatting as offered
+    note.content = improvedContent;
+    note.formattingOffered = true;
+    await note.save();
+
+    res.status(200).json(note);
+  } catch (err) {
+    console.error('Error improving note formatting:', err);
+    res.status(500).json({ message: 'Error improving note formatting' });
+  }
+});
+
+// @route   PUT api/notes/:id/dismiss-formatting
+// @desc    Mark formatting banner as dismissed
+// @access  Private
+router.put('/:id/dismiss-formatting', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const note = await require('../models/Note').findOne({ _id: id, user: req.user.userId });
+
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+
+    note.formattingOffered = true;
+    await note.save();
+
+    res.status(200).json(note);
+  } catch (err) {
+    console.error('Error dismissing formatting banner:', err);
+    res.status(500).json({ message: 'Error dismissing formatting banner' });
+  }
+});
+
 // Text extraction endpoint for document upload with hybrid OCR support
 router.post('/upload/extract-text', auth, upload.single('file'), async (req, res) => {
   try {
@@ -177,7 +229,8 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
         fileSize: req.file.size,
         extractedLength: formattedText.length,
         documentType: documentType,
-        ocrMethod: documentType === 'handwritten' ? 'Google Vision API / Tesseract' : 'Tesseract'
+        ocrMethod: documentType === 'handwritten' ? 'Google Vision API / Tesseract' : 'Tesseract',
+        isOCRExtracted: true // Flag to indicate this was OCR-extracted
       });
 
     } catch (error) {
