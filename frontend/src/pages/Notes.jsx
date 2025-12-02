@@ -723,6 +723,7 @@ export default function Notes() {
     const [noteTitle, setNoteTitle] = useState('');
     const [selectedFolder, setSelectedFolder] = useState('');
     const [selectedCourse, setSelectedCourse] = useState('');
+    const [documentType, setDocumentType] = useState('printed'); // 'printed' or 'handwritten'
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState('');
     const fileInputRef = useRef(null);
@@ -755,17 +756,26 @@ export default function Notes() {
         setError('');
         setExtractedText('');
         setNoteTitle(file.name.replace(/\.[^/.]+$/, '')); // Remove extension for default title
-        extractTextFromFile(file);
+        // Don't extract yet - wait for user to select document type
+      }
+    };
+
+    const handleDocumentTypeChange = (newType) => {
+      setDocumentType(newType);
+      // If file is already selected, re-extract with new type
+      if (selectedFile) {
+        extractTextFromFile(selectedFile, newType);
       }
     };
   
-    const extractTextFromFile = async (file) => {
+    const extractTextFromFile = async (file, docType) => {
       setIsExtracting(true);
       setUploadProgress(0);
   
       try {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('documentType', docType);
   
         const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notes/upload/extract-text`, {
           method: 'POST',
@@ -776,15 +786,21 @@ export default function Notes() {
         });
   
         if (!response.ok) {
-          throw new Error('Failed to extract text from file');
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to extract text from file');
         }
   
         const data = await response.json();
         setExtractedText(data.text);
         setUploadProgress(100);
+        
+        // Show success message with OCR method used
+        if (data.ocrMethod) {
+          toast.success(`Text extracted using ${data.ocrMethod}`);
+        }
       } catch (error) {
         console.error('Error extracting text:', error);
-        setError('Failed to extract text from file. Please try again.');
+        setError(error.message || 'Failed to extract text from file. Please try again.');
       } finally {
         setIsExtracting(false);
       }
@@ -890,6 +906,82 @@ export default function Notes() {
                 />
               </div>
             </div>
+          ) : !extractedText && !isExtracting ? (
+            /* Document Type Selection */
+            <div className="space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                    Selected: {selectedFile.name}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  What type of document is this?
+                </label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleDocumentTypeChange('printed')}
+                    className={`p-4 border-2 rounded-lg transition-all ${
+                      documentType === 'printed'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-indigo-300'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <BookOpenIcon className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-1" />
+                      <div className="text-left">
+                        <h3 className="font-medium text-gray-900 dark:text-white">Printed/Typed Document</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          Textbooks, PDFs, typed notes, scanned printed text
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handleDocumentTypeChange('handwritten')}
+                    className={`p-4 border-2 rounded-lg transition-all ${
+                      documentType === 'handwritten'
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                        : 'border-gray-300 dark:border-gray-600 hover:border-indigo-300'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <PencilSquareIcon className="w-6 h-6 text-indigo-600 flex-shrink-0 mt-1" />
+                      <div className="text-left">
+                        <h3 className="font-medium text-gray-900 dark:text-white">Handwritten Notes</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          Handwritten student notes, sketches with text
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                {documentType === 'handwritten' && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                      <strong>Note:</strong> Handwriting recognition works best with clear, legible writing. 
+                      Accuracy may vary depending on handwriting style.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  onClick={handleClose}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           ) : (
             /* Text Extraction and Note Creation */
             <div className="space-y-4">
@@ -899,7 +991,7 @@ export default function Notes() {
                   <div className="flex items-center space-x-3 mb-2">
                     <ArrowPathIcon className="w-5 h-5 text-blue-600 animate-spin" />
                     <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                      Extracting text from {selectedFile.name}...
+                      Extracting text from {selectedFile.name} using {documentType === 'handwritten' ? 'handwriting' : 'printed text'} OCR...
                     </span>
                   </div>
                   <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2">
@@ -908,6 +1000,9 @@ export default function Notes() {
                       style={{ width: `${uploadProgress}%` }}
                     ></div>
                   </div>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                    This may take a few moments for large documents...
+                  </p>
                 </div>
               )}
   

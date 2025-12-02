@@ -120,7 +120,7 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-// Text extraction endpoint for document upload
+// Text extraction endpoint for document upload with hybrid OCR support
 router.post('/upload/extract-text', auth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -129,16 +129,15 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
 
     const filePath = req.file.path;
     const fileExt = path.extname(req.file.originalname).toLowerCase();
+    const documentType = req.body.documentType || 'printed'; // 'printed' or 'handwritten'
     let extractedText = '';
 
     try {
       if (fileExt === '.pdf') {
-        // For PDF files, we'll use a simple approach
-        // In a production environment, you might want to use pdf-parse or pdfjs-dist
-        extractedText = await extractTextFromPDF(filePath);
+        // For PDF files, use hybrid OCR approach
+        extractedText = await extractTextFromPDF(filePath, documentType);
       } else if (fileExt === '.docx') {
-        // For DOCX files, we'll use a simple approach
-        // In a production environment, you might want to use mammoth
+        // For DOCX files, use mammoth
         extractedText = await extractTextFromDOCX(filePath);
       } else if (fileExt === '.txt' || fileExt === '.md') {
         // For text and markdown files, read directly
@@ -152,7 +151,9 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
 
       // Validate extracted text
       if (!extractedText || extractedText.trim().length === 0) {
-        return res.status(400).json({ error: 'No readable text found in the uploaded file. This might be an image-only PDF.' });
+        return res.status(400).json({ 
+          error: 'No readable text found in the uploaded file. This might be an image-only PDF or the handwriting may be unclear.' 
+        });
       }
 
       // Limit text length to prevent issues - increased for very large textbooks (5M characters)
@@ -165,7 +166,9 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
         text: extractedText.trim(),
         filename: req.file.originalname,
         fileSize: req.file.size,
-        extractedLength: extractedText.trim().length
+        extractedLength: extractedText.trim().length,
+        documentType: documentType,
+        ocrMethod: documentType === 'handwritten' ? 'Google Vision API / Tesseract' : 'Tesseract'
       });
 
     } catch (error) {
@@ -184,27 +187,31 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
   }
 });
 
-// PDF text extraction using pdf-parse with OCR fallback
-async function extractTextFromPDF(filePath) {
+// PDF text extraction using pdf-parse with hybrid OCR fallback
+async function extractTextFromPDF(filePath, documentType = 'printed') {
   try {
     const pdf = require('pdf-parse');
     const dataBuffer = fs.readFileSync(filePath);
     const data = await pdf(dataBuffer);
 
-    // If we got substantial text, return it
-    if (data.text && data.text.trim().length > 100) {
+    // If we got substantial text, return it (for printed PDFs with text layer)
+    if (data.text && data.text.trim().length > 100 && documentType === 'printed') {
       return data.text;
     }
 
-    // If little/no text found, it's likely an image-based PDF - use OCR
-    console.log('PDF appears to be image-based, using OCR...');
-    return await extractTextFromImagePDF(filePath);
+    // If little/no text found, or if it's handwritten, use OCR
+    if (documentType === 'handwritten') {
+      console.log('Using OCR for handwritten PDF...');
+    } else {
+      console.log('PDF appears to be image-based, using OCR...');
+    }
+    return await extractTextFromImagePDF(filePath, documentType);
 
   } catch (error) {
     console.error('Error extracting PDF text:', error);
     // If normal extraction fails, try OCR as fallback
     try {
-      return await extractTextFromImagePDF(filePath);
+      return await extractTextFromImagePDF(filePath, documentType);
     } catch (ocrError) {
       throw new Error('Failed to extract text from PDF file');
     }
@@ -223,105 +230,22 @@ async function extractTextFromDOCX(filePath) {
   }
 }
 
-// OCR function for image-based PDFs
-async function extractTextFromImagePDF(filePath) {
-  const { convert } = require('pdf-poppler');
-  const Tesseract = require('tesseract.js');
-  const tempDir = path.join(__dirname, '../uploads/temp-images');
-
-  // Create temp directory if it doesn't exist
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true });
-  }
-
+// OCR function for image-based PDFs with hybrid support
+async function extractTextFromImagePDF(filePath, documentType = 'printed') {
+  const ocrService = require('../services/ocrService');
+  
   try {
-    // Convert PDF pages to PNG images
-    const opts = {
-      format: 'png',
-      out_dir: tempDir,
-      out_prefix: `pdf-${Date.now()}`,
-      page: null // Convert all pages
-    };
-
-    console.log('Converting PDF to images...');
-    await convert(filePath, opts);
-
-    // Get all generated image files
-    const imageFiles = fs.readdirSync(tempDir)
-      .filter(file => file.startsWith(opts.out_prefix))
-      .sort();
-
-    if (imageFiles.length === 0) {
-      throw new Error('Failed to convert PDF to images. The PDF may be corrupted or password-protected.');
-    }
-
-    let fullText = '';
-
-    console.log(`Running OCR on ${imageFiles.length} pages...`);
-
-    // Limit OCR to first 50 pages for very large PDFs to prevent timeouts
-    const maxPages = Math.min(imageFiles.length, 50);
-    console.log(`Processing first ${maxPages} pages (limited for performance)`);
-
-    // Run OCR on each image
-    for (let i = 0; i < maxPages; i++) {
-      const imagePath = path.join(tempDir, imageFiles[i]);
-
-      console.log(`OCR on page ${i + 1}/${maxPages}...`);
-
-      try {
-        const { data: { text } } = await Tesseract.recognize(
-          imagePath,
-          'eng',
-          {
-            logger: m => {
-              if (m.status === 'recognizing text') {
-                console.log(`Page ${i + 1} OCR: ${Math.round(m.progress * 100)}%`);
-              }
-            }
-          }
-        );
-
-        fullText += `\n--- Page ${i + 1} ---\n${text}\n`;
-      } catch (pageError) {
-        console.error(`OCR failed on page ${i + 1}:`, pageError);
-        fullText += `\n--- Page ${i + 1} (OCR failed) ---\n`;
+    const extractedText = await ocrService.extractTextFromImagePDF(filePath, documentType, {
+      maxPages: 50,
+      onProgress: (progress) => {
+        console.log(`OCR Progress: ${progress}%`);
       }
+    });
 
-      // Delete processed image
-      try {
-        fs.unlinkSync(imagePath);
-      } catch (deleteError) {
-        console.error(`Failed to delete temp image ${imagePath}:`, deleteError);
-      }
-    }
-
-    // If we limited pages, add a note
-    if (imageFiles.length > maxPages) {
-      fullText += `\n\n[OCR limited to first ${maxPages} pages for performance. Consider splitting large PDFs into smaller chunks.]`;
-    }
-
-    return fullText.trim();
-
+    return extractedText;
   } catch (error) {
     console.error('Error in OCR extraction:', error);
-    throw new Error('Failed to extract text using OCR. The PDF may be corrupted or contain unsupported image formats.');
-  } finally {
-    // Cleanup temp directory
-    try {
-      if (fs.existsSync(tempDir)) {
-        const files = fs.readdirSync(tempDir);
-        files.forEach(file => {
-          try {
-            fs.unlinkSync(path.join(tempDir, file));
-          } catch (fileError) {
-            console.error(`Error deleting temp file ${file}:`, fileError);
-          }
-        });
-      }
-    } catch (cleanupError) {
-      console.error('Error cleaning up temp files:', cleanupError);
-    }
+    throw new Error(`Failed to extract text using OCR: ${error.message}`);
   }
 }
 
