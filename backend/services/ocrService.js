@@ -189,32 +189,37 @@ async function extractTextWithGoogleVision(imagePath) {
 /**
  * Extract text from an image with automatic fallback
  * @param {string} imagePath - Path to the image file
- * @param {string} documentType - 'printed' or 'handwritten'
+ * @param {string} documentType - 'printed', 'typed', 'handwritten', or 'scanned handwritten'
  * @param {object} options - Additional options
  * @returns {Promise<string>} Extracted text
  */
 async function extractTextFromImage(imagePath, documentType = 'printed', options = {}) {
   const { pageNumber = null, onProgress = null } = options;
 
+  // Normalize document type
+  const normalizedType = documentType?.toLowerCase() || 'printed';
+  const isHandwritten = normalizedType.includes('handwritten') || normalizedType === 'handwritten';
+  
+  console.log(`📄 OCR Engine Selection - Document Type: "${documentType}" (Page ${pageNumber || 'unknown'})`);
+
   try {
-    if (documentType === 'handwritten' && visionClient) {
-      // Use Google Vision for handwritten text
-      console.log(`Using Google Vision API for handwritten text (page ${pageNumber || 'unknown'})...`);
+    // Only use Google Vision for explicitly handwritten documents
+    if (isHandwritten && visionClient) {
+      console.log(`✓ Using Google Vision API for handwritten text`);
       const text = await extractTextWithGoogleVision(imagePath);
       return postProcessText(text);
+    } else if (isHandwritten && !visionClient) {
+      console.log(`⚠ Google Vision not available, using Tesseract fallback for handwritten text`);
+      return await extractTextWithTesseract(imagePath, { onProgress, usePreprocessing: true });
     } else {
-      // Use Tesseract for printed text or as fallback
-      if (documentType === 'handwritten' && !visionClient) {
-        console.log(`Google Vision not available, using Tesseract fallback for handwritten text (page ${pageNumber || 'unknown'})...`);
-      } else {
-        console.log(`Using Tesseract for printed text (page ${pageNumber || 'unknown'})...`);
-      }
+      // Use Tesseract for printed/typed documents
+      console.log(`✓ Using Tesseract for printed/typed text`);
       return await extractTextWithTesseract(imagePath, { onProgress, usePreprocessing: true });
     }
   } catch (error) {
     // If primary method fails, try fallback
-    if (documentType === 'handwritten' && visionClient) {
-      console.log('Google Vision failed, falling back to Tesseract...');
+    if (isHandwritten && visionClient) {
+      console.log('❌ Google Vision failed, falling back to Tesseract...');
       return await extractTextWithTesseract(imagePath, { onProgress, usePreprocessing: true });
     }
     throw error;
