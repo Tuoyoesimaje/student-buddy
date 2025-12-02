@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const noteController = require('../controllers/noteController');
 const auth = require('../middleware/auth');
+const { formatExtractedText } = require('../utils/textFormatter');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -129,18 +130,23 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
 
     const filePath = req.file.path;
     const fileExt = path.extname(req.file.originalname).toLowerCase();
-    const documentType = req.body.documentType || 'printed'; // 'printed' or 'handwritten'
+    const documentType = req.body.documentType || 'printed'; // 'printed', 'typed', 'handwritten'
     let extractedText = '';
+
+    console.log(`\n📤 File Upload - Name: ${req.file.originalname}, Type: ${fileExt}, Document Type: ${documentType}`);
 
     try {
       if (fileExt === '.pdf') {
         // For PDF files, use hybrid OCR approach
+        console.log(`📄 Processing PDF with document type: ${documentType}`);
         extractedText = await extractTextFromPDF(filePath, documentType);
       } else if (fileExt === '.docx') {
         // For DOCX files, use mammoth
+        console.log(`📄 Processing DOCX file`);
         extractedText = await extractTextFromDOCX(filePath);
       } else if (fileExt === '.txt' || fileExt === '.md') {
         // For text and markdown files, read directly
+        console.log(`📄 Reading text file directly`);
         extractedText = fs.readFileSync(filePath, 'utf8');
       } else {
         throw new Error('Unsupported file type');
@@ -161,12 +167,15 @@ router.post('/upload/extract-text', auth, upload.single('file'), async (req, res
         extractedText = extractedText.substring(0, 5000000) + '\n\n[Text truncated due to length - consider uploading in smaller chunks for extremely large documents...]';
       }
 
+      // Format the extracted text for better readability
+      const formattedText = formatExtractedText(extractedText);
+
       res.json({
         success: true,
-        text: extractedText.trim(),
+        text: formattedText,
         filename: req.file.originalname,
         fileSize: req.file.size,
-        extractedLength: extractedText.trim().length,
+        extractedLength: formattedText.length,
         documentType: documentType,
         ocrMethod: documentType === 'handwritten' ? 'Google Vision API / Tesseract' : 'Tesseract'
       });
